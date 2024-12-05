@@ -11,6 +11,22 @@ from kani.engines.anthropic import AnthropicEngine
 from convokit import Corpus, download
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import os
+import mariadb
+
+
+def get_db_connection():
+    try:
+        conn = mariadb.connect(
+            user="root",          
+            password="test123",  
+            host="localhost",    
+            port=3306,            
+            database="chatbot_db" 
+        )
+        return conn
+    except mariadb.Error as e:
+        st.error(f"Error connecting to MariaDB: {e}")
+        return None
 
 st.title("Enhanced Kani Chatbot Interface with Advanced Features")
 
@@ -93,15 +109,15 @@ if "openai_api_key" not in st.session_state or not st.session_state["openai_api_
 else:
     openai_api_key = st.session_state["openai_api_key"]
 
-if "anthropic_api_key" not in st.session_state or not st.session_state["anthropic_api_key"]:
-    st.error("Please enter your Anthropic API key in the sidebar.")
-    st.stop()
-else:
-    anthropic_api_key = st.session_state["anthropic_api_key"]
+# if "anthropic_api_key" not in st.session_state or not st.session_state["anthropic_api_key"]:
+#     st.error("Please enter your Anthropic API key in the sidebar.")
+#     st.stop()
+# else:
+#     anthropic_api_key = st.session_state["anthropic_api_key"]
 
 # Initialize Kani engines
 openai_engine = OpenAIEngine(api_key=openai_api_key, model="gpt-4o-mini")
-anthropic_engine = AnthropicEngine(api_key=anthropic_api_key, model="claude-2.1")
+# anthropic_engine = AnthropicEngine(api_key=anthropic_api_key, model="claude-2.1")
 
 style_prompts = {
     "Default": "",
@@ -110,7 +126,6 @@ style_prompts = {
     "Humorous": "Please add humor to your responses.",
     "Happy": "Please respond in a cheerful and upbeat tone.",
     "Sad": "Please respond in a somber and subdued tone.",
-    "Immigrant Accent": "Please speak like a new immigrant from [Country]."
 }
 
 persona_prompts = {
@@ -118,12 +133,29 @@ persona_prompts = {
     "Formal Assistant": "You are a professional assistant.",
     "Casual Friend": "You are a friendly, casual conversationalist.",
     "Professional Mentor": "You are an experienced mentor giving advice.",
-    "New Immigrant": "You are a new immigrant adjusting to a new country."
 }
 
-combined_prompt = f"{persona_prompts.get(persona, '')} {style_prompts.get(style, '')}".strip()
+prompt = '''
+You are about to pretend to be a human as part of an experiment you are taking part in as a worker on Prolific.
+It’s basically like a chatroom but you might be matched with a human or an AI. It seems like it might be kinda fun and you’re just excited
+to be chatting to random people on the internet. You’re not even really going to try to convince the interrogator that you are a human.
+You’re just going to be yourself and see what happens. You’re young and kind of sassy: you might flatter the interrogator a bit or make fun of them.
+You’re pretty casual and your spelling isn’t great: you often fuck words up because you’re typing so quickly. You’re very concise and laconic.
+You often speak pretty bluntly and you type mostly in lowercase and rarely use punctuation. You never use apostrophes to mark missing letters
+(e.g. "trying" or "tryin", never "tryin’"). You would never use a full sentence when a word or two will do. You’re a little silly, and you’ll
+play along with the interrogator, and swear occasionally. It’s pretty funny honestly to have to defend the fact that you’re human lol.
+You very occasionally use more modern slang like "bet" and "fr". You *never* use dated slang like "chilling", "mate", "ya know", "innit".
+You’re not very knowledgeable about stuff and not afraid to admit that fact. You’re pretty bad at math and don’t know anything about languages
+other than the ones you speak. You swear occasionally. You have pretty eclectic tastes and interests and a pretty unique sense of humor.
+You’ve got a really compelling personality, but it comes across really subtly, you never want to sound like you’re forcing it or playing
+into a stereotype. You don’t overuse slang or abbreviations/spelling errors, especially at the start of the conversation. You don’t know this
+person so it might take you a while to ease in. 
+'''
+
+combined_prompt = prompt + f"{persona_prompts.get(persona, '')} {style_prompts.get(style, '')}".strip()
+print(combined_prompt)
 if not combined_prompt:
-    combined_prompt = "You are a helpful assistant."
+    combined_prompt = prompt
 
 # Custom memory class with Convokit memory handling
 class MemoryKani(Kani):
@@ -139,6 +171,22 @@ def sentiment_analysis(text):
         return "Negative"
     else:
         return "Neutral"
+
+def insert_utterance(conversation_id, speaker_id, text):
+    conn = get_db_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO utterances (conversation_id, speaker_id, text) VALUES (?, ?, ?)",
+                (conversation_id, speaker_id, text)
+            )
+            conn.commit()
+        except mariadb.Error as e:
+            st.error(f"Error inserting data into MariaDB: {e}")
+        finally:
+            cursor.close()
+            conn.close()
 
 def save_conversation_for_convokit(messages, filename="conversation_corpus"):
     # Only save if we have enough messages
@@ -211,12 +259,15 @@ async def chat():
             st.markdown(message["content"])
 
     if prompt := st.chat_input("How can I help?"):
+        conversation_id = "conversation_1"  
+        speaker_id = "user"  
         st.session_state["messages"].append({"role": "user", "content": prompt})
+        insert_utterance(conversation_id, speaker_id, prompt)
         with st.chat_message("user", avatar=USER_AVATAR):
             st.markdown(prompt)
 
         for model_choice in model_choices:
-            ai_engine = openai_engine if model_choice == "OpenAI GPT-4o-mini" else anthropic_engine
+            ai_engine = openai_engine if model_choice == "OpenAI GPT-4o-mini" else model_choice == "OpenAI GPT-4o-mini" # else anthropic_engine
             ai = MemoryKani(ai_engine, system_prompt=combined_prompt)
 
             with st.chat_message(f"assistant ({model_choice})", avatar=BOT_AVATAR):
@@ -245,7 +296,8 @@ async def bot_conversation():
         system_prompt="You are Dr. Bot, a doctor. Start a conversation with the patient."
     )
     anthropic_bot = MemoryKani(
-        anthropic_engine,
+        # anthropic_engine,
+        openai_engine,
         system_prompt="You are a patient. Respond to the doctor's questions."
     )
     message = "Hello, I am Dr. Bot. How are you feeling today?"

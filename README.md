@@ -78,7 +78,7 @@ HUMANLIKE-CHATBOT/
     docker-compose -f docker-compose.yml down -v
     ```
 
-6. [Optional] Edit the config.json file located at generic_chatbot/config.json to:
+6. [Optional] Customize the config.json file located at generic_chatbot/config.json to:
 
 - Select a language model.
 - Adjust bot-specific settings like anthropomorphism and prompts

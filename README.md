@@ -122,3 +122,4 @@ Date:26/12/2024
 
 ## To Be Specced & Open Questions
 - How can user authentication and tracking be best integrated with Qualtrics?
+- The  name of the project Humanlike chatbot does not intuitively describe what this project does do I need to keep this repository name?

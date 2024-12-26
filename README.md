@@ -63,13 +63,13 @@ HUMANLIKE-CHATBOT/
 3. Build and run the containers for the bot:
 
     ```bash
-    docker-compose -f docker-compose-generic_bot.yml up --build
+    docker-compose -f docker-compose.yml up --build
     ```
 
 4. To stop and remove the volumes:
 
     ```bash
-    docker-compose -f docker-compose-generic_bot.yml down -v
+    docker-compose -f docker-compose.yml down -v
     ```
 
 5. [Optional] Edit the config.json file located at generic_chatbot/config.json to:

@@ -1,16 +1,16 @@
 # GENERIC BOT
 ## Overview
 
-**Generic Bot** GENERIC Bot is a lightweight and modular chatbot framework designed to help researchers deploy and experiment with text-based conversational agents.The application features a Django backend, a React frontend (in progress), connection with LLMs via [Kani]([https://docs.google.com/document/d/1-cyC4nnibAFTxRk5-PV73yGv9hUJpHiCy3lXoQ9WDY0/edit?tab=t.0](https://github.com/zhudotexe/kani)) Framework and a MariaDB database, all containerized using Docker.
+Generic Bot is a lightweight, modular chatbot framework designed to help researchers deploy and experiment with text-based conversational agents efficiently. Built with a Django backend, a React frontend (in progress), the [Kani]([https://docs.google.com/document/d/1-cyC4nnibAFTxRk5-PV73yGv9hUJpHiCy3lXoQ9WDY0/edit?tab=t.0](https://github.com/zhudotexe/kani)) Framework for LLM integration, and a MariaDB database, it is fully containerized using Docker for seamless deployment.
 
-Using the config.json file, researchers can easily customize:
+Researchers can easily customize in config.json file:
 
-Language model selection.
-Anthropomorphism configurations.
-Prompt management.
-and more. 
+- Language model selection
+- Anthropomorphism settings
+- Bot-specific prompts
+- And more to come
 
-The project streamlines chatbot integration into research workflows (e.g., Qualtrics integration) and simplifies data collection and analysis.
+The project streamlines research workflow with integration with tools like Qualtrics, and allows efficient data collection and analysis.
 For detailed design specifications, see the [link](https://docs.google.com/document/d/1-cyC4nnibAFTxRk5-PV73yGv9hUJpHiCy3lXoQ9WDY0/edit?tab=t.0)
 
 ## Directory Structure
@@ -64,11 +64,10 @@ HUMANLIKE-CHATBOT/
     docker-compose -f docker-compose-generic_bot.yml down -v
     ```
 
-[customization]
-Configure the `config.json` file (`generic_chatbot/config.json`) to configure your chatbot:
+4. [Optional] Edit the config.json file located at generic_chatbot/config.json to:
 
-     
-> **Note:** Since the Docker Compose files use default ports, make sure to update the ports if you are testing multiple applications locally.
+- Select a language model.
+- Adjust bot-specific settings like anthropomorphism and prompts
 
 ---
 
@@ -78,13 +77,13 @@ Date:26/12/2024
 ### Current Functionality
 - Language model selection and bot/prompt management via config.json
 - Chat interaction logging (stored in MariaDB).
-- Fully Dockerized for easy setup and deployment.
+- Dockerized for easy setup and deployment.
 
 ---
 
-### Known Issues
-- None at the moment.
-
+### Known Bugs
+- N/A
+  
 ---
 
 ### V1 Next Steps

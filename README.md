@@ -45,11 +45,13 @@ HUMANLIKE-CHATBOT/
 
 ### Setup
 
-1. Clone the repository:
+1. Clone the repository under Soojin branch:
 
     ```bash
     git clone git@github.com:wwbp/humanlike-chatbot.git
     cd humanlike-chatbot
+    git checkout Soojin
+
     ```
 
 2. Build and run the containers for the bot:

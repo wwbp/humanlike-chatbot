@@ -2,7 +2,7 @@
     "default_model_config": {
         "type": "OpenAI",
         "model_id": "gpt-4",
-        "api_key": "${API_KEY}"
+        "api_key": "OPENAI_API_KEY"
     },
     "bots": [
         {
@@ -15,5 +15,5 @@
         }
     ],
     "app_title": "My Chatbot Application",
-    "save_threshold": 10 /*function unavail yet*/
+    "save_threshold": 10
 }

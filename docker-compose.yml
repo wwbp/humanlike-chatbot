@@ -38,7 +38,8 @@ services:
       DATABASE_HOST: db
       DATABASE_PORT: 3306
       ALLOWED_HOSTS: ${ALLOWED_HOSTS}
-      API_KEY: ${API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY} 
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     command: >
       ./wait-for-db.sh python manage.py runserver 0.0.0.0:8000
 

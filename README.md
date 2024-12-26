@@ -1,7 +1,7 @@
 # GENERIC BOT
 ## Overview
 
-Generic Bot is a lightweight, modular chatbot framework designed to help researchers deploy and experiment with text-based conversational agents efficiently. Built with a Django backend, a React frontend (in progress), the [Kani]([https://docs.google.com/document/d/1-cyC4nnibAFTxRk5-PV73yGv9hUJpHiCy3lXoQ9WDY0/edit?tab=t.0](https://github.com/zhudotexe/kani)) Framework for LLM integration, and a MariaDB database, it is fully containerized using Docker for seamless deployment.
+Generic Bot is a lightweight, modular chatbot framework designed to help researchers deploy and experiment with text-based conversational agents efficiently. Built with a Django backend, a React frontend (in progress), the [Kani]((https://github.com/zhudotexe/kani)) Framework for LLM integration, and a MariaDB database, it is fully containerized using Docker for seamless deployment.
 
 Researchers can easily customize in config.json file:
 

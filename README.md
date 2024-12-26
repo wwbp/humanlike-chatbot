@@ -66,13 +66,19 @@ HUMANLIKE-CHATBOT/
     docker-compose -f docker-compose.yml up --build
     ```
 
-4. To stop and remove the volumes:
+4. Access the Application at http://localhost:8000/
+
+    ```bash
+    http://localhost:8000/
+    ```
+
+5. To stop and remove the volumes:
 
     ```bash
     docker-compose -f docker-compose.yml down -v
     ```
 
-5. [Optional] Edit the config.json file located at generic_chatbot/config.json to:
+6. [Optional] Edit the config.json file located at generic_chatbot/config.json to:
 
 - Select a language model.
 - Adjust bot-specific settings like anthropomorphism and prompts

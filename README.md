@@ -54,19 +54,25 @@ HUMANLIKE-CHATBOT/
 
     ```
 
-2. Build and run the containers for the bot:
+2. Create .env file: Copy example.env and add required API for your chosen LLM model:
+
+    ```bash
+    cp example.env .env
+    ```
+
+3. Build and run the containers for the bot:
 
     ```bash
     docker-compose -f docker-compose-generic_bot.yml up --build
     ```
 
-3. To stop and remove the volumes:
+4. To stop and remove the volumes:
 
     ```bash
     docker-compose -f docker-compose-generic_bot.yml down -v
     ```
 
-4. [Optional] Edit the config.json file located at generic_chatbot/config.json to:
+5. [Optional] Edit the config.json file located at generic_chatbot/config.json to:
 
 - Select a language model.
 - Adjust bot-specific settings like anthropomorphism and prompts

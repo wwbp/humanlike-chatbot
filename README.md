@@ -1,15 +1,21 @@
 # GENERIC BOT
+##Overview
 
-## Overview
+**Generic Bot** GENERIC Bot is a lightweight and modular chatbot framework designed to help researchers deploy and experiment with text-based conversational agents.The application features a Django backend, a React frontend (in progress), connection with LLMs via [Kani]([https://docs.google.com/document/d/1-cyC4nnibAFTxRk5-PV73yGv9hUJpHiCy3lXoQ9WDY0/edit?tab=t.0](https://github.com/zhudotexe/kani)) Framework and a MariaDB database, all containerized using Docker.
 
-**GENERIC Bot** is a modular, lightweight chatbot framework working in process for researchers to experiment with and deploy bots for text-based interactions. It supports anthromophism configuration, prompt management, and multi-bot setups, leveraging the **Kani Framework**. The application uses a Django backend, React frontend (in progress), and MariaDB database, all containerized for ease of deployment using Docker.
+Using the config.json file, researchers can easily customize:
 
-The project streamlines integration of chatbot in research-cycle (link with qualtrics) and analysis easy for the researchers, for
-various projects including but not limited to projects such as palliative care, mental health care and more. 
-Check out more detailed design spec: [link](https://docs.google.com/document/d/1-cyC4nnibAFTxRk5-PV73yGv9hUJpHiCy3lXoQ9WDY0/edit?tab=t.0)
+Language model selection.
+Anthropomorphism configurations.
+Prompt management.
+and more. 
+
+The project streamlines chatbot integration into research workflows (e.g., Qualtrics integration) and simplifies data collection and analysis.
+For detailed design specifications, see the [link](https://docs.google.com/document/d/1-cyC4nnibAFTxRk5-PV73yGv9hUJpHiCy3lXoQ9WDY0/edit?tab=t.0)
 
 ## Directory Structure
-
+---
+```
 HUMANLIKE-CHATBOT/
 ├── generic_chatbot/
     ├── generic_chatbot/
@@ -17,7 +23,7 @@ HUMANLIKE-CHATBOT/
     ├── server/
         ├── engine.py 
     ├── templates/ # Temporary, will move to React FE system
-    ├── config.json # (configure to your need)
+    ├── config.json # Chatbot configuration
     ├── dockerfile.local
     ├── manage.py
     ├── Pipfile
@@ -27,8 +33,7 @@ HUMANLIKE-CHATBOT/
 ├── .env # Replace .env_template with .env and add API keys
 ├── init.sql
 ├── README.md
-
-
+```
 ---
 
 ## Getting Started
@@ -47,39 +52,31 @@ HUMANLIKE-CHATBOT/
     cd humanlike-chatbot
     ```
 
-2. Adjust the `config.json` file (`generic_chatbot/config.json`) to configure your chatbot:
-   - Refer to the **Config Settings** section in the [Design Document](https://docs.google.com/document/d/1-cyC4nnibAFTxRk5-PV73yGv9hUJpHiCy3lXoQ9WDY0/edit?tab=t.0) for details.
-
-3. Build and run the containers for the bot:
+2. Build and run the containers for the bot:
 
     ```bash
     docker-compose -f docker-compose-generic_bot.yml up --build
     ```
 
-4. To stop and remove the volumes:
+3. To stop and remove the volumes:
 
     ```bash
     docker-compose -f docker-compose-generic_bot.yml down -v
     ```
 
+[customization]
+Configure the `config.json` file (`generic_chatbot/config.json`) to configure your chatbot:
+
+     
 > **Note:** Since the Docker Compose files use default ports, make sure to update the ports if you are testing multiple applications locally.
 
 ---
 
-## Current Features
-- **Multi-Model Support**: Easily switch between different language models (see `config.json` for details).
-- **Prompt Engineering**: Configure prompts for tailored responses.
-- **Modular Backend**: Built on Django, allowing for easy customization.
-- **Database Integration**: Stores conversation logs using MariaDB.
-- **Dockerized Deployment**: Simplifies setup and scalability.
-- **Frontend (In Progress)**: Transitioning from Django templates to a React frontend.
-
----
-
-## Project Status (as of 26th Dec 2024)
+## Project Status 
+Date:26/12/2024
 
 ### Current Functionality
-- Language model selection and management.
+- Language model selection and bot/prompt management via config.json
 - Chat interaction logging (stored in MariaDB).
 - Fully Dockerized for easy setup and deployment.
 
@@ -99,18 +96,16 @@ HUMANLIKE-CHATBOT/
 
 ---
 
-### V2 Next Steps
+### V2 Future Enhancements
 1. Add voice interaction support.
-2. Improve UX/UI with iterative design and user feedback.
+2. Create adaptable UX/UI for various research case
 
 ---
 
 ## Challenges
-- **HuggingFace Support**: Decide whether to include HuggingFace models. Initial testing revealed issues with PyTorch library installation and GPU usage in Docker.
-- **User Authentication**: Consider if users need to log in. Integration with external systems like Qualtrics may simplify user authentication.
+- **HuggingFace Support**: Compatibility issues with PyTorch libraries and GPU support in Docker need to be resolved to integrate HuggingFace models.
 
 ---
 
-## Thoughts and Questions
-- Should users be required to log in?
-- Can user authentication and tracking be streamlined through Qualtrics integration?
+## To Be Specced & Open Questions
+- How can user authentication and tracking be best integrated with Qualtrics?

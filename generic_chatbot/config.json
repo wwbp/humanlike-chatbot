@@ -1,0 +1,19 @@
+{
+    "default_model_config": {
+        "type": "OpenAI",
+        "model_id": "gpt-4",
+        "api_key": "${API_KEY}"
+    },
+    "bots": [
+        {
+            "name": "Helpful Assistant",
+            "prompt": "You are a helpful assistant."
+        },
+        {
+            "name": "Doctor",
+            "prompt": "You are a doctor talking to a patient."
+        }
+    ],
+    "app_title": "My Chatbot Application",
+    "save_threshold": 10 /*function unavail yet*/
+}

@@ -1,101 +1,66 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-# DotEnv configuration
-.env
-
-# Database
-*.db
-*.rdb
-
-# Pycharm
-.idea
-
-# VS Code
-.vscode/
-*.code-workspace
-
-# Spyder
-.spyproject/
-
-# Jupyter NB Checkpoints
-.ipynb_checkpoints/
-
-
-# Mac OS-specific storage files
+# General
 .DS_Store
-
-# vim
 *.swp
 *.swo
+*.log
+*.bak
+Thumbs.db
 
-# Mypy cache
-.mypy_cache/
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.env
+*.venv
+*.virtualenv
+*.egg
+*.egg-info/
+dist/
+build/
+*.ipynb_checkpoints/
 
-# Exlcude the database file
-.db
-/data
+# Django
+db.sqlite3
+/media/
+/staticfiles/
+migrations/
 
+# Environment Files
+.env
+*.env.*
+google_credentials.json
 
+# Docker
+*.pid
+*.tar
+docker-compose.override.yml
+docker-compose*.yml~
+docker-compose*.override.yml~
+logs/
+*.sock
 
-# Ignore Python installation files
-Python-3.11.0
-Python-3.11.0.tgz
+# MariaDB
+*.sql
+*.sql.gz
+mysql_data/
 
-# Optionally, ignore virtual environments and temporary files
-venv/
+# IDE/Editor
+.vscode/
+.idea/
+*.code-workspace
+*.sublime-project
+*.sublime-workspace
+
+# Secrets/Keys
+*.pem
+*.crt
+*.key
+
+# Operating System Files
+.DS_Store
+.Spotlight-V100
+.Trashes
+__MACOSX
+*.~lock.*

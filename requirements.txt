@@ -1,7 +1,0 @@
-streamlit
-python-dotenv
-openai
-kani[openai,anthropic]
-convokit
-vaderSentiment
-anthropic

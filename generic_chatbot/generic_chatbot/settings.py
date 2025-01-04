@@ -11,12 +11,16 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
-import os 
-
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load .env file
+ROOT_DIR = BASE_DIR.parent  # Adjust for HUMANLIKE-CHATBOT root
+dotenv_path = os.path.join(ROOT_DIR, '.env')
+load_dotenv(dotenv_path)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -27,7 +31,7 @@ SECRET_KEY = "django-insecure-dahufc3q49y!g8ik7!xk!9xyldg+r75$^@tcbe%s-m96n-dt+d
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "backend"]
 
 
 # Application definition
@@ -39,10 +43,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "corsheaders",
     "chatbot",
+    "rest_framework",
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",  # Must be at the top for async support
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -52,8 +59,22 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "generic_chatbot.urls"
 
+# Consider restricting in production
+CORS_ALLOW_CREDENTIALS = False
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React app URL
+    "http://backend:8000",    # Backend URL
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",  # React app URL
+    "http://backend:3000",    # Docker React app URL
+]
+CSRF_COOKIE_SECURE = False
+
+ROOT_URLCONF = "generic_chatbot.urls"
+ASGI_APPLICATION = "generic_chatbot.asgi.application" 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",

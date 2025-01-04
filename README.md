@@ -1,7 +1,7 @@
 # GENERIC BOT
 ## Overview
 
-Generic Bot is a lightweight, modular chatbot framework designed to help researchers deploy and experiment with text-based conversational agents efficiently. Built with a Django backend, a React frontend (in progress), the [Kani](https://github.com/zhudotexe/kani) Framework for LLM integration, and a MariaDB database, it is fully containerized using Docker for seamless deployment.
+Generic Bot is a lightweight, modular chatbot framework designed to help researchers deploy and experiment with text-based conversational agents efficiently. Built with a Django backend, a React frontend, the [Kani](https://github.com/zhudotexe/kani) Framework for LLM integration, and a MariaDB database, it is fully containerized using Docker for seamless deployment.
 
 Researchers can easily customize in config.json file:
 
@@ -19,16 +19,28 @@ For detailed design specifications, see the [link](https://docs.google.com/docum
 HUMANLIKE-CHATBOT/
 ├── generic_chatbot/
     ├── generic_chatbot/
+        ├── settings.py
+        ├── urls.py 
     ├── chatbot/
+        ├── urls.py
+        ├── views.py
+        ├── models.py
     ├── server/
         ├── engine.py 
-    ├── templates/ # Temporary, will move to React FE system
-    ├── config.json # Chatbot configuration
-    ├── dockerfile.local
+    ├── config.json # Custom Chatbot configuration 
+    ├── Dockerfile.local
     ├── manage.py
     ├── Pipfile
     ├── Pipfile.lock
     ├── wait-for-db.sh
+├── generic_chatbot_frontend/
+    ├── public/
+        ├── index.html/
+    ├── src/
+        ├── utils/
+            ├── api.js
+        ├── App.js
+    ├── Dockerfile.local   
 ├── docker-compose.yml
 ├── .env # Replace .env_template with .env and add API keys
 ├── init.sql

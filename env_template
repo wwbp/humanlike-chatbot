@@ -9,5 +9,8 @@ DEBUG=True
 SECRET_KEY='django-insecure-dahufc3q49y!g8ik7!xk!9xyldg+r75$^@tdt+d'
 ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
 
+REACT_APP_API_URL=http://backend:8000/api
+
 #API KEY
-API_KEY='your api key'
+OPENAI_API_KEY= 'your api key'
+ANTHROPIC_API_KEY='your api key'

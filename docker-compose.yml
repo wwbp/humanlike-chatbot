@@ -40,13 +40,28 @@ services:
       ALLOWED_HOSTS: ${ALLOWED_HOSTS}
       OPENAI_API_KEY: ${OPENAI_API_KEY} 
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    depends_on:
+      - db
     command: >
       ./wait-for-db.sh python manage.py runserver 0.0.0.0:8000
-
-  redis:
-    image: redis:latest
+  frontend:
+    build:
+      context: ./generic_chatbot_frontend  # Path to React project
+      dockerfile: Dockerfile.local
+    container_name: react_app
+    stdin_open: true
+    tty: true
     ports:
-      - "6379:6379"
+      - "3000:3000"
+    volumes:
+      - ./generic_chatbot_frontend:/app  # Mount the React source code
+      - /app/node_modules
+    environment:
+      - REACT_APP_API_URL=http://backend:8000/api/
+    working_dir: /app
+    command: npm start
+    depends_on:
+      - backend
 
 volumes:
   mariadb-data:

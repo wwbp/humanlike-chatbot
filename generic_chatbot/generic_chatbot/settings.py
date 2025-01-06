@@ -99,17 +99,15 @@ WSGI_APPLICATION = "generic_chatbot.wsgi.application"
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': os.getenv('DATABASE_ENGINE', 'django.db.backends.mysql'),
         'NAME': os.getenv('DATABASE_NAME', 'chatbot_db'),
         'USER': os.getenv('DATABASE_USER', 'user'),
         'PASSWORD': os.getenv('DATABASE_PASSWORD', 'test123'),
         'HOST': os.getenv('DATABASE_HOST', 'db'),
         'PORT': os.getenv('DATABASE_PORT', '3306'),
-        'OPTIONS': {
-            'connect_timeout': 30,  # Retry for up to 30 seconds
-        },
     }
 }
+
 
 
 # Password validation

@@ -8,8 +8,7 @@ from django.utils.decorators import method_decorator
 from django.middleware.csrf import get_token
 from kani import Kani
 from server.engine import initialize_engine
-from .models import Chat
-from asgiref.sync import sync_to_async
+from .models import save_chat_to_db
 import json
 
 
@@ -33,19 +32,6 @@ config = load_config()
 engine = initialize_engine(config)
 bots = config.get("bots", [])
 
-
-#save chat
-async def save_chat_to_db(conversation_id, speaker_id, text):
-    try:
-        await sync_to_async(Chat.objects.create)(
-            conversation_id=conversation_id,
-            speaker_id=speaker_id,
-            text=text
-        )
-        print(f"Successfully saved {speaker_id}'s message to the database.")
-    except Exception as e:
-        print(f"Failed to save message to the database: {e}")
-
 @method_decorator(csrf_exempt, name='dispatch')
 class ChatbotAPIView(View):
     async def post(self, request, *args, **kwargs):
@@ -54,6 +40,13 @@ class ChatbotAPIView(View):
             data = json.loads(request.body)
             message = data.get('message', '')
             bot_name = data.get('bot_name', bots[0]["name"] if bots else "DefaultBot")
+            conversation_id = data.get('conversation_id', None)  
+
+            # Placeholder for Qualtrics integration
+            # If conversation_id is missing, generate one (e.g., UUID)
+            if not conversation_id:
+                import uuid
+                conversation_id = str(uuid.uuid4())  # Temporary ID until Qualtrics integration
 
             # Find the bot
             selected_bot = next((bot for bot in bots if bot["name"] == bot_name), None)
@@ -65,17 +58,11 @@ class ChatbotAPIView(View):
             response = await kani.chat_round(message)
             response_text = response.text
 
-            # Save chat asynchronously
-            await sync_to_async(Chat.objects.create)(
-                conversation_id="conversation_1",
-                speaker_id="user",
-                text=message
-            )
-            await sync_to_async(Chat.objects.create)(
-                conversation_id="conversation_1",
-                speaker_id="assistant",
-                text=response_text
-            )
+            # Save user message to database
+            await save_chat_to_db(conversation_id, "user", None, message)
+
+            # Save bot response to database 
+            await save_chat_to_db(conversation_id, "assistant", bot_name, response_text)
 
             # Return the bot's response
             return JsonResponse({'message': message, 'response': response_text, 'bot_name': bot_name}, status=200)

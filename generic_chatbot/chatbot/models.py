@@ -1,10 +1,13 @@
-from django.db import models
+from asgiref.sync import sync_to_async
 
-class Chat(models.Model):
-    conversation_id = models.CharField(max_length=255, default="default_conversation")
-    speaker_id = models.CharField(max_length=255, default="unknown")
-    text = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.speaker_id}: {self.text[:50]}"
+async def save_chat_to_db(conversation_id, speaker_id,bot_name, text):
+    try:
+        await sync_to_async(Chat.objects.create)(
+            conversation_id=conversation_id,
+            speaker_id=speaker_id,
+            bot_name=bot_name,
+            text=text
+        )
+        print(f"Successfully saved {speaker_id}'s message to the database.")
+    except Exception as e:
+        print(f"Failed to save message to the database: {e}")

@@ -1,20 +1,5 @@
 import axios from "axios";
 
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== "") {
-    const cookies = document.cookie.split(";");
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.substring(0, name.length + 1) === name + "=") {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
-  }
-  return cookieValue;
-}
-
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL,
   withCredentials: true,
@@ -36,28 +21,6 @@ api.interceptors.request.use(
   }
 );
 
-api.interceptors.request.use(
-  (config) => {
-    const token = getCookie("csrftoken");
-    if (token) {
-      config.headers["X-CSRFToken"] = token;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-export async function getCSRFToken() {
-  try {
-    const response = await api.get("/csrf/");
-    const csrfToken = response.data.csrfToken;
-    document.cookie = `csrftoken=${csrfToken}; path=/`;
-  } catch (error) {
-    console.error("Error fetching CSRF token:", error);
-  }
-}
 
 export async function fetchData(url = "") {
   try {

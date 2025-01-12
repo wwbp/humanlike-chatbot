@@ -14,6 +14,7 @@ function App() {
   const messagesEndRef = useRef(null);
   const apiUrl = "http://localhost:8000/api";
 
+
   // Fetch bots list from the backend
   useEffect(() => {
     const fetchBots = async () => {
@@ -37,79 +38,43 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Fetch CSRF token and store it in cookies
-  const fetchCSRFToken = async () => {
-    try {
-        const response = await fetch("http://localhost:8000/api/csrf/", {
-            credentials: 'include', // Ensure cookies are included
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log("CSRF token fetched:", data.csrfToken);
-    } catch (error) {
-        console.error("Error fetching CSRF token:", error);
-    }
-};
-
-
-  // Ensure CSRF token is available on load
-  useEffect(() => {
-    fetchCSRFToken();
-  }, []);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
+  
     if (!botName) {
       alert("Please select a bot.");
       return;
     }
-
+  
     if (message.trim() === "") {
       alert("Please enter a message.");
       return;
     }
-
+  
     setMessages((prevMessages) => [
       ...prevMessages,
       { sender: "You", content: message },
     ]);
-
+  
     try {
-      // Fetch the CSRF token from cookies
-      const csrfToken = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("csrftoken="))
-        ?.split("=")[1];
-
-      if (!csrfToken) {
-        throw new Error("CSRF token is missing.");
-      }
-
       const response = await fetch(`${apiUrl}/chatbot/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-CSRFToken": csrfToken, // Include CSRF token
         },
         body: JSON.stringify({ message, bot_name: botName }),
       });
-
-      console.log("Raw response:", response);
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         alert(`Error: ${errorData.error || "Something went wrong"}`);
         return;
       }
-
+  
       const data = await response.json();
       console.log("Chatbot response:", data);
-
+  
       setMessages((prevMessages) => [
         ...prevMessages,
         { sender: "AI Chatbot", content: data.response },
@@ -121,6 +86,7 @@ function App() {
       setMessage("");
     }
   };
+  
 
   return (
     <div className="chat-container">

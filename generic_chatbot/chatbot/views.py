@@ -8,13 +8,9 @@ from django.utils.decorators import method_decorator
 from django.middleware.csrf import get_token
 from kani import Kani
 from server.engine import initialize_engine
-from .models import save_chat_to_db
+from .models import Chat
 import json
 
-
-def csrf(request):
-    csrf_token = get_token(request)  # Fetch the CSRF token
-    return JsonResponse({'csrfToken': csrf_token})
 
 # Load config.json
 def load_config():
@@ -31,6 +27,20 @@ def load_config():
 config = load_config()
 engine = initialize_engine(config)
 bots = config.get("bots", [])
+
+#save chat
+async def save_chat_to_db(conversation_id, speaker_id, text,bot_name=None, bot_prompt=None):
+    try:
+        await sync_to_async(Chat.objects.create)(
+            conversation_id=conversation_id,
+            speaker_id=speaker_id,
+            text=text,
+            bot_name=bot_name,
+            bot_prompt=bot_prompt
+        )
+        print(f"Successfully saved {speaker_id}'s message to the database.")
+    except Exception as e:
+        print(f"Failed to save message to the database: {e}")
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ChatbotAPIView(View):
@@ -59,10 +69,11 @@ class ChatbotAPIView(View):
             response_text = response.text
 
             # Save user message to database
-            await save_chat_to_db(conversation_id, "user", None, message)
+            await save_chat_to_db("conversation_1", "user", message)
 
             # Save bot response to database 
-            await save_chat_to_db(conversation_id, "assistant", bot_name, response_text)
+            await save_chat_to_db("conversation_1", "assistant", response_text,  bot_name=selected_bot["name"], 
+                bot_prompt=selected_bot["prompt"])
 
             # Return the bot's response
             return JsonResponse({'message': message, 'response': response_text, 'bot_name': bot_name}, status=200)

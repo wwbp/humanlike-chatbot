@@ -20,7 +20,6 @@ services:
     volumes:
       - mariadb-data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./database-setup.sql:/docker-entrypoint-initdb.d/database-setup.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
       interval: 5s
@@ -67,7 +66,7 @@ services:
       - ./generic_chatbot_frontend:/app  # Mount the React source code
       - /app/node_modules
     environment:
-      - REACT_APP_API_URL=http://backend:8000/api/
+      - REACT_APP_API_URL=${REACT_APP_API_URL}
     working_dir: /app
     networks:
       - chatbot_network

@@ -34,9 +34,9 @@ anthropic = "*"
 tiktoken = "*"  
 sentencepiece = "*"  
 llama-cpp-python = "*"  
+asgiref = "*"
 
 [dev-packages]
 
 [requires]
 python_version = "3.11"
-

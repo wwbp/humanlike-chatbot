@@ -31,6 +31,7 @@ COPY . /app
 EXPOSE 80
 
 # Set the entrypoint
+RUN chmod +x /app/entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Command to run the application

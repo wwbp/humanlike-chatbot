@@ -11,6 +11,8 @@ from server.engine import initialize_engine
 from .models import Chat
 import json
 
+def health_check(request):
+    return JsonResponse({"status": "ok"})
 
 # Load config.json
 def load_config():

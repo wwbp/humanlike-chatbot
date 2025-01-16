@@ -61,7 +61,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",  # Must be at the top for async support
+    "corsheaders.middleware.CorsMiddleware",  
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -111,7 +111,7 @@ WSGI_APPLICATION = "generic_chatbot.wsgi.application"
 
 DATABASES = {
     'default': {
-        'ENGINE': os.getenv('DATABASE_ENGINE', 'django.db.backends.mysql'),
+        'ENGINE': 'django.db.backends.mysql',
         'NAME': os.getenv('DATABASE_NAME', 'chatbot_db'),
         'USER': os.getenv('DATABASE_USER', 'user'),
         'PASSWORD': os.getenv('DATABASE_PASSWORD', 'test123'),
@@ -119,7 +119,6 @@ DATABASES = {
         'PORT': os.getenv('DATABASE_PORT', '3306'),
     }
 }
-
 
 
 # Password validation

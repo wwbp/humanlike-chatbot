@@ -1,12 +1,7 @@
-networks:
-  chatbot_network:
-    driver: bridge
-
 services:
   db:
     image: mariadb:latest
     container_name: db
-    command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -15,8 +10,6 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "3306:3306"
-    networks:
-      - chatbot_network
     volumes:
       - mariadb-data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -35,27 +28,23 @@ services:
       - ./generic_chatbot:/app
     ports:
       - "8000:8000"
-    networks:
-      - chatbot_network
     environment:
       DEBUG: ${DEBUG}
       SECRET_KEY: ${SECRET_KEY}
       DATABASE_ENGINE: django.db.backends.mysql
-      DATABASE_NAME: ${MYSQL_DATABASE}
-      DATABASE_USER: ${MYSQL_USER}
-      DATABASE_PASSWORD: ${MYSQL_PASSWORD}
-      DATABASE_HOST: db
-      DATABASE_PORT: 3306
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS}
       OPENAI_API_KEY: ${OPENAI_API_KEY} 
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     depends_on:
       - db
-    command: >
-      ./wait-for-db.sh python manage.py runserver 0.0.0.0:8000
   frontend:
     build:
-      context: ./generic_chatbot_frontend  # Path to React project
+      context: ./generic_chatbot_frontend  
       dockerfile: Dockerfile.local
     container_name: react_app
     stdin_open: true
@@ -63,13 +52,11 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./generic_chatbot_frontend:/app  # Mount the React source code
+      - ./generic_chatbot_frontend:/app  
       - /app/node_modules
     environment:
       - REACT_APP_API_URL=${REACT_APP_API_URL}
     working_dir: /app
-    networks:
-      - chatbot_network
     command: npm start
     depends_on:
       - backend

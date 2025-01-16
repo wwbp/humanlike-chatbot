@@ -1,16 +1,17 @@
 #!/bin/sh
 # wait-for-db.sh
 
-set -e
-
 host="$DATABASE_HOST"
-shift
-cmd="$@"
+user="$DATABASE_USER"
+password="$DATABASE_PASSWORD"
 
-until mysql -h "$host" -u "$DATABASE_USER" -p"$DATABASE_PASSWORD" -e 'SELECT 1'; do
+# Debug output
+echo "Waiting for MySQL at $host with user $user..."
+
+until mysql -h "$host" -u "$user" -p"$password" -e 'SELECT 1' > /dev/null 2>&1; do
   >&2 echo "MySQL is unavailable - sleeping"
   sleep 1
 done
 
->&2 echo "MySQL is up - executing command"
-exec $cmd
+>&2 echo "MySQL is up - executing command: $@"
+exec "$@"

@@ -27,6 +27,9 @@ RUN pipenv install --deploy --system
 # Copy the application code into the container
 COPY . /app
 
+# Copy the wait-for-db.sh script and make it executable
+RUN chmod +x /app/wait-for-db.sh
+
 # Expose the application's port
 EXPOSE 8000
 

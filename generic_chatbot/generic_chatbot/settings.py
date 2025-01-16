@@ -27,12 +27,15 @@ load_dotenv(dotenv_path)
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-dahufc3q49y!g8ik7!xk!9xyldg+r75$^@tcbe%s-m96n-dt+d"
+#env
+SECRET_KEY = os.getenv('SECRET_KEY','!g8ik7!xk!9xyldg+r75$^@tdt+d')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+#env
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "backend"]
+#env
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # Append Elastic Beanstalk Load Balancer Health Check requests since the source host IP address keeps changing
 try:
@@ -72,21 +75,31 @@ MIDDLEWARE = [
 ]
 
 
-# Consider restricting in production
+# env
 CORS_ALLOW_CREDENTIALS = False
+
+#env
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # React app URL
     "http://backend:8000",    # Backend URL
 ]
 
+#env
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",  # React app URL
     "http://backend:3000",    # Docker React app URL
 ]
+
+#env
 CSRF_COOKIE_SECURE = False
 
+
 ROOT_URLCONF = "generic_chatbot.urls"
-ASGI_APPLICATION = "generic_chatbot.asgi.application" 
+
+
+ASGI_APPLICATION = "generic_chatbot.asgi.application"
+
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",

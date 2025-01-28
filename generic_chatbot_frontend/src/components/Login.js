@@ -1,5 +1,7 @@
+// Login.js
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "../styles/Login.css";
 
 const Login = () => {
   const [botName, setBotName] = useState("");
@@ -20,7 +22,6 @@ const Login = () => {
 
   return (
     <div className="login-container">
-      <h1>Login</h1>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="botName">Bot Name:</label>

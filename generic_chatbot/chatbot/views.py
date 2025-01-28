@@ -15,6 +15,7 @@ from datetime import datetime
 def health_check(request):
     return JsonResponse({"status": "ok"})
 
+
 # Load config.json
 def load_config():
     try:
@@ -29,62 +30,69 @@ def load_config():
 # Initialize engine and bots dynamically
 config = load_config()
 engine = initialize_engine(config)
-bots = config.get("bots", [])
-
 
 @method_decorator(csrf_exempt, name='dispatch')
 class InitializeConversationAPIView(View):
     def post(self, request, *args, **kwargs):
-        print(f"Request received: {request.body}")
         try:
+            # Parse JSON from the request body
             data = json.loads(request.body)
             bot_name = data.get("bot_name")
             user_id = data.get("user_id")
 
+            # Validate required fields
             if not bot_name or not user_id:
                 return JsonResponse(
-                    {"error": "bot_name and user_id are required."}, status=400
+                    {"error": "Both 'bot_name' and 'user_id' are required."}, status=400
                 )
 
-            # Generate a unique conversation_id
-            current_time = datetime.now().strftime("%Y%m%d%H%M%S")
-            conversation_id = f"{user_id}_{current_time}"
+            # Fetch the bot
+            try:
+                bot = Bot.objects.get(name=bot_name)
+            except Bot.DoesNotExist:
+                return JsonResponse(
+                    {"error": f"No bot found with the name '{bot_name}'."}, status=404
+                )
 
-            # Find the bot
-            bot = Bot.objects.filter(name=bot_name).first()
-            if not bot:
-                return JsonResponse({"error": "Bot not found."}, status=400)
-            
-            # Check for existing conversation
+            # Check for an existing conversation
             existing_conversation = Conversation.objects.filter(
-                human_id=user_id, bot_id=bot.id
+                human_id=user_id, bot_id=bot.name
             ).order_by("-started_time").first()
 
             if existing_conversation:
-                print("Existing conversation found:", existing_conversation.conversation_id)
                 return JsonResponse(
-                    {"conversation_id": existing_conversation.conversation_id, "message": "Existing conversation found."},
+                    {
+                        "conversation_id": existing_conversation.conversation_id,
+                        "message": "Existing conversation found."
+                    },
                     status=200,
                 )
 
-            # Save the conversation to the database
+            # Generate a new conversation ID
+            current_time = datetime.now().strftime("%Y%m%d%H%M%S")
+            conversation_id = f"{user_id}_{current_time}"
+
+            # Create a new conversation
             Conversation.objects.create(
                 conversation_id=conversation_id,
-                bot_id=bot.id,
+                bot_id=bot.name,  
                 human_id=user_id,
                 started_time=datetime.now(),
             )
 
             return JsonResponse(
-                {"conversation_id": conversation_id, "message": "Conversation initialized successfully."},
+                {
+                    "conversation_id": conversation_id,
+                    "message": "Conversation initialized successfully."
+                },
                 status=200,
             )
+
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON in request body."}, status=400)
         except Exception as e:
-            print(f"Error in InitializeConversationAPIView: {e}")
-            return JsonResponse({"error": str(e)}, status=500)
-
-
-
+            print(f"Unhandled exception: {e}")
+            return JsonResponse({"error": "An unexpected error occurred."}, status=500)
 
 #save chat
 async def save_chat_to_db(conversation_id, speaker_id, text, bot_name=None, qualtrics_id=None):
@@ -112,17 +120,13 @@ class ChatbotAPIView(View):
             conversation_id = data.get('conversation_id', None)  
             qualtrics_id = data.get('user_id', None)  # Qualtrics user_id
 
-            # Generate a conversation ID if missing
-            if not conversation_id:
-                import uuid
-                conversation_id = str(uuid.uuid4())  # Temporary ID until Qualtrics integration
+            if not message or not bot_name or not conversation_id:
+                return JsonResponse({"error": "Missing required fields."}, status=400)
 
-            # Find the bot
-            selected_bot = next((bot for bot in bots if bot["name"] == bot_name), None)
-            if not selected_bot:
-                return JsonResponse({'error': 'Bot not found.'}, status=400)
+            # Fetch bot using sync_to_async
+            bot = await sync_to_async(Bot.objects.get)(name=bot_name)
 
-            kani = Kani(engine, system_prompt=selected_bot["prompt"])
+            kani = Kani(engine, system_prompt=bot.prompt)
             # Process bot response asynchronously
             response = await kani.chat_round(message)
             response_text = response.text
@@ -141,7 +145,7 @@ class ChatbotAPIView(View):
                 conversation_id=conversation_id,
                 speaker_id="assistant",
                 text=response_text,
-                bot_name=selected_bot["name"],  # Bot's name
+                bot_name=bot.name,  # Bot's name
                 qualtrics_id=None
             )
 
@@ -154,11 +158,9 @@ class ChatbotAPIView(View):
 class ListBotsAPIView(View):
     def get(self, request, *args, **kwargs):
         try:
-            if not bots:
-                raise ValueError("No bots found in configuration")
-
-            bot_names = [bot['name'] for bot in bots]
-            return JsonResponse({'bot_names': bot_names}, status=200)
+            # Fetch bot names from the database
+            bots = Bot.objects.values_list("name", flat=True)
+            return JsonResponse({"bot_names": list(bots)}, status=200)
         except Exception as e:
             print(f"Error in ListBotsAPIView: {e}")
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({"error": str(e)}, status=500)

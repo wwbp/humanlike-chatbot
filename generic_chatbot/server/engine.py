@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 # Load .env file from the root directory
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-dotenv_path = os.path.join(base_dir, '..', '.env')  # Adjust for HUMANLIKE-CHATBOT root
+dotenv_path = os.path.join(base_dir, '..', '.env') 
 load_dotenv(dotenv_path)
 
 # Initialize the engine

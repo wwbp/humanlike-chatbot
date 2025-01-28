@@ -1,9 +1,13 @@
+// Conversation.js
+
 import React, { useState, useEffect, useRef } from "react";
+import "../styles/Conversation.css";
 
 const Conversation = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [conversationId, setConversationId] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
   const apiUrl = "http://0.0.0.0:8000/api";
@@ -12,54 +16,45 @@ const Conversation = () => {
   const searchParams = new URLSearchParams(window.location.search);
   const botName = searchParams.get("bot_name");
   const userId = searchParams.get("user_id");
+  const initialPrompt = searchParams.get("prompt") || "Initial prompt is not set. Ask anything!";
 
-  const [isInitialized, setIsInitialized] = useState(false);
+  useEffect(() => {
+    // Set the initial prompt as the first message
+    setMessages([{ sender: "AI Chatbot", content: initialPrompt }]);
+  }, [initialPrompt]);
 
-useEffect(() => {
-  const initializeConversation = async () => {
-    if (!botName || !userId || isInitialized) {
-      console.error("Missing botName, userId, or conversation already initialized.");
-      return;
-    }
-
-    try {
-      console.log("Initializing conversation with:", { botName, userId });
-
-      const response = await fetch(`${apiUrl}/initialize_conversation/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          bot_name: botName,
-          user_id: userId,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Failed to initialize conversation:", errorData);
-        throw new Error(errorData.error || "Failed to initialize conversation");
+  useEffect(() => {
+    const initializeConversation = async () => {
+      if (!botName || !userId || conversationId) {
+        return;
       }
 
-      const data = await response.json();
-      setConversationId(data.conversation_id);
-      console.log("Conversation initialized:", data.conversation_id);
+      try {
+        const response = await fetch(`${apiUrl}/initialize_conversation/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            bot_name: botName,
+            user_id: userId,
+          }),
+        });
 
-      // Mark as initialized
-      setIsInitialized(true);
-    } catch (error) {
-      console.error("Error initializing conversation:", error);
-    }
-  };
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to initialize conversation");
+        }
 
-  if (botName && userId) {
+        const data = await response.json();
+        setConversationId(data.conversation_id);
+      } catch (error) {
+        console.error("Error initializing conversation:", error);
+      }
+    };
+
     initializeConversation();
-  } else {
-    console.error("botName or userId missing.");
-  }
-}, [apiUrl, botName, userId, isInitialized]);
-
+  }, [apiUrl, botName, userId, conversationId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -73,10 +68,9 @@ useEffect(() => {
       return;
     }
 
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { sender: "You", content: message },
-    ]);
+    setMessages((prevMessages) => [...prevMessages, { sender: "You", content: message }]);
+    setMessage(""); // Clear input immediately
+    setIsTyping(true);
 
     try {
       const response = await fetch(`${apiUrl}/chatbot/`, {
@@ -88,7 +82,7 @@ useEffect(() => {
           message,
           bot_name: botName,
           user_id: userId,
-          conversation_id: conversationId, // Use existing conversation_id
+          conversation_id: conversationId,
         }),
       });
 
@@ -108,53 +102,46 @@ useEffect(() => {
       console.error("Error sending message:", error);
       alert("An error occurred. Please try again.");
     } finally {
-      setMessage("");
+      setIsTyping(false);
     }
   };
 
   return (
     <div className="conversation-container">
-      <h1>Chat with {botName}</h1>
-      <div className="card flex-grow-1">
-        <div className="card-body messages-box">
-          <ul className="list-unstyled messages-list">
-            {messages.map((msg, index) => (
-              <li
-                key={index}
-                className={`message ${
-                  msg.sender === "You" ? "sent" : "received"
-                }`}
-              >
-                <div className="message-text">
-                  <div className="message-sender">
-                    <b>{msg.sender}</b>
-                  </div>
-                  <div className="message-content">{msg.content}</div>
-                </div>
-              </li>
-            ))}
-            <div ref={messagesEndRef}></div>
-          </ul>
+      <div className="chat-box">
+        <div className="messages-box">
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={`message ${
+                msg.sender === "You" ? "sent" : "received"
+              }`}
+            >
+              {msg.content}
+            </div>
+          ))}
+          {isTyping && (
+            <div className="message received typing-indicator">
+              <span>...</span>
+            </div>
+          )}
+          <div ref={messagesEndRef}></div>
         </div>
-      </div>
 
-      <form className="message-form" onSubmit={handleSubmit}>
-        <div className="input-group">
+        <form className="message-form" onSubmit={handleSubmit}>
           <input
             type="text"
-            className="form-control message-input"
+            className="message-input"
             placeholder="Type your message..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             required
           />
-          <div className="input-group-append">
-            <button type="submit" className="btn btn-primary btn-send">
-              Send
-            </button>
-          </div>
-        </div>
-      </form>
+          <button type="submit" className="send-button">
+            Send
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

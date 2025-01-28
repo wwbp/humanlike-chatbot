@@ -8,7 +8,7 @@ from django.utils.decorators import method_decorator
 from django.middleware.csrf import get_token
 from kani import Kani
 from server.engine import initialize_engine
-from .models import Chat
+from .models import Chat, Bot, Utterance
 import json
 
 def health_check(request):
@@ -31,18 +31,19 @@ engine = initialize_engine(config)
 bots = config.get("bots", [])
 
 #save chat
-async def save_chat_to_db(conversation_id, speaker_id, text,bot_name=None, bot_prompt=None):
+async def save_chat_to_db(conversation_id, speaker_id, text, bot_name=None, qualtrics_id=None):
     try:
-        await sync_to_async(Chat.objects.create)(
+        await sync_to_async(Utterance.objects.create)(
             conversation_id=conversation_id,
             speaker_id=speaker_id,
             text=text,
             bot_name=bot_name,
-            bot_prompt=bot_prompt
+            qualtrics_id=qualtrics_id
         )
-        print(f"Successfully saved {speaker_id}'s message to the database.")
+        print(f"Successfully saved {speaker_id}'s message to the Utterance table.")
     except Exception as e:
-        print(f"Failed to save message to the database: {e}")
+        print(f"Failed to save message to the Utterance table: {e}")
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ChatbotAPIView(View):
@@ -53,9 +54,9 @@ class ChatbotAPIView(View):
             message = data.get('message', '')
             bot_name = data.get('bot_name', bots[0]["name"] if bots else "DefaultBot")
             conversation_id = data.get('conversation_id', None)  
+            qualtrics_id = data.get('qualtrics_id', None)  # Optional Qualtrics ID
 
-            # Placeholder for Qualtrics integration
-            # If conversation_id is missing, generate one (e.g., UUID)
+            # Generate a conversation ID if missing
             if not conversation_id:
                 import uuid
                 conversation_id = str(uuid.uuid4())  # Temporary ID until Qualtrics integration
@@ -70,12 +71,23 @@ class ChatbotAPIView(View):
             response = await kani.chat_round(message)
             response_text = response.text
 
-            # Save user message to database
-            await save_chat_to_db("conversation_1", "user", message)
+            # Save user message to the Utterance table
+            await save_chat_to_db(
+                conversation_id=conversation_id,
+                speaker_id="user",
+                text=message,
+                bot_name=None,  # User message, no bot name
+                qualtrics_id=qualtrics_id
+            )
 
-            # Save bot response to database 
-            await save_chat_to_db("conversation_1", "assistant", response_text,  bot_name=selected_bot["name"], 
-                bot_prompt=selected_bot["prompt"])
+            # Save bot response to the Utterance table
+            await save_chat_to_db(
+                conversation_id=conversation_id,
+                speaker_id="assistant",
+                text=response_text,
+                bot_name=selected_bot["name"],  # Bot's name
+                qualtrics_id=None
+            )
 
             # Return the bot's response
             return JsonResponse({'message': message, 'response': response_text, 'bot_name': bot_name}, status=200)

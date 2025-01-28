@@ -28,11 +28,11 @@ RUN pipenv install --deploy --system
 COPY . /app
 
 # Expose the application's port
-EXPOSE 80
+EXPOSE 8000
 
 # Set the entrypoint
 RUN chmod +x /app/entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Command to run the application
-CMD ["gunicorn", "generic_chatbot.wsgi:application", "--bind", "0.0.0.0:80"]
+CMD ["gunicorn", "generic_chatbot.wsgi:application", "--bind", "0.0.0.0:8000"]

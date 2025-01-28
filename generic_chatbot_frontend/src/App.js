@@ -2,18 +2,13 @@ import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
 
 function App() {
-  const [messages, setMessages] = useState([
-    {
-      sender: "AI Chatbot",
-      content: "Hi, I am your AI Chatbot. Select a bot and ask me anything!",
-    },
-  ]);
   const [message, setMessage] = useState("");
   const [botName, setBotName] = useState("");
   const [bots, setBots] = useState([]);
+  const [messages, setMessages] = useState([]);
   const messagesEndRef = useRef(null);
-  const apiUrl = "http://localhost:8000/api";
 
+  const apiUrl = 'http://0.0.0.0:8000/api';
 
   // Fetch bots list from the backend
   useEffect(() => {
@@ -91,9 +86,6 @@ function App() {
   return (
     <div className="chat-container">
       <div className="card flex-grow-1">
-        <div className="card-header bg-primary text-white text-center">
-          My Chatbot Application
-        </div>
         <div className="card-body messages-box">
           <ul className="list-unstyled messages-list">
             {messages.map((msg, index) => (

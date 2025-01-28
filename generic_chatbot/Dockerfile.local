@@ -30,9 +30,8 @@ COPY . /app
 # Expose the application's port
 EXPOSE 8000
 
-RUN chmod +x /app/wait-for-db.sh
 # Use the wait-for-db.sh script as entrypoint
 ENTRYPOINT ["./wait-for-db.sh"]
 
 # Default command to run migrations and start the application
-CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+CMD ["sh", "-c", "python manage.py runserver 0.0.0.0:8000"]

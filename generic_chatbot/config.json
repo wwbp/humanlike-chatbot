@@ -13,6 +13,5 @@
             "prompt": "You are a doctor talking to a patient."
         }
     ],
-    "app_title": "My Chatbot Application",
     "save_threshold": 10
 }

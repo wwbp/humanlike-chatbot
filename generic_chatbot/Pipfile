@@ -18,6 +18,9 @@ setuptools = "*"
 kani = {extras = ["openai", "anthropic"]}
 anthropic = "*" 
 asgiref = "*"
+python-dotenv = "*"
 
 [requires]
 python_version = "3.11"
+
+[dev-packages]

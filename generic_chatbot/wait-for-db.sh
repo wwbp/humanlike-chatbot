@@ -10,5 +10,7 @@ until mysql -h "$host" -u "$user" -p"$password" -e 'SELECT 1' > /dev/null 2>&1; 
   sleep 1
 done
 
+python manage.py load_bots
+
 >&2 echo "MySQL is up - executing command: $@"
 exec "$@"

@@ -11,6 +11,7 @@ const Conversation = () => {
   const messagesEndRef = useRef(null);
 
   const apiUrl = "http://0.0.0.0:8000/api";
+  /*const apiUrl = "https://bot.wwbp.org/api";*/
 
   // Extract query parameters
   const searchParams = new URLSearchParams(window.location.search);

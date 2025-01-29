@@ -11,6 +11,10 @@ ROOT_DIR = BASE_DIR.parent  # Adjust for HUMANLIKE-CHATBOT root
 dotenv_path = os.path.join(ROOT_DIR, '.env')
 load_dotenv(dotenv_path)
 
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Quick-start development settings - unsuitable for production
@@ -22,9 +26,9 @@ SECRET_KEY = os.getenv('SECRET_KEY','!g8ik7!xk!9xyldg+r75$^@tdt+d')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "backend", "0.0.0.0"]
+ALLOWED_HOSTS = ["bot.wwbp.org","localhost", "127.0.0.1", "backend", "0.0.0.0"]
 
-'''
+
 # Append Elastic Beanstalk Load Balancer Health Check requests since the source host IP address keeps changing
 try:
     token = requests.put('http://169.254.169.254/latest/api/token',
@@ -36,7 +40,7 @@ except requests.exceptions.ConnectionError:
 else:
     ALLOWED_HOSTS.append(internal_ip)
 del requests
-'''
+
 
 # Application definition
 
@@ -110,10 +114,10 @@ WSGI_APPLICATION = "generic_chatbot.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DATABASE_NAME', 'chatbot_db'),
-        'USER': os.getenv('DATABASE_USER', 'user'),
-        'PASSWORD': os.getenv('DATABASE_PASSWORD', 'test123'),
-        'HOST': os.getenv('DATABASE_HOST', 'db'),
+        'NAME': os.getenv('DATABASE_NAME', 'ebdb'),
+        'USER': os.getenv('DATABASE_USER', 'ebroot'),
+        'PASSWORD': os.getenv('DATABASE_PASSWORD', 'test12345678'),
+        'HOST': os.getenv('DATABASE_HOST', 'awseb-e-hi2xupzzmm-stack-awsebrdsdatabase-zyoehnxqhaxk'),
         'PORT': os.getenv('DATABASE_PORT', '3306'),
     }
 }

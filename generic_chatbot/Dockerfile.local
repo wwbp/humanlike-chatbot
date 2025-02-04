@@ -33,5 +33,5 @@ EXPOSE 8000
 # Use the wait-for-db.sh script as entrypoint
 ENTRYPOINT ["./wait-for-db.sh"]
 
-# Default command to run migrations and start the application
-CMD ["sh", "-c", "python manage.py runserver 0.0.0.0:8000"]
+# Run migrations before starting the application
+CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]

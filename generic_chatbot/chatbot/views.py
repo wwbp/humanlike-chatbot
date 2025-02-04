@@ -38,12 +38,15 @@ class InitializeConversationAPIView(View):
             # Parse JSON from the request body
             data = json.loads(request.body)
             bot_name = data.get("bot_name")
-            user_id = data.get("user_id")
+            participant_id = data.get("participant_id")
+            prompt = data.get("prompt","n/a")
+            study_name = data.get("study_name","n/a")
+            user_group = data.get("user_group","n/a")
 
             # Validate required fields
-            if not bot_name or not user_id:
+            if not bot_name or not participant_id:
                 return JsonResponse(
-                    {"error": "Both 'bot_name' and 'user_id' are required."}, status=400
+                    {"error": "Both 'bot_name' and 'participant_id' are required."}, status=400
                 )
 
             # Fetch the bot
@@ -56,7 +59,7 @@ class InitializeConversationAPIView(View):
 
             # Check for an existing conversation
             existing_conversation = Conversation.objects.filter(
-                human_id=user_id, bot_id=bot.name
+                participant_id=participant_id, bot_name=bot.name
             ).order_by("-started_time").first()
 
             if existing_conversation:
@@ -70,13 +73,16 @@ class InitializeConversationAPIView(View):
 
             # Generate a new conversation ID
             current_time = datetime.now().strftime("%Y%m%d%H%M%S")
-            conversation_id = f"{user_id}_{current_time}"
+            conversation_id = f"{participant_id}_{current_time}"
 
             # Create a new conversation
             Conversation.objects.create(
                 conversation_id=conversation_id,
-                bot_id=bot.name,  
-                human_id=user_id,
+                bot_name=bot.name,
+                prompt = prompt, 
+                participant_id=participant_id,
+                study_name = study_name,
+                user_group = user_group,
                 started_time=datetime.now(),
             )
 
@@ -95,19 +101,26 @@ class InitializeConversationAPIView(View):
             return JsonResponse({"error": "An unexpected error occurred."}, status=500)
 
 #save chat
-async def save_chat_to_db(conversation_id, speaker_id, text, bot_name=None, qualtrics_id=None):
+async def save_chat_to_db(conversation_id, speaker_id, text, bot_name=None, participant_id=None):
     try:
-        await sync_to_async(Utterance.objects.create)(
-            conversation_id=conversation_id,
-            speaker_id=speaker_id,
-            text=text,
-            bot_name=bot_name,
-            qualtrics_id=qualtrics_id
-        )
-        print(f"Successfully saved {speaker_id}'s message to the Utterance table.")
-    except Exception as e:
-        print(f"Failed to save message to the Utterance table: {e}")
+        # Wrap the ORM call to get the conversation using sync_to_async
+        conversation = await sync_to_async(Conversation.objects.get)(conversation_id=conversation_id)
+        print(f"Found conversation {conversation.conversation_id}, inserting message...")
 
+        # Wrap the ORM call to create the Utterance
+        await sync_to_async(Utterance.objects.create)(
+            conversation=conversation,  # This links to your saved conversation object
+            speaker_id=speaker_id,
+            bot_name=bot_name,
+            participant_id=participant_id,  # If your model supports participant_id (or remove if not)
+            text=text
+        )
+        print("✅ Successfully saved message to Utterance table.")
+
+    except Conversation.DoesNotExist:
+        print(f"❌ Conversation with ID {conversation_id} not found.")
+    except Exception as e:
+        print(f"❌ Failed to save message to Utterance table: {e}")
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ChatbotAPIView(View):
@@ -117,8 +130,8 @@ class ChatbotAPIView(View):
             data = json.loads(request.body)
             message = data.get('message', '')
             bot_name = data.get('bot_name', '')
-            conversation_id = data.get('conversation_id', None)  
-            qualtrics_id = data.get('user_id', None)  # Qualtrics user_id
+            conversation_id = data.get('conversation_id', None)
+            participant_id = data.get('participant_id', None)  # Qualtrics participant user_id
 
             if not message or not bot_name or not conversation_id:
                 return JsonResponse({"error": "Missing required fields."}, status=400)
@@ -137,7 +150,7 @@ class ChatbotAPIView(View):
                 speaker_id="user",
                 text=message,
                 bot_name=None,  # User message, no bot name
-                qualtrics_id=qualtrics_id
+                participant_id=participant_id
             )
 
             # Save bot response to the Utterance table
@@ -146,7 +159,7 @@ class ChatbotAPIView(View):
                 speaker_id="assistant",
                 text=response_text,
                 bot_name=bot.name,  # Bot's name
-                qualtrics_id=None
+                participant_id=None
             )
 
             # Return the bot's response

@@ -11,9 +11,6 @@ ROOT_DIR = BASE_DIR.parent  # Adjust for HUMANLIKE-CHATBOT root
 dotenv_path = os.path.join(ROOT_DIR, '.env')
 load_dotenv(dotenv_path)
 
-X_FRAME_OPTIONS = 'SAMEORIGIN'
-
-
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
@@ -30,6 +27,7 @@ ALLOWED_HOSTS = ["bot.wwbp.org","localhost", "127.0.0.1", "backend", "0.0.0.0"]
 
 
 # Append Elastic Beanstalk Load Balancer Health Check requests since the source host IP address keeps changing
+''' 
 try:
     token = requests.put('http://169.254.169.254/latest/api/token',
                          headers={'X-aws-ec2-metadata-token-ttl-seconds': '60'}).text
@@ -40,7 +38,7 @@ except requests.exceptions.ConnectionError:
 else:
     ALLOWED_HOSTS.append(internal_ip)
 del requests
-
+'''
 
 # Application definition
 
@@ -61,14 +59,11 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    #"django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
-
-#consider restricting in production
-CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
 
 
 CORS_ALLOWED_ORIGINS = [
@@ -80,8 +75,6 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",  # React app URL
     "http://backend:3000",    # Docker React app URL
 ]
-
-CSRF_COOKIE_SECURE = False
 
 ROOT_URLCONF = "generic_chatbot.urls"
 
@@ -163,3 +156,11 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+X_FRAME_OPTIONS = 'ALLOWALL'
+#consider restricting in production
+CORS_ALLOW_ALL_ORIGINS = True
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True

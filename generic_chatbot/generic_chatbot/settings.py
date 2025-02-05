@@ -27,7 +27,7 @@ ALLOWED_HOSTS = ["bot.wwbp.org","localhost", "127.0.0.1", "backend", "0.0.0.0"]
 
 
 # Append Elastic Beanstalk Load Balancer Health Check requests since the source host IP address keeps changing
-''' 
+
 try:
     token = requests.put('http://169.254.169.254/latest/api/token',
                          headers={'X-aws-ec2-metadata-token-ttl-seconds': '60'}).text
@@ -38,7 +38,7 @@ except requests.exceptions.ConnectionError:
 else:
     ALLOWED_HOSTS.append(internal_ip)
 del requests
-'''
+
 
 # Application definition
 

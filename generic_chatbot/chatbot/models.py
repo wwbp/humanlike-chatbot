@@ -4,10 +4,12 @@ class Conversation(models.Model):
     conversation_id = models.CharField(max_length=255, unique=True)  # Conversation ID
     bot_name = models.CharField(max_length=255, default ="DefaultBot") # Bot Name
     participant_id = models.CharField(max_length=255)
-    prompt = models.CharField(max_length=255, null=True, blank=True)
+    initial_utterance = models.CharField(max_length=255, null=True, blank=True)
     study_name = models.CharField(max_length=255, null=True, blank=True)
-    user_group = models.CharField(max_length=255, null=True, blank=True)               
-    started_time = models.DateTimeField(auto_now_add=True)          # Start time
+    user_group = models.CharField(max_length=255, null=True, blank=True)
+    survey_id = models.CharField(max_length=255, null=True, blank=True)  # Survey ID
+    survey_meta_data = models.TextField(null=True, blank=True)  # Survey metadata (can be long)
+    started_time = models.DateTimeField(auto_now_add=True)  # Start time
 
     def __str__(self):
         return f"Conversation {self.conversation_id} started at {self.started_time}"
@@ -25,8 +27,10 @@ class Utterance(models.Model):
 
 
 class Bot(models.Model):
-    name = models.CharField(max_length=255, default="DefaultBotName")  # Make name the unique identifier
+    name = models.CharField(max_length=255, unique=True, default="DefaultBotName")  # Make name the unique identifier
     prompt = models.TextField()  # Bot's prompt
+    model_type = models.CharField(max_length=255, default="OpenAI")  # Model type (e.g., OpenAI, Anthropic)
+    model_id = models.CharField(max_length=255, default="gpt-4")  # Model ID, optional
 
     def __str__(self):
         return self.name

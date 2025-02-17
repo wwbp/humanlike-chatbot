@@ -6,23 +6,23 @@ const Login = () => {
   const [botName, setBotName] = useState("");
   const [participantId, setParticipantId] = useState("");
   const [studyName, setStudyName] = useState("");
-  const [prompt, setPrompt] = useState("");
+  const [initialUtterance, setInitialUtterance] = useState("");
   const [userGroup, setUserGroup] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = (event) => {
     event.preventDefault();
-
-    if (!botName || !participantId || !studyName || !userGroup) {
+  
+    if (!botName.trim() || !participantId.trim() || !studyName.trim() || !userGroup.trim()) {
       alert("Please fill in all fields.");
       return;
     }
-
-    // Redirect to Conversation page with parameters
+  
     navigate(
-      `/conversation?bot_name=${encodeURIComponent(botName)}&participant_id=${encodeURIComponent(participantId)}&study_name=${encodeURIComponent(studyName)}&user_group=${encodeURIComponent(userGroup)}&prompt=${encodeURIComponent(prompt)}`
+      `/conversation?bot_name=${encodeURIComponent(botName)}&participant_id=${encodeURIComponent(participantId)}&study_name=${encodeURIComponent(studyName)}&user_group=${encodeURIComponent(userGroup)}&initial_utterance=${encodeURIComponent(initialUtterance)}`
     );
   };
+  
 
   return (
     <div className="login-container">
@@ -72,12 +72,12 @@ const Login = () => {
           />
         </div>
         <div className="form-group">
-          <label htmlFor="prompt">Prompt:</label>
+          <label htmlFor="initialUtterance">initial utterance:</label>
           <textarea
-            id="prompt"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Enter prompt (optional)"
+            id="initialUtterance"
+            value={initialUtterance}
+            onChange={(e) => setInitialUtterance(e.target.value)}
+            placeholder="Enter setInitialUtterance (optional)"
           />
         </div>
         <button type="submit" className="btn btn-primary">

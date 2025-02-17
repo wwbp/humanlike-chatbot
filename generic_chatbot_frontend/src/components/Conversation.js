@@ -8,48 +8,68 @@ const Conversation = () => {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
-  /*const apiUrl = "http://0.0.0.0:8000/api";*/
-  const apiUrl = "https://bot.wwbp.org/api";
+  const apiUrl = "http://127.0.0.1:8000/api"; 
 
   const searchParams = new URLSearchParams(window.location.search);
   const botName = searchParams.get("bot_name");
   const participantId = searchParams.get("participant_id");
-  const prompt = searchParams.get("prompt") || "";
-  const studyName = searchParams.get("study_name") || "Default study name";
-  const userGroup = searchParams.get("user_group") || "na";
+  const initialUtterance = searchParams.get("initial_utterance") || "";
+  const surveyId = searchParams.get("survey_id") || "";
+  const studyName = searchParams.get("study_name") || "";
+  const userGroup = searchParams.get("user_group") || "";
+  const surveyMetaData = searchParams.get("survey_meta_data") || "";
 
   useEffect(() => {
-    if (prompt && prompt.trim() !== "") {
-      setMessages([{ sender: "bot", content: prompt }]);
+    if (initialUtterance.trim() !== "") {
+      setMessages([{ sender: "bot", content: initialUtterance }]);
     }
-  }, [prompt]);
-  
+  }, [initialUtterance]);
+
   useEffect(() => {
+    if (!botName || !participantId) {
+      console.log("Cannot initialize conversation with botname or participantId");
+      return;
+    }
+  
+    // Prevent re-initialization if conversation already exists
+    if (conversationId) {
+      console.log("Conversation already initialized.");
+      return;
+    }
+  
     const initializeConversation = async () => {
-      if (!botName || !participantId) {
-        return;
-      }
       try {
+        console.log("🚀 Initializing conversation...");
         const response = await fetch(`${apiUrl}/initialize_conversation/`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ bot_name: botName, participant_id: participantId,prompt:prompt,study_name: studyName, user_group:userGroup}),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            bot_name: botName,
+            participant_id: participantId,
+            initial_utterance: initialUtterance,
+            study_name: studyName,
+            user_group: userGroup,
+            survey_id: surveyId,
+            survey_meta_data: surveyMetaData,
+          }),
         });
+  
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || "Failed to initialize conversation");
         }
+  
         const data = await response.json();
+        console.log("✅ Conversation Initialized:", data.conversation_id);
         setConversationId(data.conversation_id);
       } catch (error) {
-        console.error("Error initializing conversation:", error);
+        console.error("❌ Error initializing conversation:", error);
       }
     };
+  
     initializeConversation();
-  }, [apiUrl, botName, participantId, conversationId,prompt,studyName,userGroup]);
-
+  }, [botName, participantId, initialUtterance, studyName, surveyId, surveyMetaData, userGroup, conversationId]);
+  
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -60,16 +80,16 @@ const Conversation = () => {
       alert("Please enter a message.");
       return;
     }
+
     setMessages((prevMessages) => [...prevMessages, { sender: "You", content: message }]);
     setMessage("");
     setIsTyping(true);
 
     try {
+      console.log(`📤 Sending message: ${message}`);
       const response = await fetch(`${apiUrl}/chatbot/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message,
           bot_name: botName,
@@ -77,16 +97,22 @@ const Conversation = () => {
           conversation_id: conversationId,
         }),
       });
+
       if (!response.ok) {
         const errorData = await response.json();
         alert(`Error: ${errorData.error || "Something went wrong"}`);
+        setIsTyping(false);
         return;
       }
+
       const data = await response.json();
       setTimeout(() => {
-        setMessages((prevMessages) => [...prevMessages, { sender: "AI Chatbot", content: data.response }]);
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: "AI Chatbot", content: data.response },
+        ]);
         setIsTyping(false);
-      }, 1500); // Simulating chatbot "thinking" time
+      }, 500);
     } catch (error) {
       console.error("Error sending message:", error);
       alert("An error occurred. Please try again.");
@@ -120,6 +146,15 @@ const Conversation = () => {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             required
+            // Prevent paste, copy, and cut
+            onPaste={(e) => {
+              e.preventDefault();
+              alert("You can't paste here!");
+            }}
+            onCopy={(e) => e.preventDefault()}
+            onCut={(e) => e.preventDefault()}
+            // (Optional) Prevent right-click context menu
+            onContextMenu={(e) => e.preventDefault()}
           />
           <button type="submit" className="send-button">Send</button>
         </form>

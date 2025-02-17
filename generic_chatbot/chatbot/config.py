@@ -2,10 +2,9 @@ import json
 from django.db import connection
 from django.apps import apps
 
-
 def load_config():
     """
-    Load the configuration from config.json and save bots to the database.
+    Load the configuration from config.json and add bots to the database only if they do not exist.
     """
     try:
         # Load the JSON file
@@ -24,16 +23,27 @@ def load_config():
             return config
 
         # Dynamically fetch the Bot model
-        Bot = apps.get_model("chatbot", "Bot")  # Replace "chatbot" with your app name
+        Bot = apps.get_model("chatbot", "Bot")  # chatbot is your app name
 
-        # Save or update bots in the database
+        # Get existing bot names from the database
+        existing_bots = set(Bot.objects.values_list("name", flat=True))
+
+        # Add bots only if they are not already in the database
         for bot in bots:
-            Bot.objects.update_or_create(
-                name=bot["name"], defaults={"prompt": bot["prompt"]}
-            )
+            if bot["name"] not in existing_bots:
+                if "model_type" not in bot or "model_id" not in bot:
+                    raise ValueError(f"Bot '{bot['name']}' is missing required 'model_type' or 'model_id'.")
+                
+                Bot.objects.create(
+                    name=bot["name"], 
+                    prompt=bot["prompt"],
+                    model_type=bot["model_type"],  # Ensure model_type is set
+                    model_id=bot["model_id"]  # Ensure model_id is set
+                )
+        
         print("Bots loaded successfully.")
-
         return config
+    
     except FileNotFoundError:
         raise RuntimeError("Configuration file 'config.json' not found.")
     except json.JSONDecodeError as e:

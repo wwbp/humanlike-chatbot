@@ -1,9 +1,19 @@
 from django.urls import path
-from .views import ChatbotAPIView, ListBotsAPIView, health_check, InitializeConversationAPIView
+from .views import ChatbotAPIView, ListBotsAPIView, health_check, InitializeConversationAPIView, BotDetailAPIView
 
 urlpatterns = [
-    path("api/initialize_conversation/", InitializeConversationAPIView.as_view(), name="initialize_conversation"),
-    path('api/chatbot/', ChatbotAPIView.as_view(), name='chatbot_api'),
-    path('api/bots/', ListBotsAPIView.as_view(), name='list_bots'),
+    # 1) Health Check
     path('health/', health_check, name='health_check'),
+
+    # 2) Initialize a Conversation
+    path("api/initialize_conversation/", InitializeConversationAPIView.as_view(), name="initialize_conversation"),
+
+    # 3) Chatbot Conversation Endpoint
+    path('api/chatbot/', ChatbotAPIView.as_view(), name='chatbot_api'),
+
+    # 4) Bots Collection (List and/or Create)
+    path('api/bots/', ListBotsAPIView.as_view(), name='list_bots'),
+
+    # 5) Bot Detail by Primary Key (Retrieve, Update, Delete)
+    path('api/bots/<int:pk>/', BotDetailAPIView.as_view(), name='bot-detail'),
 ]

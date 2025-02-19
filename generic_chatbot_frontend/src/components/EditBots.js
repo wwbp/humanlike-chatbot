@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-
+import "../styles/EditBots.css";
 /**
  * A page where only logged-in researchers can:
  * - View a list of bots
@@ -9,12 +9,12 @@ import React, { useState, useEffect } from "react";
  */
 
 // (1) Define a BASE URL (adjust for your actual server/port)
-const BASE_URL = "http://127.0.0.1:8000";
+/*const BASE_URL = "http://127.0.0.1:8000";*/
+const BASE_URL = "https://bot.wwbp.org";
 
 function EditBots() {
   // -- Auth States --
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   // -- Bot-Related States --
@@ -40,11 +40,11 @@ function EditBots() {
   // --------------------------------------------
   const handleLogin = (e) => {
     e.preventDefault();
-    // Hard-coded credential check
-    if (username === "admin" && password === "secret123") {
+    // Hard-coded credential check: only password is required now
+    if (password === "humanlikebots12345$") {
       setIsLoggedIn(true);
     } else {
-      alert("Invalid username or password!");
+      alert("Invalid password!");
     }
   };
 
@@ -172,15 +172,6 @@ function EditBots() {
         <h2>Researcher Login</h2>
         <form onSubmit={handleLogin}>
           <div>
-            <label>Username:</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
-          <div>
             <label>Password:</label>
             <input
               type="password"
@@ -199,7 +190,7 @@ function EditBots() {
   // Render the "Edit Bots" interface if logged in
   // --------------------------------------------
   return (
-    <div style={{ padding: 20 }}>
+    <div className="edit-bots-container">
       <h1>Edit Bots</h1>
       <hr />
 
@@ -251,36 +242,38 @@ function EditBots() {
       {bots.length === 0 ? (
         <p>No bots found.</p>
       ) : (
-        <table border="1" cellPadding="8" style={{ borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Model Type</th>
-              <th>Model ID</th>
-              <th>Prompt</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bots.map((bot) => (
-              <tr key={bot.id}>
-                <td>{bot.name}</td>
-                <td>{bot.model_type}</td>
-                <td>{bot.model_id}</td>
-                <td>{bot.prompt}</td>
-                <td>
-                  <button onClick={() => handleEditClick(bot)}>Edit</button>
-                  <button onClick={() => handleDeleteBot(bot.id)}>Delete</button>
-                </td>
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Model Type</th>
+                <th>Model ID</th>
+                <th>Prompt</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {bots.map((bot) => (
+                <tr key={bot.id}>
+                  <td>{bot.name}</td>
+                  <td>{bot.model_type}</td>
+                  <td>{bot.model_id}</td>
+                  <td>{bot.prompt}</td>
+                  <td>
+                    <button onClick={() => handleEditClick(bot)}>Edit</button>
+                    <button onClick={() => handleDeleteBot(bot.id)}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {/* Edit Form */}
       {editBotId && (
-        <div style={{ marginTop: 20 }}>
+        <div className="edit-form">
           <h2>Edit Bot (ID: {editBotId})</h2>
           <form onSubmit={handleUpdateBot}>
             <div>

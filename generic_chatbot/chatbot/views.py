@@ -38,10 +38,6 @@ class InitializeConversationAPIView(View):
             survey_id = data.get("survey_id", "n/a")
             survey_meta_data = data.get("survey_meta_data", "n/a")
 
-            print(f"[DEBUG] bot_name={bot_name}, participant_id={participant_id}")
-            print(f"[DEBUG] initial_utterance={initial_utterance}, study_name={study_name}, user_group={user_group}")
-            print(f"[DEBUG] survey_id={survey_id}, survey_meta_data={survey_meta_data}")
-
             if not bot_name or not participant_id:
                 print("[DEBUG] Missing 'bot_name' or 'participant_id'. Returning error.")
                 return JsonResponse(

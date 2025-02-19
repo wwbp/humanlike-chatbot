@@ -8,7 +8,8 @@ const Conversation = () => {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
-  const apiUrl = "http://127.0.0.1:8000/api"; 
+  /*const apiUrl = "http://127.0.0.1:8000/api";*/
+  const apiUrl = "https://bot.wwbp.org/api";
 
   const searchParams = new URLSearchParams(window.location.search);
   const botName = searchParams.get("bot_name");

@@ -19,6 +19,7 @@ kani = {extras = ["openai", "anthropic"]}
 anthropic = "*" 
 asgiref = "*"
 python-dotenv = "*"
+locust = "*"
 
 [requires]
 python_version = "3.11"

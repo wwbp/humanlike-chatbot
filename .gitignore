@@ -29,6 +29,7 @@ migrations/
 
 # Environment Files
 .env
+.env_production
 *.env.*
 google_credentials.json
 

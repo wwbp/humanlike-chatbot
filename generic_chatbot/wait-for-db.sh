@@ -42,9 +42,9 @@ else
     echo "❌ Error loading bots."
     exit 1
 fi
-
+'''
 >&2 echo "✅ All setup tasks completed. Starting application..."
 
-'''
+
 # Execute the original command (e.g., runserver)
 exec "$@"

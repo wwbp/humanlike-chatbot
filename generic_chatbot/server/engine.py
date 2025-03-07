@@ -1,7 +1,6 @@
 from kani import Kani
 from kani.engines.openai import OpenAIEngine
 from kani.engines.anthropic import AnthropicEngine
-from .custom_engines import RAGEngine
 import os
 
 def initialize_engine(model_type, model_id, csv_name=""):
@@ -11,11 +10,6 @@ def initialize_engine(model_type, model_id, csv_name=""):
             raise ValueError("Missing OPENAI_API_KEY.")
         return OpenAIEngine(api_key=api_key, model=model_id)
     
-    elif model_type == "RAG":
-        api_key = os.getenv("OPENAI_API_KEY")  
-        if not api_key:
-            raise ValueError("Missing OPENAI_API_KEY.")
-        return RAGEngine(api_key=api_key, model=model_id, csv_name="knowledge_base/qa.csv")
     
     elif model_type == "Anthropic":
         api_key = os.getenv("ANTHROPIC_API_KEY")

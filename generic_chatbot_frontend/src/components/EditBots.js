@@ -9,8 +9,7 @@ import "../styles/EditBots.css";
  */
 
 // (1) Define a BASE URL (adjust for your actual server/port)
-/*const BASE_URL = "http://127.0.0.1:8000";*/
-const BASE_URL = "https://bot.wwbp.org";
+const BASE_URL = process.env.BASE_URL || "http://127.0.0.1:8000";
 
 function EditBots() {
   // -- Auth States --

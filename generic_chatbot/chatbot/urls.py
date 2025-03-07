@@ -1,5 +1,7 @@
 from django.urls import path
-from .views import ChatbotAPIView, ListBotsAPIView, health_check, InitializeConversationAPIView, BotDetailAPIView
+from .views import ChatbotAPIView, health_check
+from .bots import ListBotsAPIView, BotDetailAPIView  # Import from bots.py
+from .conversation import InitializeConversationAPIView  # Import from conversation.py
 
 urlpatterns = [
     # 1) Health Check

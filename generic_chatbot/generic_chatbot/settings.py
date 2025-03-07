@@ -7,7 +7,7 @@ import requests
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load .env file
-ROOT_DIR = BASE_DIR.parent  # Adjust for HUMANLIKE-CHATBOT root
+ROOT_DIR = BASE_DIR.parent 
 dotenv_path = os.path.join(ROOT_DIR, '.env')
 load_dotenv(dotenv_path)
 
@@ -25,6 +25,18 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ["bot.wwbp.org","localhost", "127.0.0.1", "backend", "0.0.0.0"]
 
+REDIS_URL = os.getenv('REDIS_URL', 'redis:6379/1')
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"redis://{REDIS_URL}",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}
+
+
 
 # Append Elastic Beanstalk Load Balancer Health Check requests since the source host IP address keeps changing
 try:
@@ -38,6 +50,7 @@ else:
     ALLOWED_HOSTS.append(internal_ip)
 del requests
 
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -48,6 +61,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "corsheaders",
+    "django_redis",
     "chatbot",
     "rest_framework",
 ]
@@ -65,13 +79,13 @@ MIDDLEWARE = [
 
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # React app URL
-    "http://backend:8000",    # Backend URL
+    "http://localhost:3000",  
+    "http://backend:8000",   
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",  # React app URL
-    "http://backend:3000",    # Docker React app URL
+    "http://localhost:3000",  
+    "http://backend:3000",    
 ]
 
 ROOT_URLCONF = "generic_chatbot.urls"
@@ -105,11 +119,11 @@ WSGI_APPLICATION = "generic_chatbot.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DATABASE_NAME', 'ebdb'),
-        'USER': os.getenv('DATABASE_USER', 'ebroot'),
-        'PASSWORD': os.getenv('DATABASE_PASSWORD', 'test12345678'),
-        'HOST': os.getenv('DATABASE_HOST', 'awseb-e-hi2xupzzmm-stack-awsebrdsdatabase-zyoehnxqhaxk'),
-        'PORT': os.getenv('DATABASE_PORT', '3306'),
+        'NAME': os.getenv('DATABASE_NAME'),
+        'USER': os.getenv('DATABASE_USER'),
+        'PASSWORD': os.getenv('DATABASE_PASSWORD'),
+        'HOST': os.getenv('DATABASE_HOST'),
+        'PORT': os.getenv('DATABASE_PORT'),
     }
 }
 

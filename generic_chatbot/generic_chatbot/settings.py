@@ -37,7 +37,7 @@ CACHES = {
 }
 
 
-
+''' 
 # Append Elastic Beanstalk Load Balancer Health Check requests since the source host IP address keeps changing
 try:
     token = requests.put('http://169.254.169.254/latest/api/token',
@@ -49,7 +49,7 @@ except requests.exceptions.ConnectionError:
 else:
     ALLOWED_HOSTS.append(internal_ip)
 del requests
-
+'''
 
 # Application definition
 

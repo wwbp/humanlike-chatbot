@@ -2,7 +2,6 @@ services:
   redis:
     image: redis:latest
     container_name: redis
-    restart: always 
     ports:
       - "6379:6379"
     volumes:
@@ -32,7 +31,7 @@ services:
   backend:
     build:
       context: ./generic_chatbot
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     volumes:
       - ./generic_chatbot:/app
     ports:

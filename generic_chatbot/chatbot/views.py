@@ -84,7 +84,7 @@ class ChatbotAPIView(View):
                 for msg in conversation_history
             ]
 
-            print("✅ [DEBUG] Sending conversation history to Kani:")
+
             for msg in formatted_history:
                 print(f"🗣 {msg.role}: {msg.content}")
             sys.stdout.flush()
@@ -106,7 +106,7 @@ class ChatbotAPIView(View):
             # Append bot response
             conversation_history.append({"role": "assistant", "content": response_text})
 
-            # Ensure only the last 10 turns are retained
+            # Ensure only the last 100 turns are retained (prevents cache overloads)
             conversation_history = conversation_history[-10:]
 
             # Update cache with new history (1-hour expiration)

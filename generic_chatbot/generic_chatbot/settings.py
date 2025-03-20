@@ -25,18 +25,18 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ["bot.wwbp.org","localhost", "127.0.0.1", "backend", "0.0.0.0"]
 
-REDIS_URL = os.getenv('REDIS_URL', 'redis:6379/1')
+REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
+#REDIS_URL = os.getenv('REDIS_URL', 'rediss://humanlikebotcache-5rqgxm.serverless.use1.cache.amazonaws.com:6379')
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"redis://{REDIS_URL}",
+        "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
     }
 }
-
-
 ''' 
 # Append Elastic Beanstalk Load Balancer Health Check requests since the source host IP address keeps changing
 try:
@@ -50,7 +50,6 @@ else:
     ALLOWED_HOSTS.append(internal_ip)
 del requests
 '''
-
 # Application definition
 
 INSTALLED_APPS = [

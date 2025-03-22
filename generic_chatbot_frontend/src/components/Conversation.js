@@ -4,15 +4,15 @@ import "../styles/Conversation.css";
 const Conversation = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [conversationId, setConversationId] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
-  const apiUrl = process.env.REACT_APP_API_URL || "https://bot.wwbp.org/api";
+  const apiUrl = "http://0.0.0.0:8000/api";
 
 
   const searchParams = new URLSearchParams(window.location.search);
   const botName = searchParams.get("bot_name");
+  const conversationId = searchParams.get("conversation_id");
   const participantId = searchParams.get("participant_id");
   const initialUtterance = searchParams.get("initial_utterance") || "";
   const surveyId = searchParams.get("survey_id") || "";
@@ -32,12 +32,6 @@ const Conversation = () => {
       return;
     }
   
-    // Prevent re-initialization if conversation already exists
-    if (conversationId) {
-      console.log("Conversation already initialized.");
-      return;
-    }
-  
     const initializeConversation = async () => {
       try {
         console.log("🚀 Initializing conversation...");
@@ -46,6 +40,7 @@ const Conversation = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             bot_name: botName,
+            conversation_id: conversationId,
             participant_id: participantId,
             initial_utterance: initialUtterance,
             study_name: studyName,
@@ -59,10 +54,7 @@ const Conversation = () => {
           const errorData = await response.json();
           throw new Error(errorData.error || "Failed to initialize conversation");
         }
-  
-        const data = await response.json();
-        console.log("✅ Conversation Initialized:", data.conversation_id);
-        setConversationId(data.conversation_id);
+
       } catch (error) {
         console.error("❌ Error initializing conversation:", error);
       }

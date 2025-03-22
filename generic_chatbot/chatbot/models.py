@@ -34,3 +34,13 @@ class Bot(models.Model):
 
     def __str__(self):
         return self.name
+
+class Keystroke(models.Model):
+    conversation_id = models.CharField(max_length=255)  # Respnose_ID but not FK to conversation because keystroke logging can happen without conversation registration
+    total_time_on_page = models.FloatField()
+    total_time_away_from_page = models.FloatField()
+    keystroke_count = models.IntegerField()
+    timestamp = models.DateTimeField(auto_now_add=False)
+
+    def __str__(self):
+        return f"Keystroke log for conversation {self.conversation_id} at {self.timestamp}"

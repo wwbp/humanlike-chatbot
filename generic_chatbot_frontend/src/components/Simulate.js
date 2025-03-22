@@ -1,29 +1,41 @@
-import React, { useState } from "react";
+import React, { useState /*, useEffect */ } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Simulate.css";
 
 const Simulate = () => {
   const [botName, setBotName] = useState("");
+  const [conversationId, setConversationId] = useState("");
   const [participantId, setParticipantId] = useState("");
   const [studyName, setStudyName] = useState("");
   const [initialUtterance, setInitialUtterance] = useState("");
   const [userGroup, setUserGroup] = useState("");
   const navigate = useNavigate();
 
+  // Optional: Auto-generate a UUID (uncomment if needed)
+  // useEffect(() => {
+  //   const uuid = crypto.randomUUID();
+  //   setConversationId(uuid);
+  // }, []);
+
   const handleSubmit = (event) => {
     event.preventDefault();
-  
-    if (!botName.trim() || !participantId.trim() || !studyName.trim() || !userGroup.trim()) {
+
+    if (
+      !botName.trim() ||
+      !conversationId.trim() ||
+      !participantId.trim() ||
+      !studyName.trim() ||
+      !userGroup.trim()
+    ) {
       alert("Please fill in all fields.");
       return;
     }
-  
+
     navigate(
-      `/conversation?bot_name=${encodeURIComponent(botName)}&participant_id=${encodeURIComponent(participantId)}&study_name=${encodeURIComponent(studyName)}&user_group=${encodeURIComponent(userGroup)}&initial_utterance=${encodeURIComponent(initialUtterance)}`
+      `/conversation?bot_name=${encodeURIComponent(botName)}&conversation_id=${encodeURIComponent(conversationId)}&participant_id=${encodeURIComponent(participantId)}&study_name=${encodeURIComponent(studyName)}&user_group=${encodeURIComponent(userGroup)}&initial_utterance=${encodeURIComponent(initialUtterance)}`
     );
   };
 
-  // Navigate to Edit Bots page
   const handleEditBots = () => {
     navigate("/edit-bots");
   };
@@ -42,6 +54,19 @@ const Simulate = () => {
             required
           />
         </div>
+
+        <div className="form-group">
+          <label htmlFor="conversationId">Conversation ID:</label>
+          <input
+            type="text"
+            id="conversationId"
+            value={conversationId}
+            onChange={(e) => setConversationId(e.target.value)}
+            placeholder="Enter conversation ID"
+            required
+          />
+        </div>
+
         <div className="form-group">
           <label htmlFor="participantId">Participant ID:</label>
           <input
@@ -53,6 +78,7 @@ const Simulate = () => {
             required
           />
         </div>
+
         <div className="form-group">
           <label htmlFor="studyName">Study Name:</label>
           <input
@@ -64,6 +90,7 @@ const Simulate = () => {
             required
           />
         </div>
+
         <div className="form-group">
           <label htmlFor="userGroup">User Group:</label>
           <input
@@ -75,22 +102,27 @@ const Simulate = () => {
             required
           />
         </div>
+
         <div className="form-group">
           <label htmlFor="initialUtterance">Initial Utterance:</label>
           <textarea
             id="initialUtterance"
             value={initialUtterance}
             onChange={(e) => setInitialUtterance(e.target.value)}
-            placeholder="Initial utterance(optional)"
+            placeholder="Initial utterance (optional)"
           />
         </div>
+
         <button type="submit" className="btn btn-primary">
           Start Conversation
         </button>
       </form>
 
-      {/* Button to navigate to Edit Bots page */}
-      <button onClick={handleEditBots} className="btn btn-secondary" style={{ marginTop: "10px" }}>
+      <button
+        onClick={handleEditBots}
+        className="btn btn-secondary"
+        style={{ marginTop: "10px" }}
+      >
         Manage Bots
       </button>
     </div>

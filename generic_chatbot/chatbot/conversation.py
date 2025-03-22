@@ -26,6 +26,7 @@ class InitializeConversationAPIView(View):
 
             print(f"[DEBUG] Received JSON data: {data}")
 
+            conversation_id = data.get("conversation_id")
             bot_name = data.get("bot_name")
             participant_id = data.get("participant_id")
             initial_utterance = data.get("initial_utterance", "n/a")
@@ -34,10 +35,10 @@ class InitializeConversationAPIView(View):
             survey_id = data.get("survey_id", "n/a")
             survey_meta_data = data
 
-            if not bot_name or not participant_id:
-                print("[DEBUG] Missing 'bot_name' or 'participant_id'. Returning error.")
+            if not bot_name or not conversation_id:
+                print("[DEBUG] Missing 'bot_name' or 'conversation_id'. Returning error.")
                 return JsonResponse(
-                    {"error": "Both 'bot_name' and 'participant_id' are required."}, 
+                    {"error": "Both 'bot_name' and 'conversation_id' are required."}, 
                     status=400
                 )
 
@@ -59,10 +60,6 @@ class InitializeConversationAPIView(View):
             except Exception as engine_error:
                 print(f"[DEBUG] Engine initialization error: {engine_error}")
                 return JsonResponse({"error": "Failed to initialize the engine."}, status=500)
-
-            # Generate a conversation ID
-            conversation_id = f"{participant_id}__{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            print(f"[DEBUG] Generated conversation ID: {conversation_id}")
 
             # Create a conversation entry
             try:

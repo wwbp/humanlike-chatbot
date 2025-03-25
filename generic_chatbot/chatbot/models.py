@@ -31,7 +31,7 @@ class Bot(models.Model):
     prompt = models.TextField()  # Bot's prompt
     model_type = models.CharField(max_length=255, default="OpenAI")  # Model type (e.g., OpenAI, Anthropic)
     model_id = models.CharField(max_length=255, default="gpt-4")  # Model ID, optional
-
+    initial_utterance = models.TextField(blank=True, null=True)
     def __str__(self):
         return self.name
 

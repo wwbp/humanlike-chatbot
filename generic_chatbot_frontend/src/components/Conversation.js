@@ -7,24 +7,18 @@ const Conversation = () => {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
-  const apiUrl = "http://0.0.0.0:8000/api";
-
+  /*const apiUrl = "http://0.0.0.0:8000/api";*/
+  const apiUrl = "https://bot.wwbp.org/api";
 
   const searchParams = new URLSearchParams(window.location.search);
   const botName = searchParams.get("bot_name");
   const conversationId = searchParams.get("conversation_id");
   const participantId = searchParams.get("participant_id");
-  const initialUtterance = searchParams.get("initial_utterance") || "";
+
   const surveyId = searchParams.get("survey_id") || "";
   const studyName = searchParams.get("study_name") || "";
   const userGroup = searchParams.get("user_group") || "";
   const surveyMetaData = window.location.href;
-
-  useEffect(() => {
-    if (initialUtterance.trim() !== "") {
-      setMessages([{ sender: "bot", content: initialUtterance }]);
-    }
-  }, [initialUtterance]);
 
   useEffect(() => {
     if (!botName || !participantId) {
@@ -42,7 +36,6 @@ const Conversation = () => {
             bot_name: botName,
             conversation_id: conversationId,
             participant_id: participantId,
-            initial_utterance: initialUtterance,
             study_name: studyName,
             user_group: userGroup,
             survey_id: surveyId,
@@ -55,13 +48,20 @@ const Conversation = () => {
           throw new Error(errorData.error || "Failed to initialize conversation");
         }
 
+        const data = await response.json();
+
+        // ✅ Set initial bot message if it exists
+        if (data.initial_utterance?.trim()) {
+          setMessages([{ sender: "bot", content: data.initial_utterance }]);
+        }
+
       } catch (error) {
         console.error("❌ Error initializing conversation:", error);
       }
     };
   
     initializeConversation();
-  }, [botName, participantId, initialUtterance, studyName, surveyId, surveyMetaData, userGroup, conversationId]);
+  }, [botName, participantId, studyName, surveyId, surveyMetaData, userGroup, conversationId]);
   
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

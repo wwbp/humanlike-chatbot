@@ -21,12 +21,12 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 SECRET_KEY = os.getenv('SECRET_KEY','!g8ik7!xk!9xyldg+r75$^@tdt+d')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True # don't run with True on prod
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ["bot.wwbp.org","localhost", "127.0.0.1", "backend", "0.0.0.0"]
 
-REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
-#REDIS_URL = os.getenv('REDIS_URL', 'rediss://humanlikebotcache-5rqgxm.serverless.use1.cache.amazonaws.com:6379')
+#REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
+REDIS_URL = os.getenv('REDIS_URL', 'rediss://humanlikebotcache-5rqgxm.serverless.use1.cache.amazonaws.com:6379')
 
 CACHES = {
     "default": {
@@ -37,7 +37,7 @@ CACHES = {
         },
     }
 }
-''' 
+
 # Append Elastic Beanstalk Load Balancer Health Check requests since the source host IP address keeps changing
 try:
     token = requests.put('http://169.254.169.254/latest/api/token',
@@ -49,7 +49,7 @@ except requests.exceptions.ConnectionError:
 else:
     ALLOWED_HOSTS.append(internal_ip)
 del requests
-'''
+
 # Application definition
 
 INSTALLED_APPS = [

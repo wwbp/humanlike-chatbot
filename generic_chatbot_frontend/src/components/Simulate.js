@@ -1,4 +1,4 @@
-import React, { useState /*, useEffect */ } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Simulate.css";
 
@@ -7,15 +7,8 @@ const Simulate = () => {
   const [conversationId, setConversationId] = useState("");
   const [participantId, setParticipantId] = useState("");
   const [studyName, setStudyName] = useState("");
-  const [initialUtterance, setInitialUtterance] = useState("");
   const [userGroup, setUserGroup] = useState("");
   const navigate = useNavigate();
-
-  // Optional: Auto-generate a UUID (uncomment if needed)
-  // useEffect(() => {
-  //   const uuid = crypto.randomUUID();
-  //   setConversationId(uuid);
-  // }, []);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -32,7 +25,7 @@ const Simulate = () => {
     }
 
     navigate(
-      `/conversation?bot_name=${encodeURIComponent(botName)}&conversation_id=${encodeURIComponent(conversationId)}&participant_id=${encodeURIComponent(participantId)}&study_name=${encodeURIComponent(studyName)}&user_group=${encodeURIComponent(userGroup)}&initial_utterance=${encodeURIComponent(initialUtterance)}`
+      `/conversation?bot_name=${encodeURIComponent(botName)}&conversation_id=${encodeURIComponent(conversationId)}&participant_id=${encodeURIComponent(participantId)}&study_name=${encodeURIComponent(studyName)}&user_group=${encodeURIComponent(userGroup)}`
     );
   };
 
@@ -100,16 +93,6 @@ const Simulate = () => {
             onChange={(e) => setUserGroup(e.target.value)}
             placeholder="Enter user group"
             required
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="initialUtterance">Initial Utterance:</label>
-          <textarea
-            id="initialUtterance"
-            value={initialUtterance}
-            onChange={(e) => setInitialUtterance(e.target.value)}
-            placeholder="Initial utterance (optional)"
           />
         </div>
 

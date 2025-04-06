@@ -1,0 +1,16 @@
+{
+    "bots": [
+        {
+            "name": "Helpful Assistant",
+            "prompt": "You are a helpful assistant.",
+            "model_type": "OpenAI",
+            "model_id": "gpt-4o-mini"
+        },
+        {
+            "name": "Doctor",
+            "prompt": "You are a doctor talking to a patient.",
+            "model_type": "OpenAI",
+            "model_id": "gpt-4o-mini"
+        }
+    ]
+}

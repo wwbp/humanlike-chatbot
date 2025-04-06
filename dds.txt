@@ -1,0 +1,645 @@
+# Directory Structure:
+# ├── __init__.py
+# ├── admin.py
+# ├── apps.py
+# ├── bots.py
+# ├── config.py
+# ├── conversation.py
+# ├── keystroke.py
+# ├── management
+# │   ├── __init__.py
+# │   └── commands
+# │       ├── __init__.py
+# │       └── load_bots.py
+# ├── middleware.py
+# ├── models.py
+# ├── runchat.py
+# ├── tests.py
+# ├── urls.py
+# └── views.py
+
+
+# File: __init__.py
+
+
+# File: admin.py
+from django.contrib import admin
+
+
+
+# File: apps.py
+from django.apps import AppConfig
+
+
+class ChatbotConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "chatbot"
+
+
+# File: bots.py
+import json
+from django.views import View
+from django.http import JsonResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from .models import Bot
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ListBotsAPIView(View):
+    """
+    GET  -> List all bots
+    POST -> Create a new bot
+    """
+
+    def get(self, request, *args, **kwargs):
+        try:
+            bots = Bot.objects.values("id", "name", "model_type", "model_id", "prompt", "initial_utterance")
+            return JsonResponse({"bots": list(bots)}, status=200)
+        except Exception as e:
+            print(f"Error in ListBotsAPIView GET: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            name = data.get("name")
+            model_type = data.get("model_type")
+            model_id = data.get("model_id")
+            prompt = data.get("prompt", "")
+            initial_utterance = data.get("initial_utterance", "")
+
+            if not name or not model_type or not model_id:
+                return JsonResponse({"error": "Missing required fields."}, status=400)
+
+            bot = Bot.objects.create(
+                name=name,
+                model_type=model_type,
+                model_id=model_id,
+                prompt=prompt,
+                initial_utterance=initial_utterance
+            )
+
+            return JsonResponse(
+                {
+                    "id": bot.id,
+                    "name": bot.name,
+                    "model_type": bot.model_type,
+                    "model_id": bot.model_id,
+                    "prompt": bot.prompt,
+                    "initial_utterance": bot.initial_utterance,
+                },
+                status=201
+            )
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+        except Exception as e:
+            print(f"Error in ListBotsAPIView POST: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class BotDetailAPIView(View):
+    """
+    GET    -> Retrieve single bot by ID
+    PUT    -> Update an existing bot by ID
+    DELETE -> Delete a bot by ID
+    """
+
+    def get(self, request, pk, *args, **kwargs):
+        try:
+            bot = Bot.objects.get(pk=pk)
+            data = {
+                "id": bot.id,
+                "name": bot.name,
+                "model_type": bot.model_type,
+                "model_id": bot.model_id,
+                "prompt": bot.prompt,
+                "initial_utterance": bot.initial_utterance,
+            }
+            return JsonResponse(data, status=200)
+        except Bot.DoesNotExist:
+            return JsonResponse({"error": "Bot not found"}, status=404)
+        except Exception as e:
+            print(f"Error in BotDetailAPIView GET: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+    def put(self, request, pk, *args, **kwargs):
+        try:
+            bot = Bot.objects.get(pk=pk)
+        except Bot.DoesNotExist:
+            return JsonResponse({"error": "Bot not found"}, status=404)
+
+        try:
+            data = json.loads(request.body)
+            bot.name = data.get("name", bot.name)
+            bot.model_type = data.get("model_type", bot.model_type)
+            bot.model_id = data.get("model_id", bot.model_id)
+            bot.prompt = data.get("prompt", bot.prompt)
+            bot.initial_utterance = data.get("initial_utterance", bot.initial_utterance)
+            bot.save()
+
+            return JsonResponse({"message": "Bot updated successfully."}, status=200)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+        except Exception as e:
+            print(f"Error in BotDetailAPIView PUT: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+    def delete(self, request, pk, *args, **kwargs):
+        try:
+            bot = Bot.objects.get(pk=pk)
+            bot.delete()
+            return JsonResponse({"message": "Bot deleted successfully."}, status=204)
+        except Bot.DoesNotExist:
+            return JsonResponse({"error": "Bot not found"}, status=404)
+        except Exception as e:
+            print(f"Error in BotDetailAPIView DELETE: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+# File: config.py
+import json
+from django.db import connection
+from django.apps import apps
+
+def load_config():
+    """
+    Load the configuration from config.json and add bots to the database only if they do not exist.
+    """
+    try:
+        # Load the JSON file
+        with open("config.json", "r") as file:
+            config = json.load(file)
+
+        # Check if "bots" exists in the configuration
+        bots = config.get("bots", [])
+        if not bots:
+            print("No bots found in configuration.")
+            return config
+
+        # Check if the database is ready
+        if not connection.introspection.table_names():
+            print("Database not ready. Skipping bot loading.")
+            return config
+
+        # Dynamically fetch the Bot model
+        Bot = apps.get_model("chatbot", "Bot")  # chatbot is your app name
+
+        # Get existing bot names from the database
+        existing_bots = set(Bot.objects.values_list("name", flat=True))
+
+        # Add bots only if they are not already in the database
+        for bot in bots:
+            if bot["name"] not in existing_bots:
+                if "model_type" not in bot or "model_id" not in bot:
+                    raise ValueError(f"Bot '{bot['name']}' is missing required 'model_type' or 'model_id'.")
+                
+                Bot.objects.create(
+                    name=bot["name"], 
+                    prompt=bot["prompt"],
+                    model_type=bot["model_type"],  # Ensure model_type is set
+                    model_id=bot["model_id"]  # Ensure model_id is set
+                )
+        
+        print("Bots loaded successfully.")
+        return config
+    
+    except FileNotFoundError:
+        raise RuntimeError("Configuration file 'config.json' not found.")
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"Error decoding 'config.json': {e}")
+    except Exception as e:
+        print(f"Unexpected error loading config: {e}")
+        raise
+
+
+# File: conversation.py
+import json
+from datetime import datetime
+from django.views import View
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.utils.decorators import method_decorator
+from asgiref.sync import async_to_sync
+from .models import Conversation, Bot
+from .runchat import save_chat_to_db 
+
+@method_decorator(csrf_exempt, name='dispatch')
+class InitializeConversationAPIView(View):
+    def post(self, request, *args, **kwargs):
+        try:
+            print("[DEBUG] Entering InitializeConversationAPIView.post()...")
+
+            try:
+                data = json.loads(request.body)
+            except Exception as parse_error:
+                print(f"[DEBUG] JSON parse error: {parse_error}")
+                return JsonResponse({"error": "Invalid JSON in request body."}, status=400)
+
+            print(f"[DEBUG] Received JSON data: {data}")
+
+            conversation_id = data.get("conversation_id")
+            bot_name = data.get("bot_name")
+            participant_id = data.get("participant_id")
+            study_name = data.get("study_name", "n/a")
+            user_group = data.get("user_group", "n/a")
+            survey_id = data.get("survey_id", "n/a")
+            survey_meta_data = json.dumps(data)
+
+            if not bot_name or not conversation_id:
+                return JsonResponse(
+                    {"error": "Both 'bot_name' and 'conversation_id' are required."}, 
+                    status=400
+                )
+
+            try:
+                bot = Bot.objects.get(name=bot_name)
+                print(f"[DEBUG] Found bot: {bot_name}")
+            except Bot.DoesNotExist:
+                return JsonResponse({"error": f"No bot found with the name '{bot_name}'."}, status=404)
+            except Exception as bot_fetch_error:
+                print(f"[DEBUG] Error fetching bot: {bot_fetch_error}")
+                return JsonResponse({"error": "Error fetching the bot from the database."}, status=500)
+
+            # Save conversation
+            try:
+                Conversation.objects.create(
+                    conversation_id=conversation_id,
+                    bot_name=bot.name,
+                    participant_id=participant_id,
+                    initial_utterance=bot.initial_utterance,
+                    study_name=study_name,
+                    user_group=user_group,
+                    survey_id=survey_id,
+                    survey_meta_data=survey_meta_data,
+                    started_time=datetime.now(),
+                )
+                print("[DEBUG] Conversation created.")
+            except Exception as create_conv_error:
+                print(f"[DEBUG] Error creating Conversation: {create_conv_error}")
+                return JsonResponse({"error": "Failed to create Conversation."}, status=500)
+
+            # ✅ Save bot's initial utterance as an assistant message
+            if bot.initial_utterance and bot.initial_utterance.strip():
+                try:
+                    async_to_sync(save_chat_to_db)(
+                        conversation_id=conversation_id,
+                        speaker_id="assistant",
+                        text=bot.initial_utterance.strip(),
+                        bot_name=bot.name,
+                        participant_id=None
+                    )
+                    print("[DEBUG] Initial bot message saved to DB.")
+                except Exception as save_error:
+                    print(f"[DEBUG] Failed to save initial bot message: {save_error}")
+
+            return JsonResponse({
+                "conversation_id": conversation_id,
+                "message": "Conversation initialized successfully.",
+                "initial_utterance": bot.initial_utterance or ""
+            }, status=200)
+
+        except Exception as e:
+            print(f"[DEBUG] Unhandled exception in InitializeConversationAPIView: {e}")
+            return JsonResponse({"error": "Unexpected error occurred."}, status=500)
+
+
+# File: keystroke.py
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json, logging
+from .models import Keystroke
+from datetime import datetime
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+@csrf_exempt  # Disable CSRF for testing; use authentication in production
+def update_keystrokes(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+
+            conversation_id = data.get("conversation_id")
+            total_time_on_page = data.get("total_time_on_page")
+            total_time_away_from_page = data.get("total_time_away_from_page")
+            keystroke_count = data.get("keystroke_count")
+            timestamp = data.get("timestamp")  # Optional: only needed if you're passing this in explicitly
+
+            # Validate required fields
+            if conversation_id is None or total_time_on_page is None or total_time_away_from_page is None or keystroke_count is None:
+                return JsonResponse({"error": "Missing required fields"}, status=400)
+
+            # Parse timestamp if provided, else use current time
+            if timestamp:
+                try:
+                    timestamp = datetime.fromisoformat(timestamp)
+                except ValueError:
+                    return JsonResponse({"error": "Invalid timestamp format. Use ISO 8601."}, status=400)
+            else:
+                timestamp = datetime.now()
+
+            # Save keystroke
+            keystroke = Keystroke.objects.create(
+                conversation_id=conversation_id,
+                total_time_on_page=total_time_on_page,
+                total_time_away_from_page=total_time_away_from_page,
+                keystroke_count=keystroke_count,
+                timestamp=timestamp
+            )
+
+            return JsonResponse({
+                "message": "Keystroke data saved",
+                "keystroke_id": keystroke.id
+            })
+
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON format"}, status=400)
+        except Exception as e:
+            logger.error(f"Error saving keystroke: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)
+
+
+# File: management/__init__.py
+
+
+# File: management/commands/__init__.py
+
+
+# File: management/commands/load_bots.py
+from django.core.management.base import BaseCommand
+from chatbot.models import Bot
+import json
+
+class Command(BaseCommand):
+    help = "Load bots from config.json into the database"
+
+    def handle(self, *args, **kwargs):
+        try:
+            with open("config.json", "r") as file:
+                config_data = json.load(file)
+
+            bots = config_data.get("bots", [])
+            if not bots:
+                self.stdout.write(self.style.WARNING("No bots found in config.json."))
+                return
+
+            for bot in bots:
+                Bot.objects.update_or_create(
+                    name=bot["name"],
+                    defaults={
+                        "prompt": bot["prompt"]
+                    }
+                )
+            self.stdout.write(self.style.SUCCESS("Bots successfully loaded into the database."))
+        except Exception as e:
+            self.stderr.write(f"Error loading bots: {e}")
+
+
+# File: middleware.py
+from django.utils.deprecation import MiddlewareMixin
+from django.conf import settings
+
+class XFrameOptionsMiddleware(MiddlewareMixin):
+    def process_response(self, request, response):
+        response["X-Frame-Options"] = settings.X_FRAME_OPTIONS
+        response["Content-Security-Policy"] = "frame-ancestors *"
+        return response
+
+
+# File: models.py
+from django.db import models
+
+class Conversation(models.Model):
+    conversation_id = models.CharField(max_length=255, unique=True)  # Conversation ID
+    bot_name = models.CharField(max_length=255, default ="DefaultBot") # Bot Name
+    participant_id = models.CharField(max_length=255)
+    initial_utterance = models.CharField(max_length=255, null=True, blank=True)
+    study_name = models.CharField(max_length=255, null=True, blank=True)
+    user_group = models.CharField(max_length=255, null=True, blank=True)
+    survey_id = models.CharField(max_length=255, null=True, blank=True)  # Survey ID
+    survey_meta_data = models.TextField(null=True, blank=True)  # Survey metadata (can be long)
+    started_time = models.DateTimeField(auto_now_add=True)  # Start time
+
+    def __str__(self):
+        return f"Conversation {self.conversation_id} started at {self.started_time}"
+
+class Utterance(models.Model):
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="utterances",null=True, blank=True)   # Unique identifier per conversation
+    speaker_id = models.CharField(max_length=255)       # 'participant' or 'bot'
+    bot_name = models.CharField(max_length=255,null=True, blank=True)  
+    participant_id = models.CharField(max_length=255,null=True, blank=True)  
+    created_time = models.DateTimeField(auto_now_add=True)               # Timestamp
+    text = models.TextField()      
+
+    def __str__(self):
+        return f"{self.speaker_id}: {self.text[:50]}"
+
+
+class Bot(models.Model):
+    name = models.CharField(max_length=255, unique=True, default="DefaultBotName")  # Make name the unique identifier
+    prompt = models.TextField()  # Bot's prompt
+    model_type = models.CharField(max_length=255, default="OpenAI")  # Model type (e.g., OpenAI, Anthropic)
+    model_id = models.CharField(max_length=255, default="gpt-4")  # Model ID, optional
+    initial_utterance = models.TextField(blank=True, null=True)
+    def __str__(self):
+        return self.name
+
+class Keystroke(models.Model):
+    conversation_id = models.CharField(max_length=255)  # Respnose_ID but not FK to conversation because keystroke logging can happen without conversation registration
+    total_time_on_page = models.FloatField()
+    total_time_away_from_page = models.FloatField()
+    keystroke_count = models.IntegerField()
+    timestamp = models.DateTimeField(auto_now_add=False)
+
+    def __str__(self):
+        return f"Keystroke log for conversation {self.conversation_id} at {self.timestamp}"
+
+
+# File: runchat.py
+from kani import ChatMessage, ChatRole, Kani
+from asgiref.sync import sync_to_async
+from django.core.cache import cache
+from .models import Bot, Conversation, Utterance
+from server.engine import get_or_create_engine
+
+
+async def save_chat_to_db(conversation_id, speaker_id, text, bot_name=None, participant_id=None):
+    """
+    Save chat messages asynchronously to the Utterance table.
+    """
+    try:
+        conversation = await sync_to_async(Conversation.objects.get)(conversation_id=conversation_id)
+        print(f"Found conversation {conversation.conversation_id}, inserting message...")
+
+        await sync_to_async(Utterance.objects.create)(
+            conversation=conversation,
+            speaker_id=speaker_id,
+            bot_name=bot_name,
+            participant_id=participant_id,
+            text=text
+        )
+        print("✅ Successfully saved message to Utterance table.")
+
+    except Conversation.DoesNotExist:
+        print(f"❌ Conversation with ID {conversation_id} not found.")
+    except Exception as e:
+        print(f"❌ Failed to save message to Utterance table: {e}")
+        
+
+
+
+async def run_chat_round(bot_name, conversation_id, participant_id, message):
+    """
+    Handles one full round of chat interaction: user -> bot response.
+    Returns the bot response text.
+    """
+    engine_instances = {}
+    # Fetch bot object
+    bot = await sync_to_async(Bot.objects.get)(name=bot_name)
+
+    # Retrieve history from cache
+    cache_key = f"conversation_cache_{conversation_id}"
+    conversation_history = cache.get(cache_key, [])
+
+    # Append new message
+    conversation_history.append({"role": "user", "content": message})
+
+    # Format for Kani
+    formatted_history = [
+        ChatMessage(
+            role=ChatRole.USER if msg["role"] == "user" else ChatRole.ASSISTANT,
+            content=str(msg["content"])
+        )
+        for msg in conversation_history
+    ]
+
+    # Run Kani
+    engine = get_or_create_engine(bot.model_type, bot.model_id, engine_instances)
+    kani = Kani(engine, system_prompt=bot.prompt, chat_history=formatted_history)
+
+    latest_user_message = formatted_history[-1].content
+    response_text = ""
+
+    async for msg in kani.full_round(query=latest_user_message):
+        if hasattr(msg, "text") and isinstance(msg.text, str):
+            response_text += msg.text + " "
+
+    response_text = response_text.strip()
+
+    # Append bot response
+    conversation_history.append({"role": "assistant", "content": response_text})
+    conversation_history = conversation_history[-10:]  # trim history
+    cache.set(cache_key, conversation_history, timeout=3600)
+
+    # Save to DB
+    await save_chat_to_db(
+        conversation_id=conversation_id,
+        speaker_id="user",
+        text=message,
+        bot_name=None,
+        participant_id=participant_id
+    )
+
+    await save_chat_to_db(
+        conversation_id=conversation_id,
+        speaker_id="assistant",
+        text=response_text,
+        bot_name=bot.name,
+        participant_id=None
+    )
+
+    return response_text
+
+
+# File: tests.py
+from django.test import TestCase
+
+# Create your tests here.
+
+
+# File: urls.py
+from django.urls import path
+from .views import ChatbotAPIView, health_check
+from .bots import ListBotsAPIView, BotDetailAPIView  # Import from bots.py
+from .conversation import InitializeConversationAPIView  # Import from conversation.py
+from .keystroke import update_keystrokes
+
+urlpatterns = [
+    # 1) Health Check
+    path('health/', health_check, name='health_check'),
+
+    # 2) Initialize a Conversation
+    path("api/initialize_conversation/", InitializeConversationAPIView.as_view(), name="initialize_conversation"),
+
+    # 3) Chatbot Conversation Endpoint
+    path('api/chatbot/', ChatbotAPIView.as_view(), name='chatbot_api'),
+
+    # 4) Bots Collection (List and/or Create)
+    path('api/bots/', ListBotsAPIView.as_view(), name='list_bots'),
+
+    # 5) Bot Detail by Primary Key (Retrieve, Update, Delete)
+    path('api/bots/<int:pk>/', BotDetailAPIView.as_view(), name='bot-detail'),
+
+    # 6) update keystrokes 
+    path('api/update_keystrokes/', update_keystrokes, name = 'update_keystrokes'),
+]
+
+
+# File: views.py
+import json
+import sys
+from django.views import View
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.utils.decorators import method_decorator
+from asgiref.sync import sync_to_async
+from datetime import datetime
+from django.core.cache import cache
+from kani import Kani, ChatMessage, ChatRole
+from .models import Conversation, Bot, Utterance
+from .bots import ListBotsAPIView, BotDetailAPIView
+from .conversation import InitializeConversationAPIView
+from .runchat import run_chat_round
+from server.engine import get_or_create_engine
+
+# Dictionary to store per-engine configurations
+engine_instances = {}
+
+def health_check(request):
+    return JsonResponse({"status": "ok"})
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ChatbotAPIView(View):
+    async def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            message = data.get('message', '').strip()
+            bot_name = data.get('bot_name', '').strip()
+            conversation_id = data.get('conversation_id')
+            participant_id = data.get('participant_id')
+
+            if not message or not bot_name or not conversation_id:
+                return JsonResponse({"error": "Missing required fields."}, status=400)
+
+            response_text = await run_chat_round(
+                bot_name=bot_name,
+                conversation_id=conversation_id,
+                participant_id=participant_id,
+                message=message
+            )
+
+            return JsonResponse({
+                'message': message,
+                'response': response_text,
+                'bot_name': bot_name
+            }, status=200)
+
+        except Exception as e:
+            print(f"❌ [ERROR] ChatbotAPIView Exception: {e}")
+            return JsonResponse({'error': str(e)}, status=500)
+
+

@@ -25,7 +25,6 @@ build/
 db.sqlite3
 /media/
 /staticfiles/
-migrations/
 
 # Environment Files
 .env

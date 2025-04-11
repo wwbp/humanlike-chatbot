@@ -7,6 +7,7 @@ from django.utils.decorators import method_decorator
 from asgiref.sync import sync_to_async
 from datetime import datetime
 from django.core.cache import cache
+from .profiling import profile_view
 from kani import Kani, ChatMessage, ChatRole
 from .models import Conversation, Bot, Utterance
 from .bots import ListBotsAPIView, BotDetailAPIView
@@ -17,12 +18,14 @@ from server.engine import get_or_create_engine
 # Dictionary to store per-engine configurations
 engine_instances = {}
 
+
 def health_check(request):
     return JsonResponse({"status": "ok"})
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ChatbotAPIView(View):
+    @profile_view
     async def post(self, request, *args, **kwargs):
         try:
             data = json.loads(request.body)

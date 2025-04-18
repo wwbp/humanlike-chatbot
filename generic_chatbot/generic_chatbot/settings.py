@@ -189,7 +189,7 @@ XRAY_RECORDER = {
     'SAMPLING': True,
     'SAMPLING_RULES': None,
     # the segment name for segments generated from incoming requests
-    'AWS_XRAY_TRACING_NAME': None,
+    'AWS_XRAY_TRACING_NAME': 'generic-chatbot',
     'DYNAMIC_NAMING': None,  # defines a pattern that host names should match
     # defines when a segment starts to stream out its children subsegments
     'STREAMING_THRESHOLD': None,

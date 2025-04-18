@@ -7,7 +7,7 @@ import requests
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load .env file
-ROOT_DIR = BASE_DIR.parent 
+ROOT_DIR = BASE_DIR.parent
 dotenv_path = os.path.join(ROOT_DIR, '.env')
 load_dotenv(dotenv_path)
 
@@ -18,15 +18,17 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY','!g8ik7!xk!9xyldg+r75$^@tdt+d')
+SECRET_KEY = os.getenv('SECRET_KEY', '!g8ik7!xk!9xyldg+r75$^@tdt+d')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ["bot.wwbp.org","localhost", "127.0.0.1", "backend", "0.0.0.0"]
+ALLOWED_HOSTS = ["bot.wwbp.org", "localhost",
+                 "127.0.0.1", "backend", "0.0.0.0"]
 
-#REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
-REDIS_URL = os.getenv('REDIS_URL', 'rediss://humanlikebotcache-5rqgxm.serverless.use1.cache.amazonaws.com:6379')
+# REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
+REDIS_URL = os.getenv(
+    'REDIS_URL', 'rediss://humanlikebotcache-5rqgxm.serverless.use1.cache.amazonaws.com:6379')
 
 CACHES = {
     "default": {
@@ -63,14 +65,15 @@ INSTALLED_APPS = [
     "django_redis",
     "chatbot",
     "rest_framework",
+    "aws_xray_sdk.ext.django",
 ]
 
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",  
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    #"django.middleware.csrf.CsrfViewMiddleware",
+    # "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -79,13 +82,13 @@ MIDDLEWARE = [
 
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  
-    "http://backend:8000",   
+    "http://localhost:3000",
+    "http://backend:8000",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",  
-    "http://backend:3000",    
+    "http://localhost:3000",
+    "http://backend:3000",
 ]
 
 ROOT_URLCONF = "generic_chatbot.urls"
@@ -97,7 +100,7 @@ ASGI_APPLICATION = "generic_chatbot.asgi.application"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR,'templates'],
+        "DIRS": [BASE_DIR, 'templates'],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -170,9 +173,23 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 X_FRAME_OPTIONS = 'ALLOWALL'
-#consider restricting in production
+# consider restricting in production
 CORS_ALLOW_ALL_ORIGINS = True
 SESSION_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SECURE = True
+
+# X‑Ray SDK configuration
+XRAY_RECORDER = {
+    "AWS_XRAY_DAEMON_ADDRESS": "127.0.0.1:2000",         # default daemon port
+    # your service name in X‑Ray
+    "AWS_XRAY_TRACING_NAME":     "generic-chatbot",
+    "PLUGINS":                   ("ElasticBeanstalkPlugin", "EC2Plugin"),
+    # include DB & template timings
+    "AUTO_INSTRUMENT":           True,
+    # don’t crash on missing segments
+    "AWS_XRAY_CONTEXT_MISSING":  "LOG_ERROR",
+    # use sampling rules from X‑Ray
+    "SAMPLING":                  True,
+}

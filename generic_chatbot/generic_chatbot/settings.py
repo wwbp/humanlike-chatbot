@@ -69,6 +69,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "aws_xray_sdk.ext.django.middleware.XRayMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -77,7 +78,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "aws_xray_sdk.ext.django.middleware.XRayMiddleware",
 ]
 
 
@@ -180,16 +180,17 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SECURE = True
 
-# X‑Ray SDK configuration
 XRAY_RECORDER = {
-    "AWS_XRAY_DAEMON_ADDRESS": "127.0.0.1:2000",         # default daemon port
-    # your service name in X‑Ray
-    "AWS_XRAY_TRACING_NAME":     "generic-chatbot",
-    "PLUGINS":                   ("ElasticBeanstalkPlugin", "EC2Plugin"),
-    # include DB & template timings
-    "AUTO_INSTRUMENT":           True,
-    # don’t crash on missing segments
-    "AWS_XRAY_CONTEXT_MISSING":  "LOG_ERROR",
-    # use sampling rules from X‑Ray
-    "SAMPLING":                  True,
+    'AWS_XRAY_DAEMON_ADDRESS': '127.0.0.1:2000',
+    # If turned on built-in database queries and template rendering will be recorded as subsegments
+    'AUTO_INSTRUMENT': True,
+    'AWS_XRAY_CONTEXT_MISSING': 'LOG_ERROR',
+    'PLUGINS': (),
+    'SAMPLING': True,
+    'SAMPLING_RULES': None,
+    # the segment name for segments generated from incoming requests
+    'AWS_XRAY_TRACING_NAME': None,
+    'DYNAMIC_NAMING': None,  # defines a pattern that host names should match
+    # defines when a segment starts to stream out its children subsegments
+    'STREAMING_THRESHOLD': None,
 }

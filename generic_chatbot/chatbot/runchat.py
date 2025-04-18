@@ -1,3 +1,4 @@
+from aws_xray_sdk.core import xray_recorder
 from kani import ChatMessage, ChatRole, Kani
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
@@ -11,7 +12,8 @@ async def save_chat_to_db(conversation_id, speaker_id, text, bot_name=None, part
     """
     try:
         conversation = await sync_to_async(Conversation.objects.get)(conversation_id=conversation_id)
-        print(f"Found conversation {conversation.conversation_id}, inserting message...")
+        print(
+            f"Found conversation {conversation.conversation_id}, inserting message...")
 
         await sync_to_async(Utterance.objects.create)(
             conversation=conversation,
@@ -26,10 +28,9 @@ async def save_chat_to_db(conversation_id, speaker_id, text, bot_name=None, part
         print(f"❌ Conversation with ID {conversation_id} not found.")
     except Exception as e:
         print(f"❌ Failed to save message to Utterance table: {e}")
-        
 
 
-
+@xray_recorder.capture('run_chat_round')
 async def run_chat_round(bot_name, conversation_id, participant_id, message):
     """
     Handles one full round of chat interaction: user -> bot response.
@@ -56,8 +57,10 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     ]
 
     # Run Kani
-    engine = get_or_create_engine(bot.model_type, bot.model_id, engine_instances)
-    kani = Kani(engine, system_prompt=bot.prompt, chat_history=formatted_history)
+    engine = get_or_create_engine(
+        bot.model_type, bot.model_id, engine_instances)
+    kani = Kani(engine, system_prompt=bot.prompt,
+                chat_history=formatted_history)
 
     latest_user_message = formatted_history[-1].content
     response_text = ""
@@ -69,7 +72,8 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     response_text = response_text.strip()
 
     # Append bot response
-    conversation_history.append({"role": "assistant", "content": response_text})
+    conversation_history.append(
+        {"role": "assistant", "content": response_text})
     conversation_history = conversation_history[-10:]  # trim history
     cache.set(cache_key, conversation_history, timeout=3600)
 

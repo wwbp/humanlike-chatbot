@@ -4,6 +4,11 @@ import io
 import functools
 import logging
 
+logging.basicConfig(filename="locust_errors.log",
+                    level=logging.INFO,
+                    format="%(asctime)s %(levelname)s %(message)s",
+                    force=True)  # if using Python 3.8+
+logging.info("Test log: logging is working.")
 
 def profile_view(func):
     @functools.wraps(func)

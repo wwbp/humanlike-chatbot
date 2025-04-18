@@ -7,8 +7,8 @@ const Conversation = () => {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
-  /*const apiUrl = "http://0.0.0.0:8000/api";*/
-  const apiUrl = "https://bot.wwbp.org/api";
+  const apiUrl = "http://0.0.0.0:8000/api";
+  // const apiUrl = "https://bot.wwbp.org/api";
 
   const searchParams = new URLSearchParams(window.location.search);
   const botName = searchParams.get("bot_name");
@@ -22,10 +22,12 @@ const Conversation = () => {
 
   useEffect(() => {
     if (!botName || !participantId) {
-      console.log("Cannot initialize conversation with botname or participantId");
+      console.log(
+        "Cannot initialize conversation with botname or participantId"
+      );
       return;
     }
-  
+
     const initializeConversation = async () => {
       try {
         console.log("🚀 Initializing conversation...");
@@ -42,10 +44,12 @@ const Conversation = () => {
             survey_meta_data: surveyMetaData,
           }),
         });
-  
+
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to initialize conversation");
+          throw new Error(
+            errorData.error || "Failed to initialize conversation"
+          );
         }
 
         const data = await response.json();
@@ -54,15 +58,22 @@ const Conversation = () => {
         if (data.initial_utterance?.trim()) {
           setMessages([{ sender: "bot", content: data.initial_utterance }]);
         }
-
       } catch (error) {
         console.error("❌ Error initializing conversation:", error);
       }
     };
-  
+
     initializeConversation();
-  }, [botName, participantId, studyName, surveyId, surveyMetaData, userGroup, conversationId]);
-  
+  }, [
+    botName,
+    participantId,
+    studyName,
+    surveyId,
+    surveyMetaData,
+    userGroup,
+    conversationId,
+  ]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -74,7 +85,10 @@ const Conversation = () => {
       return;
     }
 
-    setMessages((prevMessages) => [...prevMessages, { sender: "You", content: message }]);
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { sender: "You", content: message },
+    ]);
     setMessage("");
     setIsTyping(true);
 
@@ -118,7 +132,12 @@ const Conversation = () => {
       <div className="chat-box">
         <div className="messages-box">
           {messages.map((msg, index) => (
-            <div key={index} className={`message ${msg.sender === "You" ? "sent" : "received"}`}>
+            <div
+              key={index}
+              className={`message ${
+                msg.sender === "You" ? "sent" : "received"
+              }`}
+            >
               {msg.content}
             </div>
           ))}
@@ -149,7 +168,9 @@ const Conversation = () => {
             // (Optional) Prevent right-click context menu
             onContextMenu={(e) => e.preventDefault()}
           />
-          <button type="submit" className="send-button">Send</button>
+          <button type="submit" className="send-button">
+            Send
+          </button>
         </form>
       </div>
     </div>

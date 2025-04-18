@@ -25,8 +25,8 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ["bot.wwbp.org","localhost", "127.0.0.1", "backend", "0.0.0.0"]
 
-#REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
-REDIS_URL = os.getenv('REDIS_URL', 'rediss://humanlikebotcache-5rqgxm.serverless.use1.cache.amazonaws.com:6379')
+REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
+# REDIS_URL = os.getenv('REDIS_URL', 'rediss://humanlikebotcache-5rqgxm.serverless.use1.cache.amazonaws.com:6379')
 
 CACHES = {
     "default": {

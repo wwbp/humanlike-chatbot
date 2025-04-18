@@ -4,12 +4,13 @@ import random
 import datetime
 from gevent.lock import Semaphore
 
-# Configure logging to file for errors and info
-logging.basicConfig(
-    filename="locust_errors.log",
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s"
-)
+# for handler in logging.root.handlers[:]:
+#     logging.root.removeHandler(handler)
+logging.basicConfig(filename="locust_errors.log",
+                    level=logging.INFO,
+                    format="%(asctime)s %(levelname)s %(message)s",
+                    force=True)  # if using Python 3.8+
+logging.info("Test log: logging is working.")
 
 # Global dictionary to count failures by key (request type + endpoint)
 failure_counts = {}

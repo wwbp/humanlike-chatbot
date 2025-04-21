@@ -21,6 +21,7 @@ asgiref = "*"
 python-dotenv = "*"
 django-redis = "*"
 aws-xray-sdk = "*"
+gevent = "*"
 
 [requires]
 python_version = "3.11"

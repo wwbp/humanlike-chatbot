@@ -30,7 +30,7 @@ async def save_chat_to_db(conversation_id, speaker_id, text, bot_name=None, part
         print(f"❌ Failed to save message to Utterance table: {e}")
 
 
-@xray_recorder.capture('run_chat_round')
+# @xray_recorder.capture('run_chat_round')
 async def run_chat_round(bot_name, conversation_id, participant_id, message):
     """
     Handles one full round of chat interaction: user -> bot response.

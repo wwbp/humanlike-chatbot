@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 aws-xray-sdk = "*"
+locust = "*"
 
 [dev-packages]
 

@@ -1,5 +1,5 @@
 # Use a Python image
-FROM python:3.12
+FROM python:latest
 
 # Set the working directory
 WORKDIR /app
@@ -43,5 +43,7 @@ EXPOSE 2000/udp
 RUN chmod +x /app/entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
 
-# Command to run the application
-CMD ["gunicorn", "generic_chatbot.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Command to run the application# at the bottom of your Dockerfile, replace CMD with:
+CMD ["gunicorn", "generic_chatbot.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "5"]

@@ -14,5 +14,7 @@ echo "Loading bots..."
 python manage.py load_bots
 
 echo "Starting Gunicorn..."
+# start X‑Ray daemon, listening on all interfaces
+xray -o -n "${AWS_REGION:-us-east-1}" &
 # Finally, run the command passed in the Dockerfile CMD or via `docker run`
 exec "$@"

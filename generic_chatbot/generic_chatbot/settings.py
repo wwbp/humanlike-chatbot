@@ -23,8 +23,8 @@ SECRET_KEY = os.getenv('SECRET_KEY', '!g8ik7!xk!9xyldg+r75$^@tdt+d')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ["bot.wwbp.org", "localhost",
-                 "127.0.0.1", "backend", "0.0.0.0"]
+ALLOWED_HOSTS = ["bot.wwbp.org", "localhost", "127.0.0.1",
+                 "backend", "0.0.0.0"]
 
 # REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
 REDIS_URL = os.getenv(
@@ -180,17 +180,16 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SECURE = True
 
+
 XRAY_RECORDER = {
-    'AWS_XRAY_DAEMON_ADDRESS': '127.0.0.1:2000',
-    # If turned on built-in database queries and template rendering will be recorded as subsegments
-    'AUTO_INSTRUMENT': True,
-    'AWS_XRAY_CONTEXT_MISSING': 'LOG_ERROR',
-    'PLUGINS': (),
-    'SAMPLING': True,
-    'SAMPLING_RULES': None,
-    # the segment name for segments generated from incoming requests
-    'AWS_XRAY_TRACING_NAME': 'generic-chatbot',
-    'DYNAMIC_NAMING': None,  # defines a pattern that host names should match
-    # defines when a segment starts to stream out its children subsegments
-    'STREAMING_THRESHOLD': None,
+    "AWS_XRAY_DAEMON_ADDRESS": "127.0.0.1:2000",
+    "AUTO_INSTRUMENT": True,
+    "AWS_XRAY_CONTEXT_MISSING": "LOG_ERROR",
+    "AWS_XRAY_TRACING_NAME": "APPLICATION_NAME",
+    "PATCH_MODULES": ["requests"],
+    "PLUGINS": ("ElasticBeanstalkPlugin",),
+    "SAMPLING": True,
+    "SAMPLING_RULES": None,
+    "DYNAMIC_NAMING": None,
+    "STREAMING_THRESHOLD": None,
 }

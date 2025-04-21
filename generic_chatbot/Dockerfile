@@ -15,6 +15,13 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+
+# INSTALL X‑RAY DAEMON
+RUN curl -sL https://s3.us-east-1.amazonaws.com/aws-xray-assets.us-east-1/xray-daemon/aws-xray-daemon-linux-3.x.zip \
+    -o /tmp/xray.zip \
+ && unzip /tmp/xray.zip -d /usr/local/bin \
+ && rm /tmp/xray.zip
+
 # Install pipenv 
 RUN pip install pipenv
 
@@ -30,6 +37,7 @@ COPY . /app
 
 # Expose the application's port
 EXPOSE 8000
+EXPOSE 2000/udp
 
 # Set the entrypoint
 RUN chmod +x /app/entrypoint.sh

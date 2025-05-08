@@ -70,7 +70,6 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
 
     # Append bot response
     conversation_history.append({"role": "assistant", "content": response_text})
-    conversation_history = conversation_history[-10:]  # trim history
     cache.set(cache_key, conversation_history, timeout=3600)
 
     # Save to DB

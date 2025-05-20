@@ -9,7 +9,7 @@ from datetime import datetime
 from django.core.cache import cache
 from kani import Kani, ChatMessage, ChatRole
 from .models import Conversation, Bot, Utterance
-from .voicechat import get_realtime_session
+from .voicechat import get_realtime_session, upload_voice_utterance
 from .bots import ListBotsAPIView, BotDetailAPIView
 from .conversation import InitializeConversationAPIView
 from .runchat import run_chat_round

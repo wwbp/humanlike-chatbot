@@ -1,3 +1,5 @@
+// Updated VoiceConversation.js implementing Realtime WebRTC conversation handling per OpenAI docs
+
 import React, { useState, useEffect, useRef } from "react";
 import "../styles/Conversation.css";
 
@@ -13,50 +15,57 @@ const VoiceConversation = () => {
   const messagesEndRef = useRef(null);
 
   const apiUrl = process.env.REACT_APP_API_URL;
-
   const searchParams = new URLSearchParams(window.location.search);
   const botName = searchParams.get("bot_name");
   const conversationId = searchParams.get("conversation_id");
   const participantId = searchParams.get("participant_id");
-
-  const surveyId = searchParams.get("survey_id") || "";
-  const studyName = searchParams.get("study_name") || "";
-  const userGroup = searchParams.get("user_group") || "";
   const surveyMetaData = window.location.href;
 
-  useEffect(() => {
-    if (!botName || !participantId) {
-      console.warn("Missing botName or participantId");
-      return;
-    }
+  // Save user or AI utterance
+  const saveUtterance = async ({ text, isModel }) => {
+    const formData = new FormData();
+    formData.append("transcript", text);
+    formData.append("conversation_id", conversationId);
+    formData.append("participant_id", participantId);
+    formData.append("bot_name", botName);
+    formData.append("is_model", isModel ? "true" : "false");
 
-    const initializeConversation = async () => {
+    try {
+      const res = await fetch(`${apiUrl}/upload_voice_utterance/`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      console.log("✅ Saved utterance:", data);
+    } catch (err) {
+      console.error("❌ Failed to save utterance:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!botName || !participantId) return;
+    const init = async () => {
       try {
-        const response = await fetch(`${apiUrl}/initialize_conversation/`, {
+        const res = await fetch(`${apiUrl}/initialize_conversation/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             bot_name: botName,
             conversation_id: conversationId,
             participant_id: participantId,
-            study_name: studyName,
-            user_group: userGroup,
-            survey_id: surveyId,
             survey_meta_data: surveyMetaData,
           }),
         });
-
-        const data = await response.json();
-        if (data.initial_utterance?.trim()) {
+        const data = await res.json();
+        if (data.initial_utterance) {
           setMessages([{ sender: "AI", content: data.initial_utterance }]);
         }
-      } catch (error) {
-        console.error("Failed to initialize conversation:", error);
+      } catch (err) {
+        console.error("Failed to initialize conversation:", err);
       }
     };
-
-    initializeConversation();
-  }, [apiUrl, botName, participantId, conversationId, studyName, surveyId, surveyMetaData, userGroup]);
+    init();
+  }, [botName, participantId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -65,9 +74,7 @@ const VoiceConversation = () => {
   const startVoiceConversation = async () => {
     try {
       const sessionRes = await fetch(`${apiUrl}/session/`);
-      const sessionData = await sessionRes.json();
-      const EPHEMERAL_KEY = sessionData.client_secret.value;
-
+      const { client_secret } = await sessionRes.json();
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
 
@@ -80,105 +87,83 @@ const VoiceConversation = () => {
         audioEl.srcObject = e.streams[0];
       };
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      pc.addTrack(mediaStream.getTracks()[0]);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
       const dc = pc.createDataChannel("oai-events");
       dcRef.current = dc;
 
-      dc.onmessage = (e) => {
-        try {
-          const message = JSON.parse(e.data);
-          console.log("📨 Message from model:", message);
+      dc.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        console.log("📨 Message:", message);
+        if (message.type === "transcript" && message.final) {
+          console.log("📨 Message:", message);
+          setMessages((prev) => [...prev, { sender: "You", content: message.text }]);
+          saveUtterance({ text: message.text, isModel: false });
+          setIsTyping(true);
+        }
 
-          if (message.type === "message" && message.text) {
-            setMessages((prev) => [...prev, { sender: "AI", content: message.text }]);
-            setIsTyping(false);
-          }
-
-          if (message.type === "transcript" && message.final) {
-            setMessages((prev) => [...prev, { sender: "You", content: message.text }]);
-            setIsTyping(true);
-          }
-        } catch (err) {
-          console.error("Failed to parse message:", err);
+        if (message.type === "response.content_part.done") {
+          console.log("📨 AI Assistant:", message);
+          const text = message.part?.transcript
+          console.log("Received Message",text);
+          saveUtterance({ text: text, isModel: true });
+          setIsTyping(false);
         }
       };
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const sdpResponse = await fetch(
-        `https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`,
-        {
-          method: "POST",
-          body: offer.sdp,
-          headers: {
-            Authorization: `Bearer ${EPHEMERAL_KEY}`,
-            "Content-Type": "application/sdp",
-          },
-        }
-      );
+      const sdpResponse = await fetch("https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17", {
+        method: "POST",
+        body: offer.sdp,
+        headers: {
+          Authorization: `Bearer ${client_secret.value}`,
+          "Content-Type": "application/sdp",
+        },
+      });
 
-      const answer = {
-        type: "answer",
-        sdp: await sdpResponse.text(),
-      };
+      const answer = { type: "answer", sdp: await sdpResponse.text() };
       await pc.setRemoteDescription(answer);
 
       setIsConnected(true);
       setIsStreaming(true);
-    } catch (error) {
-      console.error("❌ Failed to start voice conversation:", error);
-      alert("Could not start voice conversation. Check console.");
+    } catch (err) {
+      console.error("❌ Failed to start voice session:", err);
     }
   };
 
   const stopVoiceConversation = () => {
-    if (pcRef.current) {
-      pcRef.current.close();
-      pcRef.current = null;
-    }
+    if (pcRef.current) pcRef.current.close();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.srcObject = null;
       audioRef.current.remove();
     }
-    setIsStreaming(false);
     setIsConnected(false);
+    setIsStreaming(false);
   };
 
   return (
     <div className="conversation-container">
       <div className="chat-box">
         <div className="messages-box">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`message ${msg.sender === "You" ? "sent" : "received"}`}
-            >
-              {msg.content}
-            </div>
+          {messages.map((msg, idx) => (
+            <div key={idx} className={`message ${msg.sender === "You" ? "sent" : "received"}`}>{msg.content}</div>
           ))}
           {isTyping && (
             <div className="message received typing-indicator">
-              <span className="dot"></span>
-              <span className="dot"></span>
-              <span className="dot"></span>
+              <span className="dot"></span><span className="dot"></span><span className="dot"></span>
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
-
         <div className="voice-controls">
           {!isStreaming ? (
-            <button className="send-button" onClick={startVoiceConversation}>
-              🎙️ Start Voice Chat
-            </button>
+            <button className="send-button" onClick={startVoiceConversation}>🎙️ Start Voice Chat</button>
           ) : (
-            <button className="send-button stop" onClick={stopVoiceConversation}>
-              ⏹️ Stop
-            </button>
+            <button className="send-button stop" onClick={stopVoiceConversation}>⏹️ Stop</button>
           )}
         </div>
       </div>
@@ -187,4 +172,3 @@ const VoiceConversation = () => {
 };
 
 export default VoiceConversation;
-

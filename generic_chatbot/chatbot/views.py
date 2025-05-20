@@ -9,38 +9,11 @@ from datetime import datetime
 from django.core.cache import cache
 from kani import Kani, ChatMessage, ChatRole
 from .models import Conversation, Bot, Utterance
+from .voicechat import get_realtime_session
 from .bots import ListBotsAPIView, BotDetailAPIView
 from .conversation import InitializeConversationAPIView
 from .runchat import run_chat_round
 from server.engine import get_or_create_engine
-import requests
-from django.http import JsonResponse
-from django.views.decorators.http import require_GET
-import os
-
-
-#for realtime conenction 
-@csrf_exempt
-@require_GET
-def get_realtime_session(request):
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-    headers = {
-        "Authorization": f"Bearer {OPENAI_API_KEY}",
-        "Content-Type": "application/json",
-    }
-
-    data = {
-        "model": "gpt-4o-realtime-preview-2024-12-17",
-        "voice": "alloy",  # You can use shimmer, echo, etc.
-    }
-
-    try:
-        response = requests.post("https://api.openai.com/v1/realtime/sessions", headers=headers, json=data)
-        return JsonResponse(response.json(), status=response.status_code)
-    except Exception as e:
-        print(f"[DEBUG] Error fetching realtime session: {e}")
-        return JsonResponse({"error": "Failed to get session from OpenAI"}, status=500)
 
 # Dictionary to store per-engine configurations
 engine_instances = {}

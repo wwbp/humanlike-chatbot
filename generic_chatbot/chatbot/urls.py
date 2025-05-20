@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ChatbotAPIView, health_check
+from .views import ChatbotAPIView, health_check, get_realtime_session 
 from .bots import ListBotsAPIView, BotDetailAPIView  # Import from bots.py
 from .conversation import InitializeConversationAPIView  # Import from conversation.py
 from .keystroke import update_keystrokes
@@ -22,4 +22,7 @@ urlpatterns = [
 
     # 6) update keystrokes 
     path('api/update_keystrokes/', update_keystrokes, name = 'update_keystrokes'),
+
+    # 7) get realtime sesion
+    path("api/session/", get_realtime_session, name="get_realtime_session"),
 ]

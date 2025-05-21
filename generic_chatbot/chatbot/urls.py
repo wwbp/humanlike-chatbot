@@ -28,5 +28,5 @@ urlpatterns = [
     path("api/session/", get_realtime_session, name="get_realtime_session"),
 
     # 8) upload voice data
-    path("upload_voice_utterance/", upload_voice_utterance, name="upload_voice_utterance"),
+    path("api/upload_voice_utterance/", upload_voice_utterance, name="upload_voice_utterance"),
 ]

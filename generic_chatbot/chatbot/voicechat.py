@@ -32,35 +32,43 @@ def get_realtime_session(request):
 @require_POST
 def upload_voice_utterance(request):
     try:
-        print("✅✅✅✅✅✅✅✅")
         audio_file = request.FILES.get("audio")
         transcript = request.POST.get("transcript", "")
         conversation_id = request.POST.get("conversation_id")
         participant_id = request.POST.get("participant_id")
         bot_name = request.POST.get("bot_name")
-        is_model = request.POST.get("is_model", "").lower() == "true"
+        is_voice = request.POST.get("is_voice", "").lower() == "true"
 
-        if not conversation_id or not bot_name:
-            return JsonResponse({"error": "Missing conversation_id or bot_name."}, status=400)
+        print("📥 Received:", {
+            "transcript": transcript,
+            "bot_name": bot_name,
+            "participant_id": participant_id,
+            "is_voice": is_voice
+        })
 
+         # Validate required IDs
+        if not conversation_id:
+            return JsonResponse({"error": "Missing conversation_id."}, status=400)
+       
         if not transcript and not audio_file:
             return JsonResponse({"error": "Must include either transcript or audio."}, status=400)
 
         conversation = Conversation.objects.get(conversation_id=conversation_id)
-
-        speaker_id = "assistant" if is_model else "participant"
+        
+        if bot_name:
+            speaker_id = "assistant"
+        else:
+            speaker_id = "participant"
 
         utterance = Utterance.objects.create(
             conversation=conversation,
             speaker_id=speaker_id,
-            bot_name=bot_name,
-            participant_id=participant_id,
+            bot_name=bot_name if speaker_id == "assistant" else None,
+            participant_id=participant_id if speaker_id == "participant" else None,
             text=transcript,
-            audio_file=audio_file if not is_model else None,
-            is_voice=bool(audio_file),
+            audio_file=audio_file,
+            is_voice=is_voice,
         )
-
-        print(f"✅ Saved {'model' if is_model else 'user'} utterance:", utterance.text[:50])
         return JsonResponse({"message": "Saved successfully", "id": utterance.id})
 
     except Conversation.DoesNotExist:

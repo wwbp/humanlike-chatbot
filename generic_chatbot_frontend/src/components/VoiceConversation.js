@@ -130,7 +130,7 @@ const VoiceConversation = () => {
         }
 
         if (message.type === "response.content_part.done") {
-          const finalText = assistantBuffer.trim();
+          const finalText = message.part?.transcript?.trim();
           console.log("🤖 Final Assistant Message:", finalText);
           saveUtterance({ text: finalText, isAssistant: true });
           assistantBuffer = "";

@@ -23,7 +23,7 @@ SECRET_KEY = os.getenv('SECRET_KEY','!g8ik7!xk!9xyldg+r75$^@tdt+d')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ["bot.wwbp.org","localhost", "127.0.0.1", "backend", "0.0.0.0"]
+ALLOWED_HOSTS = ["dev.bot.wwbp.org","localhost", "127.0.0.1", "backend", "0.0.0.0","bot.wwbp.org"]
 
 if DEBUG:
     REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')

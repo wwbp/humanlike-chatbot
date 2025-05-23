@@ -8,8 +8,7 @@ const Conversation = () => {
   const messagesEndRef = useRef(null);
 
   const apiUrl = process.env.REACT_APP_API_URL;
-  /*const apiUrl = "http://0.0.0.0:8000/api";*/
-  /*const apiUrl = "https://bot.wwbp.org/api";*/
+
 
   const searchParams = new URLSearchParams(window.location.search);
   const botName = searchParams.get("bot_name");

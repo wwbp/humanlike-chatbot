@@ -9,6 +9,7 @@ const Conversation = () => {
 
   const apiUrl = process.env.REACT_APP_API_URL;
 
+
   const searchParams = new URLSearchParams(window.location.search);
   const botName = searchParams.get("bot_name");
   const conversationId = searchParams.get("conversation_id");

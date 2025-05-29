@@ -1,4 +1,4 @@
-.conversation-container {
+.voice-conversation .conversation-container {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -9,7 +9,7 @@
   box-sizing: border-box;
 }
 
-.chat-box {
+.voice-conversation .chat-box {
   width: 90vw;
   max-width: 600px;
   height: 40vh;
@@ -25,32 +25,32 @@
 }
 
 /* Hide transcript messages completely */
-.messages-box,
-.message {
+.voice-conversation .messages-box,
+.voice-conversation .message {
   display: none;
 }
 
 /* Voice status feedback */
-.voice-status {
+.voice-conversation .voice-status {
   text-align: center;
   font-size: 18px;
   color: #333;
   margin-bottom: 10px;
 }
 
-.status-text {
+.voice-conversation .status-text {
   font-weight: 500;
   margin: 5px 0;
 }
 
 /* Voice control buttons */
-.voice-controls {
+.voice-conversation .voice-controls {
   display: flex;
   justify-content: center;
   margin-top: auto;
 }
 
-.send-button {
+.voice-conversation .send-button {
   padding: 12px 18px;
   border: none;
   background-color: #007bff;
@@ -60,20 +60,20 @@
   font-size: 16px;
 }
 
-.send-button.stop {
+.voice-conversation .send-button.stop {
   background-color: #dc3545;
 }
 
-.send-button:hover {
+.voice-conversation .send-button:hover {
   background-color: #0056b3;
 }
 
-.send-button.stop:hover {
+.voice-conversation .send-button.stop:hover {
   background-color: #c82333;
 }
 
 /* Typing indicator if you still want it shown */
-.typing-indicator {
+.voice-conversation .typing-indicator {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -81,7 +81,7 @@
   padding: 10px;
 }
 
-.typing-indicator .dot {
+.voice-conversation .typing-indicator .dot {
   width: 8px;
   height: 8px;
   background-color: gray;
@@ -89,13 +89,15 @@
   animation: typing 1.5s infinite ease-in-out;
 }
 
-.typing-indicator .dot:nth-child(1) {
+.voice-conversation .typing-indicator .dot:nth-child(1) {
   animation-delay: 0s;
 }
-.typing-indicator .dot:nth-child(2) {
+
+.voice-conversation .typing-indicator .dot:nth-child(2) {
   animation-delay: 0.2s;
 }
-.typing-indicator .dot:nth-child(3) {
+
+.voice-conversation .typing-indicator .dot:nth-child(3) {
   animation-delay: 0.4s;
 }
 
@@ -107,18 +109,18 @@
 
 /* Mobile-specific adjustments */
 @media screen and (max-width: 600px) {
-  .chat-box {
+  .voice-conversation .chat-box {
     width: 100%;
     height: 40%;
     border-radius: 0;
   }
 
-  .send-button {
+  .voice-conversation .send-button {
     font-size: 14px;
     padding: 10px 14px;
   }
 
-  .status-text {
+  .voice-conversation .status-text {
     font-size: 16px;
   }
 }

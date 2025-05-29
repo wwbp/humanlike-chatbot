@@ -172,6 +172,7 @@ const VoiceConversation = () => {
   };
 
   return (
+  <div className="voice-conversation">
     <div className="conversation-container">
       <div className="chat-box">
         <div className="voice-status">
@@ -201,7 +202,8 @@ const VoiceConversation = () => {
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default VoiceConversation;

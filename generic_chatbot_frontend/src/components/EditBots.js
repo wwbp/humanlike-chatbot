@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "../styles/EditBots.css";
 
-const BASE_URL = process.env.REACT_APP_BASE_URL;
+const REACT_APP_API_URL = process.env.REACT_APP_API_URL;
 
 
 function EditBots() {
@@ -41,7 +41,7 @@ function EditBots() {
 
   const fetchBots = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/api/bots/`);
+      const response = await fetch(`${REACT_APP_API_URL}/bots/`);
       const data = await response.json();
       setBots(data.bots || []);
     } catch (error) {
@@ -52,7 +52,7 @@ function EditBots() {
   const handleAddBot = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${BASE_URL}/api/bots/`, {
+      const response = await fetch(`${REACT_APP_API_URL}/bots/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newBot),
@@ -80,7 +80,7 @@ function EditBots() {
     e.preventDefault();
     if (!editBotId) return;
     try {
-      const response = await fetch(`${BASE_URL}/api/bots/${editBotId}/`, {
+      const response = await fetch(`${REACT_APP_API_URL}/bots/${editBotId}/`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editForm),
@@ -97,7 +97,7 @@ function EditBots() {
   const handleDeleteBot = async (id) => {
     if (!window.confirm("Are you sure you want to delete this bot?")) return;
     try {
-      await fetch(`${BASE_URL}/api/bots/${id}/`, { method: "DELETE" });
+      await fetch(`${REACT_APP_API_URL}/bots/${id}/`, { method: "DELETE" });
       fetchBots();
     } catch (error) {
       alert(`Error deleting bot: ${error.message}`);

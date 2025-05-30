@@ -9,36 +9,38 @@ const VoiceConversation = () => {
   const pcRef = useRef(null);
   const dcRef = useRef(null);
   const audioRef = useRef(null);
+  const userRecorderRef = useRef(null);
+  const userChunksRef = useRef([]);
+  const assistantRecorderRef = useRef(null);
+  const assistantChunksRef = useRef([]);
+  const assistantStreamRef = useRef(null);
+  const assistantTranscriptRef = useRef("");
 
   const apiUrl = process.env.REACT_APP_API_URL;
   const searchParams = new URLSearchParams(window.location.search);
   const botName = searchParams.get("bot_name");
   const conversationId = searchParams.get("conversation_id");
   const participantId = searchParams.get("participant_id");
-
   const surveyId = searchParams.get("survey_id") || "";
   const studyName = searchParams.get("study_name") || "";
   const userGroup = searchParams.get("user_group") || "";
   const surveyMetaData = window.location.href;
 
-  const saveUtterance = async ({ text, isAssistant = false }) => {
+  const saveUtterance = async ({ text, audioFile = null, isAssistant = false }) => {
     const formData = new FormData();
     formData.append("transcript", text);
     formData.append("conversation_id", conversationId);
     formData.append("is_voice", "true");
 
-    if (isAssistant) {
-      formData.append("bot_name", botName);
-    } else {
-      formData.append("participant_id", participantId);
-    }
+    if (audioFile) formData.append("audio", audioFile);
+    if (isAssistant) formData.append("bot_name", botName);
+    else formData.append("participant_id", participantId);
 
     try {
       const res = await fetch(`${apiUrl}/upload_voice_utterance/`, {
         method: "POST",
         body: formData,
       });
-      console.log("🔍 Uploading to:", `${apiUrl}/upload_voice_utterance/`);
       const data = await res.json();
       console.log("✅ Saved utterance:", data);
     } catch (err) {
@@ -87,11 +89,27 @@ const VoiceConversation = () => {
       audioRef.current = audioEl;
 
       pc.ontrack = (e) => {
-        audioEl.srcObject = e.streams[0];
+        const assistantStream = e.streams[0];
+        audioEl.srcObject = assistantStream;
+        assistantStreamRef.current = assistantStream;
       };
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+      const startUserRecorder = () => {
+        userChunksRef.current = [];
+        const recorder = new MediaRecorder(stream);
+        userRecorderRef.current = recorder;
+
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) userChunksRef.current.push(e.data);
+        };
+
+        recorder.start();
+      };
+
+      startUserRecorder();
 
       const dc = pc.createDataChannel("oai-events");
       dcRef.current = dc;
@@ -99,15 +117,16 @@ const VoiceConversation = () => {
       let assistantBuffer = "";
 
       dc.onopen = () => {
-        const enableTranscription = {
-          type: "session.update",
-          session: {
-            input_audio_transcription: {
-              model: "whisper-1",
+        dc.send(
+          JSON.stringify({
+            type: "session.update",
+            session: {
+              input_audio_transcription: {
+                model: "whisper-1",
+              },
             },
-          },
-        };
-        dc.send(JSON.stringify(enableTranscription));
+          })
+        );
         console.log("📡 Sent session.update to enable user speech transcription");
       };
 
@@ -117,10 +136,19 @@ const VoiceConversation = () => {
 
         if (message.type === "conversation.item.input_audio_transcription.completed") {
           const transcript = message.transcript?.trim();
-          if (transcript) {
-            console.log("🗣️ USER FINAL TRANSCRIPT:", transcript);
-            saveUtterance({ text: transcript });
-            setIsTyping(true);
+          if (transcript && userRecorderRef.current) {
+            userRecorderRef.current.onstop = async () => {
+              const blob = new Blob(userChunksRef.current, { type: "audio/webm" });
+              const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+              const uniqueId = `${participantId || "user"}_${conversationId || "conv"}_${timestamp}`;
+              const audioFile = new File([blob], `${uniqueId}.webm`, { type: "audio/webm" });
+
+              await saveUtterance({ text: transcript, audioFile });
+              setIsTyping(true);
+              startUserRecorder();
+            };
+
+            userRecorderRef.current.stop();
           }
         }
 
@@ -129,10 +157,51 @@ const VoiceConversation = () => {
           if (partial) assistantBuffer += partial + " ";
         }
 
+        if (message.type === "response.content_part.begin") {
+          if (assistantStreamRef.current) {
+            assistantChunksRef.current = [];
+            const recorder = new MediaRecorder(assistantStreamRef.current);
+            assistantRecorderRef.current = recorder;
+
+            recorder.ondataavailable = (e) => {
+              if (e.data.size > 0) assistantChunksRef.current.push(e.data);
+            };
+
+            recorder.start();
+          }
+        }
+
         if (message.type === "response.content_part.done") {
           const finalText = message.part?.transcript?.trim();
-          console.log("🤖 Final Assistant Message:", finalText);
-          saveUtterance({ text: finalText, isAssistant: true });
+          if (finalText) {
+            assistantTranscriptRef.current = finalText;
+          }
+
+          const trySaveAssistantUtterance = async () => {
+            const text = assistantTranscriptRef.current;
+            const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+            const uniqueId = `assistant_${conversationId || "conv"}_${timestamp}`;
+
+            if (assistantChunksRef.current.length > 0) {
+              const blob = new Blob(assistantChunksRef.current, { type: "audio/webm" });
+              const audioFile = new File([blob], `${uniqueId}.webm`, { type: "audio/webm" });
+
+              await saveUtterance({ text, audioFile, isAssistant: true });
+            } else {
+              await saveUtterance({ text, isAssistant: true });
+            }
+          };
+
+          if (
+            assistantRecorderRef.current &&
+            assistantRecorderRef.current.state !== "inactive"
+          ) {
+            assistantRecorderRef.current.onstop = trySaveAssistantUtterance;
+            assistantRecorderRef.current.stop();
+          } else {
+            trySaveAssistantUtterance();
+          }
+
           assistantBuffer = "";
           setIsTyping(false);
         }
@@ -167,43 +236,54 @@ const VoiceConversation = () => {
       audioRef.current.srcObject = null;
       audioRef.current.remove();
     }
+
+    if (userRecorderRef.current && userRecorderRef.current.state !== "inactive") {
+      userRecorderRef.current.stop();
+    }
+
+    if (assistantRecorderRef.current && assistantRecorderRef.current.state !== "inactive") {
+      assistantRecorderRef.current.stop();
+    }
+
     setIsConnected(false);
     setIsStreaming(false);
   };
 
   return (
-  <div className="voice-conversation">
-    <div className="conversation-container">
-      <div className="chat-box">
-        <div className="voice-status">
-          {isStreaming ? (
-            <p className="status-text">🎤 Listening...</p>
-          ) : (
-            <p className="status-text">Press the button to start talking</p>
-          )}
-          {isTyping && (
-            <div className="typing-indicator">
-              <span className="dot"></span>
-              <span className="dot"></span>
-              <span className="dot"></span>
-            </div>
-          )}
-        </div>
-        <div className="voice-controls">
-          {!isStreaming ? (
-            <button className="send-button" onClick={startVoiceConversation}>
-              🎙️ Start Voice Chat
-            </button>
-          ) : (
-            <button className="send-button stop" onClick={stopVoiceConversation}>
-              ⏹️ Stop
-            </button>
-          )}
+    <div className="voice-conversation">
+      <div className="conversation-container">
+        <div className="chat-box">
+          <div className="voice-status">
+            {isStreaming ? (
+              <p className="status-text">🎤 Listening...</p>
+            ) : (
+              <p className="status-text">Press the button to start talking</p>
+            )}
+            {isTyping && (
+              <div className="typing-indicator">
+                <span className="dot"></span>
+                <span className="dot"></span>
+                <span className="dot"></span>
+              </div>
+            )}
+          </div>
+          <div className="voice-controls">
+            {!isStreaming ? (
+              <button className="send-button" onClick={startVoiceConversation}>
+                🎙️ Start Voice Chat
+              </button>
+            ) : (
+              <button className="send-button stop" onClick={stopVoiceConversation}>
+                ⏹️ Stop
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
 };
 
 export default VoiceConversation;
+
+

@@ -60,7 +60,7 @@ const Conversation = () => {
     };
 
     initializeConversation();
-  }, [botName, participantId, studyName, surveyId, surveyMetaData, userGroup, conversationId]);
+  }, [apiUrl, botName, participantId, studyName, surveyId, surveyMetaData, userGroup, conversationId]);
   
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

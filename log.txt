@@ -1,0 +1,242 @@
+Compose can now delegate builds to bake for better performance.
+ To do so, set COMPOSE_BAKE=true.
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [backend internal] load build definition from Dockerfile.local
+#1 transferring dockerfile: 944B done
+#1 DONE 0.0s
+
+#2 [backend internal] load metadata for docker.io/library/python:3.11-slim
+#2 DONE 0.0s
+
+#3 [backend internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [backend 1/7] FROM docker.io/library/python:3.11-slim@sha256:9c85d1d49df54abca1c5db3b4016400e198e9e9bb699f32f1ef8e5c0c2149ccf
+#4 resolve docker.io/library/python:3.11-slim@sha256:9c85d1d49df54abca1c5db3b4016400e198e9e9bb699f32f1ef8e5c0c2149ccf 0.0s done
+#4 DONE 0.0s
+
+#5 [backend internal] load build context
+#5 transferring context: 44.78kB 0.0s done
+#5 DONE 0.0s
+
+#6 [backend 4/7] RUN pip install pipenv
+#6 CACHED
+
+#7 [backend 3/7] RUN apt-get update && apt-get install -y     mariadb-client     libmariadb-dev     pkg-config     gcc     build-essential     netcat-openbsd     && apt-get clean     && rm -rf /var/lib/apt/lists/*
+#7 CACHED
+
+#8 [backend 5/7] COPY Pipfile Pipfile.lock /app/
+#8 CACHED
+
+#9 [backend 2/7] WORKDIR /app
+#9 CACHED
+
+#10 [backend 6/7] RUN pipenv install --deploy --system
+#10 CACHED
+
+#11 [backend 7/7] COPY . /app
+#11 DONE 0.1s
+
+#12 [backend] exporting to image
+#12 exporting layers 0.1s done
+#12 exporting manifest sha256:36ec464d3ec20cc44a287de3ad418c4fc452ead2a8289d2983fd05cf7a431a73 done
+#12 exporting config sha256:6cf170cd0acbf0b9eb8170a95416d1d42e0cf0f154755f1b449639c2866a2962 done
+#12 exporting attestation manifest sha256:9d9ab620638720e4583bf315042135cd929328a6c133a80ed79a4f737ae847cb done
+#12 exporting manifest list sha256:467e7dcc635ade1732f2cabf131f8cee92e36e06b51c4dfced857cf000515eb9 done
+#12 naming to docker.io/library/humanlike-chatbot-backend:latest done
+#12 unpacking to docker.io/library/humanlike-chatbot-backend:latest 0.0s done
+#12 DONE 0.2s
+
+#13 [backend] resolving provenance for metadata file
+#13 DONE 0.0s
+
+#14 [frontend internal] load build definition from Dockerfile.local
+#14 transferring dockerfile: 358B done
+#14 DONE 0.0s
+
+#15 [frontend internal] load metadata for docker.io/library/node:18
+#15 DONE 0.4s
+
+#16 [frontend internal] load .dockerignore
+#16 transferring context: 2B done
+#16 DONE 0.0s
+
+#17 [frontend 1/5] FROM docker.io/library/node:18@sha256:c6ae79e38498325db67193d391e6ec1d224d96c693a8a4d943498556716d3783
+#17 resolve docker.io/library/node:18@sha256:c6ae79e38498325db67193d391e6ec1d224d96c693a8a4d943498556716d3783 0.0s done
+#17 DONE 0.0s
+
+#18 [frontend internal] load build context
+#18 transferring context: 2.99MB 1.2s done
+#18 DONE 1.2s
+
+#19 [frontend 2/5] WORKDIR /app
+#19 CACHED
+
+#20 [frontend 3/5] COPY package*.json ./
+#20 CACHED
+
+#21 [frontend 4/5] RUN npm install
+#21 CACHED
+
+#22 [frontend 5/5] COPY . .
+#22 CACHED
+
+#23 [frontend] exporting to image
+#23 exporting layers done
+#23 exporting manifest sha256:bb989f01e3df752ef21a3e8536f4bdecb1569dac7579ace6962afa3e068ae82f done
+#23 exporting config sha256:3b4c1e8b64c941e84829a7e1ce7ae2e137b5720f35efdcc94798133ad2668884 done
+#23 exporting attestation manifest sha256:85c618deeee40ca0d9e22bb91edc45828eec0895d7cf54872b021b85fc342d84 done
+#23 exporting manifest list sha256:d0092b88357f076f9927e16de7ca6f981901b802b802999306da84a29e7f6e09 done
+#23 naming to docker.io/library/humanlike-chatbot-frontend:latest done
+#23 unpacking to docker.io/library/humanlike-chatbot-frontend:latest done
+#23 DONE 0.0s
+
+#24 [frontend] resolving provenance for metadata file
+#24 DONE 0.0s
+Attaching to db, backend-1, react_app, redis
+db         | 2025-06-23 15:35:15+00:00 [Note] [Entrypoint]: Entrypoint script for MariaDB Server 1:11.8.2+maria~ubu2404 started.
+redis      | Notice: Unknown file './ib_logfile0' found in data dir. Permissions will not be modified. Use SKIP_FIX_PERMS=1 to skip permission changes.
+redis      | Starting Redis Server
+redis      | 1:C 23 Jun 2025 15:35:15.940 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+redis      | 1:C 23 Jun 2025 15:35:15.940 * Redis version=8.0.2, bits=64, commit=00000000, modified=1, pid=1, just started
+redis      | 1:C 23 Jun 2025 15:35:15.940 * Configuration loaded
+redis      | 1:M 23 Jun 2025 15:35:15.940 * monotonic clock: POSIX clock_gettime
+redis      | 1:M 23 Jun 2025 15:35:15.941 * Running mode=standalone, port=6379.
+redis      | 1:M 23 Jun 2025 15:35:15.941 * <bf> RedisBloom version 8.0.1 (Git=unknown)
+redis      | 1:M 23 Jun 2025 15:35:15.941 * <bf> Registering configuration options: [
+redis      | 1:M 23 Jun 2025 15:35:15.941 * <bf> 	{ bf-error-rate       :      0.01 }
+redis      | 1:M 23 Jun 2025 15:35:15.941 * <bf> 	{ bf-initial-size     :       100 }
+redis      | 1:M 23 Jun 2025 15:35:15.941 * <bf> 	{ bf-expansion-factor :         2 }
+redis      | 1:M 23 Jun 2025 15:35:15.941 * <bf> 	{ cf-bucket-size      :         2 }
+redis      | 1:M 23 Jun 2025 15:35:15.941 * <bf> 	{ cf-initial-size     :      1024 }
+redis      | 1:M 23 Jun 2025 15:35:15.941 * <bf> 	{ cf-max-iterations   :        20 }
+redis      | 1:M 23 Jun 2025 15:35:15.941 * <bf> 	{ cf-expansion-factor :         1 }
+redis      | 1:M 23 Jun 2025 15:35:15.941 * <bf> 	{ cf-max-expansions   :        32 }
+redis      | 1:M 23 Jun 2025 15:35:15.941 * <bf> ]
+redis      | 1:M 23 Jun 2025 15:35:15.941 * Module 'bf' loaded from /usr/local/lib/redis/modules//redisbloom.so
+redis      | 1:M 23 Jun 2025 15:35:15.943 * <search> Redis version found by RedisSearch : 8.0.2 - oss
+redis      | 1:M 23 Jun 2025 15:35:15.943 * <search> RediSearch version 8.0.1 (Git=5688fcc)
+redis      | 1:M 23 Jun 2025 15:35:15.943 * <search> Low level api version 1 initialized successfully
+redis      | 1:M 23 Jun 2025 15:35:15.943 * <search> gc: ON, prefix min length: 2, min word length to stem: 4, prefix max expansions: 200, query timeout (ms): 500, timeout policy: return, cursor read size: 1000, cursor max idle (ms): 300000, max doctable size: 1000000, max number of search results:  1000000, 
+redis      | 1:M 23 Jun 2025 15:35:15.943 * <search> Initialized thread pools!
+redis      | 1:M 23 Jun 2025 15:35:15.943 * <search> Disabled workers threadpool of size 0
+redis      | 1:M 23 Jun 2025 15:35:15.943 * <search> Subscribe to config changes
+redis      | 1:M 23 Jun 2025 15:35:15.943 * <search> Enabled role change notification
+redis      | 1:M 23 Jun 2025 15:35:15.943 * <search> Cluster configuration: AUTO partitions, type: 0, coordinator timeout: 0ms
+redis      | 1:M 23 Jun 2025 15:35:15.943 * <search> Register write commands
+redis      | 1:M 23 Jun 2025 15:35:15.944 * Module 'search' loaded from /usr/local/lib/redis/modules//redisearch.so
+redis      | 1:M 23 Jun 2025 15:35:15.944 * <timeseries> RedisTimeSeries version 80001, git_sha=577bfa8b5909e7ee572f0b651399be8303dc6641
+redis      | 1:M 23 Jun 2025 15:35:15.944 * <timeseries> Redis version found by RedisTimeSeries : 8.0.2 - oss
+redis      | 1:M 23 Jun 2025 15:35:15.944 * <timeseries> Registering configuration options: [
+redis      | 1:M 23 Jun 2025 15:35:15.944 * <timeseries> 	{ ts-compaction-policy   :              }
+redis      | 1:M 23 Jun 2025 15:35:15.944 * <timeseries> 	{ ts-num-threads         :            3 }
+redis      | 1:M 23 Jun 2025 15:35:15.944 * <timeseries> 	{ ts-retention-policy    :            0 }
+redis      | 1:M 23 Jun 2025 15:35:15.944 * <timeseries> 	{ ts-duplicate-policy    :        block }
+redis      | 1:M 23 Jun 2025 15:35:15.944 * <timeseries> 	{ ts-chunk-size-bytes    :         4096 }
+redis      | 1:M 23 Jun 2025 15:35:15.944 * <timeseries> 	{ ts-encoding            :   compressed }
+redis      | 1:M 23 Jun 2025 15:35:15.944 * <timeseries> 	{ ts-ignore-max-time-diff:            0 }
+redis      | 1:M 23 Jun 2025 15:35:15.944 * <timeseries> 	{ ts-ignore-max-val-diff :     0.000000 }
+redis      | 1:M 23 Jun 2025 15:35:15.944 * <timeseries> ]
+redis      | 1:M 23 Jun 2025 15:35:15.944 * <timeseries> Detected redis oss
+redis      | 1:M 23 Jun 2025 15:35:15.944 * Module 'timeseries' loaded from /usr/local/lib/redis/modules//redistimeseries.so
+redis      | 1:M 23 Jun 2025 15:35:15.945 * <ReJSON> Created new data type 'ReJSON-RL'
+redis      | 1:M 23 Jun 2025 15:35:15.945 * <ReJSON> version: 80001 git sha: unknown branch: unknown
+redis      | 1:M 23 Jun 2025 15:35:15.945 * <ReJSON> Exported RedisJSON_V1 API
+redis      | 1:M 23 Jun 2025 15:35:15.945 * <ReJSON> Exported RedisJSON_V2 API
+redis      | 1:M 23 Jun 2025 15:35:15.945 * <ReJSON> Exported RedisJSON_V3 API
+redis      | 1:M 23 Jun 2025 15:35:15.945 * <ReJSON> Exported RedisJSON_V4 API
+redis      | 1:M 23 Jun 2025 15:35:15.945 * <ReJSON> Exported RedisJSON_V5 API
+redis      | 1:M 23 Jun 2025 15:35:15.945 * <ReJSON> Enabled diskless replication
+redis      | 1:M 23 Jun 2025 15:35:15.945 * <ReJSON> Initialized shared string cache, thread safe: false.
+redis      | 1:M 23 Jun 2025 15:35:15.945 * Module 'ReJSON' loaded from /usr/local/lib/redis/modules//rejson.so
+redis      | 1:M 23 Jun 2025 15:35:15.945 * <search> Acquired RedisJSON_V5 API
+redis      | 1:M 23 Jun 2025 15:35:15.945 * Server initialized
+redis      | 1:M 23 Jun 2025 15:35:15.945 * <search> Loading event starts
+redis      | 1:M 23 Jun 2025 15:35:15.945 * <search> Enabled workers threadpool of size 4
+redis      | 1:M 23 Jun 2025 15:35:15.945 * Loading RDB produced by version 8.0.2
+redis      | 1:M 23 Jun 2025 15:35:15.945 * RDB age 29 seconds
+redis      | 1:M 23 Jun 2025 15:35:15.945 * RDB memory usage when created 0.95 Mb
+redis      | 1:M 23 Jun 2025 15:35:15.945 * Done loading RDB, keys loaded: 0, keys expired: 0.
+redis      | 1:M 23 Jun 2025 15:35:15.945 * <search> Disabled workers threadpool of size 4
+redis      | 1:M 23 Jun 2025 15:35:15.945 * <search> Loading event ends
+redis      | 1:M 23 Jun 2025 15:35:15.945 * DB loaded from disk: 0.000 seconds
+redis      | 1:M 23 Jun 2025 15:35:15.946 * Ready to accept connections tcp
+backend-1  | Waiting for MySQL to be ready...
+db         | 2025-06-23 15:35:16+00:00 [Note] [Entrypoint]: Switching to dedicated user 'mysql'
+db         | 2025-06-23 15:35:16+00:00 [Note] [Entrypoint]: Entrypoint script for MariaDB Server 1:11.8.2+maria~ubu2404 started.
+db         | 2025-06-23 15:35:16+00:00 [Note] [Entrypoint]: MariaDB upgrade not required
+react_app  | 
+react_app  | > generic_chatbot_frontend@0.1.0 start
+react_app  | > react-scripts start
+react_app  | 
+react_app  | [1G[0KBrowserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+react_app  |   npx update-browserslist-db@latest
+react_app  |   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+react_app  | (node:26) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+react_app  | (Use `node --trace-deprecation ...` to show where the warning was created)
+react_app  | (node:26) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+react_app  | [2J[3J[H[36mStarting the development server...[39m
+react_app  | [36m[39m
+backend-1  | Operations to perform:
+backend-1  |   Apply all migrations: admin, auth, chatbot, contenttypes, sessions
+backend-1  | Running migrations:
+backend-1  |   No migrations to apply.
+react_app  | [2J[3J[H[33mCompiled with warnings.[39m
+react_app  | [33m[39m
+react_app  | [eslint] 
+react_app  | src/components/VoiceConversation.js
+react_app  |   [1mLine 5:10:[22m   'isConnected' is assigned a value but never used                                                                                                                                           [33m[4mno-unused-vars[24m[39m
+react_app  |   [1mLine 74:6:[22m   React Hook useEffect has missing dependencies: 'apiUrl', 'conversationId', 'studyName', 'surveyId', 'surveyMetaData', and 'userGroup'. Either include them or remove the dependency array  [33m[4mreact-hooks/exhaustive-deps[24m[39m
+react_app  |   [1mLine 99:11:[22m  'assistantBuffer' is assigned a value but never used                                                                                                                                       [33m[4mno-unused-vars[24m[39m
+react_app  | 
+react_app  | Search for the [4m[33mkeywords[39m[24m to learn more about each warning.
+react_app  | To ignore, add [36m// eslint-disable-next-line[39m to the line before.
+react_app  | 
+react_app  | [1m[33mWARNING[39m[22m in [eslint] 
+react_app  | src/components/VoiceConversation.js
+react_app  |   [1mLine 5:10:[22m   'isConnected' is assigned a value but never used                                                                                                                                           [33m[4mno-unused-vars[24m[39m
+react_app  |   [1mLine 74:6:[22m   React Hook useEffect has missing dependencies: 'apiUrl', 'conversationId', 'studyName', 'surveyId', 'surveyMetaData', and 'userGroup'. Either include them or remove the dependency array  [33m[4mreact-hooks/exhaustive-deps[24m[39m
+react_app  |   [1mLine 99:11:[22m  'assistantBuffer' is assigned a value but never used                                                                                                                                       [33m[4mno-unused-vars[24m[39m
+react_app  | 
+react_app  | webpack compiled with [1m[33m1 warning[39m[22m
+backend-1  | Performing system checks...
+backend-1  | 
+backend-1  | System check identified no issues (0 silenced).
+backend-1  | June 23, 2025 - 15:35:19
+backend-1  | Django version 5.2.3, using settings 'generic_chatbot.settings'
+backend-1  | Starting development server at http://0.0.0.0:8000/
+backend-1  | Quit the server with CONTROL-C.
+backend-1  | 
+backend-1  | WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+backend-1  | For more information on production servers see: https://docs.djangoproject.com/en/5.2/howto/deployment/
+backend-1  | Initializing Engine: Type=OpenAI, Model=gpt-4
+backend-1  | Found conversation y, inserting message...
+backend-1  | ✅ Successfully saved message to Utterance table.
+backend-1  | Found conversation y, inserting message...
+backend-1  | ✅ Successfully saved message to Utterance table.
+backend-1  | Found conversation y, inserting message...
+backend-1  | ✅ Successfully saved message to Utterance table.
+backend-1  | Found conversation y, inserting message...
+backend-1  | ✅ Successfully saved message to Utterance table.
+redis      | 1:signal-handler (1750693131) Received SIGTERM scheduling shutdown...
+redis      | 1:M 23 Jun 2025 15:38:51.589 * User requested shutdown...
+redis      | 1:M 23 Jun 2025 15:38:51.589 * Saving the final RDB snapshot before exiting.
+redis      | 1:M 23 Jun 2025 15:38:51.592 * DB saved on disk
+redis      | 1:M 23 Jun 2025 15:38:51.592 # Redis is now ready to exit, bye bye...
+[Kredis exited with code 0
+react_app  | [1G[0K\[1G[0K[1mnpm[22m [31merror[39m [94mpath[39m /app
+react_app  | [1G[0K\[1G[0K[1mnpm[22m [31merror[39m command failed
+react_app  | [1G[0K\[1G[0K[1mnpm[22m [31merror[39m [94msignal[39m SIGTERM
+react_app  | [1G[0K\[1G[0K[1mnpm[22m [31merror[39m [94mcommand[39m sh -c react-scripts start
+react_app  | [1G[0K\[1G[0K[1mnpm[22m [96mnotice[39m
+react_app  | [1mnpm[22m [96mnotice[39m New [31mmajor[39m version of npm available! [31m10.8.2[39m -> [34m11.4.2[39m
+react_app  | [1mnpm[22m [96mnotice[39m Changelog: [34mhttps://github.com/npm/cli/releases/tag/v11.4.2[39m
+react_app  | [1mnpm[22m [96mnotice[39m To update run: [4mnpm install -g npm@11.4.2[24m
+react_app  | [1mnpm[22m [96mnotice[39m
+react_app  | [1G[0K\[1G[0K[1mnpm[22m [31merror[39m A complete log of this run can be found in: /root/.npm/_logs/2025-06-23T15_35_16_144Z-debug-0.log
+react_app  | [1G[0K\[1G[0K
+[Kreact_app exited with code 1
+[Kbackend-1 exited with code 137
+[Kdb exited with code 0

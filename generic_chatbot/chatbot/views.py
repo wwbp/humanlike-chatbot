@@ -13,6 +13,7 @@ from .services.voicechat import get_realtime_session, upload_voice_utterance
 from .services.bots import ListBotsAPIView, BotDetailAPIView
 from .services.conversation import InitializeConversationAPIView
 from .services.runchat import run_chat_round
+from .services.post_processing import human_like_chunks
 from server.engine import get_or_create_engine
 
 # Dictionary to store per-engine configurations
@@ -40,10 +41,13 @@ class ChatbotAPIView(View):
                 participant_id=participant_id,
                 message=message
             )
+            
+            response_chunks = human_like_chunks(response_text)
 
             return JsonResponse({
                 'message': message,
                 'response': response_text,
+                'response_chunks': response_chunks,
                 'bot_name': bot_name
             }, status=200)
 

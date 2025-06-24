@@ -1,37 +1,48 @@
 import React, { useState, useEffect } from "react";
 import "../styles/EditBots.css";
 
-const BASE_URL = process.env.REACT_APP_API_URL;
-
 function Avatar() {
-  const [avatar, setAvatar] = useState(null);
+  const [file, setFile] = useState(null);
+  const apiUrl = process.env.REACT_APP_API_URL;
 
-  const getAvatar = async () => {
-    try {
-      const query = new URLSearchParams({
-        bot_name: "test_1",
-        avatar_type: "default",
-      }).toString();
-      const response = await fetch(`${BASE_URL}/avatar/?${query}`);
-      if (!response.ok) throw new Error(`Failed to get image`);
+  const handleUpload = async () => {
+    if (!file) return alert("Please select a file first");
 
-      const data = await response.json();
-      setAvatar(data.image_base64);
-    } catch (error) {
-      alert(`Error fetching image: ${error.message}`);
-    }
+    const searchParams = new URLSearchParams(window.location.search);
+    const botName = searchParams.get("bot_name");
+    const botId = searchParams.get("bot_id");
+    const conversationId = searchParams.get("conversation_id");
+    const participantId = searchParams.get("participant_id");
+    console.log("🔧 Params:", { botName, conversationId, participantId });
+
+    const surveyId = searchParams.get("survey_id") || "";
+    const studyName = searchParams.get("study_name") || "";
+    const userGroup = searchParams.get("user_group") || "";
+    const surveyMetaData = window.location.href;
+
+    const formData = new FormData();
+      formData.append('bot_name', botName);
+      formData.append('conversation_id', conversationId);
+      formData.append('image', file);
+
+      fetch(`${apiUrl}/avatar/`, {
+        method: 'POST',
+        body: formData,
+      });
+
+    // const formData = new FormData();
+    formData.append('image', file);
+    formData.append('bot_name', botName);
+    formData.append('conversation_id', conversationId);
+    formData.append('participant_id', participantId);
+    formData.append('study_name', studyName);
+    formData.append('user_group', userGroup);
   };
 
-  useEffect(() => {
-    getAvatar();
-  }, []); 
-
   return (
-    <div className="edit-bots-container">
-        {avatar ? 
-        <img src={avatar} alt="Avatar" className="message-avatar" /> :
-        <p>Loading</p>
-        }
+    <div>
+      <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} />
+      <button onClick={handleUpload}>Upload</button>
     </div>
   );
 }

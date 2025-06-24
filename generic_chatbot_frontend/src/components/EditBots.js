@@ -16,10 +16,10 @@ function EditBots() {
     model_id: "",
     prompt: "",
     initial_utterance: "", // ✅ NEW
+    avatar_type: "none",   // ✅ NEW
   });
   const [avatar, setAvatar] = useState({
     bot_name: "",
-    avatar_type: "none",
     file: "",
   })
 
@@ -30,10 +30,10 @@ function EditBots() {
     model_id: "",
     prompt: "",
     initial_utterance: "", // ✅ NEW
+    avatar_type: "none",   // ✅ NEW
   });
   const [editAvatar, setEditAvatar] = useState({
     bot_name: "",
-    avatar_type: "none",
     file: "",
   })
 
@@ -49,7 +49,6 @@ function EditBots() {
   useEffect(() => {
     if (isLoggedIn) {
       fetchBots();
-      fetchAvatars();
     }
   }, [isLoggedIn]);
 
@@ -60,16 +59,6 @@ function EditBots() {
       setBots(data.bots || []);
     } catch (error) {
       alert(`Error fetching bots: ${error.message}`);
-    }
-  };
-
-  const fetchAvatars = async () => {
-    try {
-      const response = await fetch(`${BASE_URL}/avatar/`);
-      const data = await response.json();
-      setAvatars(data.avatars || []);
-    } catch (error) {
-      alert(`Error fetching avatars: ${error.message}`);
     }
   };
 
@@ -87,7 +76,6 @@ function EditBots() {
 
       const formData = new FormData();
       formData.append('bot_name', newBot.name);
-      formData.append('avatar_type', avatar.avatar_type);
       formData.append('image', avatar.file);
 
       fetch(`${BASE_URL}/avatar/`, {
@@ -101,14 +89,13 @@ function EditBots() {
         model_id: "",
         prompt: "",
         initial_utterance: "",
+        avatar_type: "none",
       });
       setAvatar({
         bot_name: "",
-        avatar_type: "none",
         file: "",
       })
       fetchBots();
-      fetchAvatars();
     } catch (error) {
       alert(`Error adding bot: ${error.message}`);
     }
@@ -122,10 +109,10 @@ function EditBots() {
       model_id: bot.model_id,
       prompt: bot.prompt,
       initial_utterance: bot.initial_utterance || "", // ✅ NEW
+      avatar_type: bot.avatar_type || "none",         // ✅ NEW
     });
     setEditAvatar({
       bot_name: bot.name,
-      avatar_type: avatars.find(avatar => avatar.bot===bot.id).avatar_type,
     })
   };
 
@@ -144,7 +131,6 @@ function EditBots() {
 
       const formData = new FormData();
       formData.append('bot_name', editForm.name);
-      formData.append('avatar_type', editAvatar.avatar_type);
       formData.append('image', editAvatar.file);
 
       fetch(`${BASE_URL}/avatar/${editBotId}/`, {
@@ -159,14 +145,13 @@ function EditBots() {
         model_id: "",
         prompt: "",
         initial_utterance: "",
+        avatar_type: "",
       });
       setEditAvatar({
         bot_name: "",
-        avatar_type: "none",
         file: "",
       })
       fetchBots();
-      fetchAvatars();
     } catch (error) {
       alert(`Error updating bot: ${error.message}`);
     }
@@ -177,7 +162,6 @@ function EditBots() {
     try {
       await fetch(`${BASE_URL}/bots/${id}/`, { method: "DELETE" });
       fetchBots();
-      fetchAvatars();
     } catch (error) {
       alert(`Error deleting bot: ${error.message}`);
     }
@@ -261,8 +245,8 @@ function EditBots() {
         <div>
             <label>Avatar Type: </label>
             <select
-              value={avatar.avatar_type}
-              onChange={(e) => setAvatar({ ...avatar, avatar_type: e.target.value })}
+              value={newBot.avatar_type}
+              onChange={(e) => setNewBot({ ...newBot, avatar_type: e.target.value })}
             >
               <option value="none">None</option>
               <option value="default">Default</option>
@@ -271,7 +255,7 @@ function EditBots() {
         </div>
         <div>
             {
-            avatar.avatar_type==="default" ?
+            newBot.avatar_type==="default" ?
               <>
                 <label>Image:</label>
                 <input type="file" accept="image/*" onChange={(e) => setAvatar({ ...avatar, file:e.target.files[0] })} />
@@ -298,6 +282,7 @@ function EditBots() {
                 <th>Model ID</th>
                 <th>Prompt</th>
                 <th>Initial Utterance</th>
+                <th>Avatar Type</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -309,6 +294,7 @@ function EditBots() {
                   <td>{bot.model_id}</td>
                   <td>{bot.prompt}</td>
                   <td>{bot.initial_utterance}</td>
+                  <td>{bot.avatar_type}</td>
                   <td>
                     <button onClick={() => handleEditClick(bot)}>Edit</button>
                     <button onClick={() => handleDeleteBot(bot.id)}>
@@ -386,8 +372,8 @@ function EditBots() {
             <div>
             <label>Avatar Type: </label>
                 <select
-                  value={editAvatar.avatar_type}
-                  onChange={(e) => setEditAvatar({ ...editAvatar, avatar_type: e.target.value })}
+                  value={editForm.avatar_type}
+                  onChange={(e) => setEditForm({ ...editForm, avatar_type: e.target.value })}
                 >
                   <option value="none">None</option>
                   <option value="default">Default</option>
@@ -396,7 +382,7 @@ function EditBots() {
             </div>
             <div>
                 {
-                editAvatar.avatar_type==="default" ?
+                editForm.avatar_type==="default" ?
                   <>
                     <label>Image:</label>
                     <input type="file" accept="image/*" onChange={(e) => setEditAvatar({ ...editAvatar, file:e.target.files[0] })} />

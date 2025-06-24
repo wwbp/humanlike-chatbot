@@ -56,7 +56,7 @@ def generate_avatar(file, bot_name, avatar_type):
 class AvatarAPIView(View):
     def get(self, request, *args, **kwargs):
         try:
-            avatars = Avatar.objects.values("bot", "avatar_type")
+            avatars = Avatar.objects.values("bot")
             return JsonResponse({"avatars": list(avatars)}, status=200)
         except Exception as e:
             print(f"Error in ListBotsAPIView GET: {e}")
@@ -65,18 +65,31 @@ class AvatarAPIView(View):
     def post(self, request, *args, **kwargs):
         try:
             bot_name = request.POST.get("bot_name")
-            avatar_type = request.POST.get("avatar_type")
+            bot = Bot.objects.get(name=bot_name)
+            conversation_id = None
             image = None
-            if avatar_type == "default":
+
+            if bot.avatar_type == "default":
                 image = generate_avatar(
                     request.FILES.get("image"),
                     bot_name,
-                    avatar_type
+                    bot.avatar_type
                 )
-            
+            if bot.avatar_type == "user" and conversation_id:
+                conversation_id = request.POST.get("conversation_id")
+                image = generate_avatar(
+                    request.FILES.get("image"),
+                    bot_name,
+                    bot.avatar_type
+                )
+                try:
+                    Avatar.objects.filter(bot=bot).delete()
+                except Bot.DoesNotExist:
+                    print("Bot not found. Nothing to delete.")
+
             avatar = Avatar.objects.create(
-                bot=Bot.objects.get(name=bot_name),
-                avatar_type=avatar_type,
+                bot=bot,
+                bot_conversation=conversation_id,
                 image=image
             )
 
@@ -93,61 +106,53 @@ class AvatarAPIView(View):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class AvatarDetailAPIView(View):
-    def get(self, request, *args, **kwargs):
+    def get(self, request, pk, *args, **kwargs):
         try:
-            bot_name = request.GET.get('bot_name')
-            avatar_type = request.GET.get('avatar_type')
-            bot_conversation_id = request.GET.get('bot_conversation_id')
+            print(f"[DEBUG] GET TRIGGERED!")
+            avatar = Avatar.objects.get(bot=Bot.objects.get(pk=pk))
+            data = {
+                "bot_id": avatar.bot.id,
+                "bot_name": avatar.bot.name,
+                "avatar_type": avatar.bot.avatar_type,
+            }
 
-            bot = get_object_or_404(Avatar, bot_name=Bot.objects.get(name=bot_name))
-
-            if not bot.image:
-                return JsonResponse({"error": "No image found for this bot"}, status=404)
+            if avatar.bot.avatar_type in ("none", "user"):
+                data["image_base64"] = None
+                return JsonResponse(data, status=200)
+            # elif avatar.avatar_type=="user":
+            #     conversation_id = request.GET.get("conversation_id")
 
             # If using ImageField (with actual file stored):
-            image_path = bot.image.path
-            content_type, _ = mimetypes.guess_type(image_path)
-
+            image_path = avatar.image.path
             with open(image_path, "rb") as f:
                 encoded_string = base64.b64encode(f.read()).decode()
 
-            return JsonResponse({
-                "message": "Generated",
-                "image_base64": f"data:image/png;base64,{encoded_string}"
-                },
-                status=200
-            )
-
-        except Exception as e:
-            print(f'[ERROR] Crashed due to: {e}')
-            return JsonResponse(
-                {'error': f'Failed to send image'},
-                status=400
-            )
+            data["image_base64"] = f"data:image/png;base64,{encoded_string}"
+            return JsonResponse(data, status=200)
+        except Bot.DoesNotExist:
+            return JsonResponse({"error": "Bot not found"}, status=404)
 
     def post(self, request, pk, *args, **kwargs):
         try:
-            avatar = Avatar.objects.get(bot=Bot.objects.get(pk=pk))
+            bot=Bot.objects.get(pk=pk)
+            avatar = Avatar.objects.get(bot=bot)
         except Bot.DoesNotExist:
             return JsonResponse({"error": "Bot not found"}, status=404)
 
         try:
-            edit_bot_name = request.POST.get("bot_name")
-            edit_avatar_type = request.POST.get("avatar_type")
             edit_image = None
 
-            if avatar.avatar_type == "default" and avatar.image:
+            if avatar.image:
                 avatar.image.delete(save=False)
 
-            if edit_avatar_type == "default":
+            if bot.avatar_type == "default":
                 edit_image = generate_avatar(
                     request.FILES.get("image"),
-                    edit_bot_name,
-                    edit_avatar_type
+                    bot.name,
+                    bot.avatar_type
                 )
 
-            avatar.bot = Bot.objects.get(name=edit_bot_name)
-            avatar.avatar_type = edit_avatar_type
+            avatar.bot = bot
             avatar.image = edit_image
             avatar.save()
 

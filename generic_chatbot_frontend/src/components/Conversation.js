@@ -5,6 +5,13 @@ const Conversation = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [avatar, setAvatar] = useState({
+    bot_id: "",
+    bot_name: "",
+    avatar_type: "",
+    image_base64: "",
+  });
+
   const messagesEndRef = useRef(null);
 
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -12,6 +19,7 @@ const Conversation = () => {
 
   const searchParams = new URLSearchParams(window.location.search);
   const botName = searchParams.get("bot_name");
+  const botId = searchParams.get("bot_id");
   const conversationId = searchParams.get("conversation_id");
   const participantId = searchParams.get("participant_id");
   console.log("🔧 Params:", { botName, conversationId, participantId });
@@ -56,8 +64,18 @@ const Conversation = () => {
         const data = await response.json();
         console.log("⬇️ Init response payload:", data);
 
+        const query = new URLSearchParams({
+          conversation_id: conversationId,
+        });
+        const avatar_response = await fetch(`${apiUrl}/avatar/${botId}/?${query}`);
+        if (!avatar_response.ok) throw new Error(`Failed to get image`);
+        const avatar_data = await avatar_response.json();
+
         if (data.initial_utterance?.trim()) {
           console.log("✉️ Bot initial utterance:", data.initial_utterance);
+          console.log("DEBUG");
+          console.log(avatar_data);
+          setAvatar(avatar_data);
           setMessages([{ sender: "bot", content: data.initial_utterance }]);
         }
       } catch (error) {
@@ -147,20 +165,25 @@ const Conversation = () => {
         <div className="chat-box">
           <div className="messages-box">
             {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`message ${
-                  msg.sender === "You" ? "sent" : "received"
-                }`}
-              >
-                {msg.content}
+              <div key={index} className={`message-row ${msg.sender==="You" ? "sent" : "received"}`}>
+                {avatar.avatar_type !== "none" && msg.sender !== "You" && (
+                  <img src={avatar.image_base64} alt="Avatar" className="message-avatar" />
+                )}
+                <div className={`message ${msg.sender === "You" ? "sent" : "received"}`}>
+                  {msg.content}
+                </div>
               </div>
             ))}
             {isTyping && (
-              <div className="message received typing-indicator">
-                <span className="dot"></span>
-                <span className="dot"></span>
-                <span className="dot"></span>
+              <div key="typing-message-received" className="message-row received">
+                {avatar.avatar_type !== "none" && (
+                  <img src={avatar.image_base64} alt="Avatar" className="message-avatar" />
+                )}
+                <div className="message received typing-indicator">
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                </div>
               </div>
             )}
             <div ref={messagesEndRef}></div>

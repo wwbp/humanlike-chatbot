@@ -33,5 +33,5 @@ urlpatterns = [
 
     # 9) Generate and Access Bot Avatar
     path("api/avatar/", AvatarAPIView.as_view(), name="avatar"),
-    path('api/avatar/<int:pk>/', AvatarDetailAPIView.as_view(), name='avatar-detail'),
+    path('api/avatar/<str:bot_name>/', AvatarDetailAPIView.as_view(), name='avatar-detail'),
 ]

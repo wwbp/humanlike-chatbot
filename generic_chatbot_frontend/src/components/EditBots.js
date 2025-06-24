@@ -8,8 +8,6 @@ function EditBots() {
   const [password, setPassword] = useState("");
 
   const [bots, setBots] = useState([]);
-  const [avatars, setAvatars] = useState([]);
-
   const [newBot, setNewBot] = useState({
     name: "",
     model_type: "",
@@ -133,7 +131,7 @@ function EditBots() {
       formData.append('bot_name', editForm.name);
       formData.append('image', editAvatar.file);
 
-      fetch(`${BASE_URL}/avatar/${editBotId}/`, {
+      fetch(`${BASE_URL}/avatar/${String(editBotId)}/`, {
         method: 'POST',
         body: formData,
       });

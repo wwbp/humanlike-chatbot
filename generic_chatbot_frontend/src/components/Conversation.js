@@ -67,14 +67,12 @@ const Conversation = () => {
         const query = new URLSearchParams({
           conversation_id: conversationId,
         });
-        const avatar_response = await fetch(`${apiUrl}/avatar/${botId}/?${query}`);
+        const avatar_response = await fetch(`${apiUrl}/avatar/${botName}/?${query}`);
         if (!avatar_response.ok) throw new Error(`Failed to get image`);
         const avatar_data = await avatar_response.json();
 
         if (data.initial_utterance?.trim()) {
           console.log("✉️ Bot initial utterance:", data.initial_utterance);
-          console.log("DEBUG");
-          console.log(avatar_data);
           setAvatar(avatar_data);
           setMessages([{ sender: "bot", content: data.initial_utterance }]);
         }
@@ -86,6 +84,7 @@ const Conversation = () => {
     initializeConversation();
   }, [
     apiUrl,
+    botId,
     botName,
     participantId,
     studyName,

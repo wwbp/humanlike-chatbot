@@ -28,7 +28,7 @@ def make_square(image, fill_color=(255, 255, 255, 0)):
         new_image.paste(image, ((size - x) // 2, (size - y) // 2))
         return new_image.resize((512, 512))
 
-def generate_avatar(file, bot_name, avatar_type):
+def generate_avatar(file, bot_name, avatar_type, conversation_id=None):
     image_vector = Image.open(file)
     square_image = make_square(image_vector)
 
@@ -49,7 +49,7 @@ def generate_avatar(file, bot_name, avatar_type):
     image_bytes = base64.b64decode(image_base64)
     image = ContentFile(image_bytes)
     # Timestamp to help make image name unique, avoids overwriting images
-    image.name = f"{bot_name}_{avatar_type}_{str(int(datetime.now().timestamp()))}_avatar.png"
+    image.name = f"{bot_name}_{avatar_type}_{conversation_id if conversation_id else ''}_{str(int(datetime.now().timestamp()))}_avatar.png"
     return image
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -59,14 +59,13 @@ class AvatarAPIView(View):
             avatars = Avatar.objects.values("bot")
             return JsonResponse({"avatars": list(avatars)}, status=200)
         except Exception as e:
-            print(f"Error in ListBotsAPIView GET: {e}")
             return JsonResponse({"error": str(e)}, status=500)
 
     def post(self, request, *args, **kwargs):
         try:
             bot_name = request.POST.get("bot_name")
             bot = Bot.objects.get(name=bot_name)
-            conversation_id = None
+            conversation_id = request.POST.get("conversation_id")
             image = None
 
             if bot.avatar_type == "default":
@@ -76,17 +75,12 @@ class AvatarAPIView(View):
                     bot.avatar_type
                 )
             if bot.avatar_type == "user" and conversation_id:
-                conversation_id = request.POST.get("conversation_id")
                 image = generate_avatar(
                     request.FILES.get("image"),
                     bot_name,
-                    bot.avatar_type
+                    bot.avatar_type,
+                    conversation_id
                 )
-                try:
-                    Avatar.objects.filter(bot=bot).delete()
-                except Bot.DoesNotExist:
-                    print("Bot not found. Nothing to delete.")
-
             avatar = Avatar.objects.create(
                 bot=bot,
                 bot_conversation=conversation_id,
@@ -98,7 +92,6 @@ class AvatarAPIView(View):
                 status=201
             )
         except Exception as e:
-             print(f"[ERROR] {e}")
              return JsonResponse(
                 {'message': "FAILED!"},
                 status=500
@@ -106,36 +99,35 @@ class AvatarAPIView(View):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class AvatarDetailAPIView(View):
-    def get(self, request, pk, *args, **kwargs):
+    def get(self, request, bot_name, *args, **kwargs):
         try:
-            print(f"[DEBUG] GET TRIGGERED!")
-            avatar = Avatar.objects.get(bot=Bot.objects.get(pk=pk))
+            bot = Bot.objects.get(name=bot_name)
             data = {
-                "bot_id": avatar.bot.id,
-                "bot_name": avatar.bot.name,
-                "avatar_type": avatar.bot.avatar_type,
-            }
+                    "bot_id": bot.pk,
+                    "bot_name": bot.name,
+                    "avatar_type": bot.avatar_type,
+                }
+            
+            if bot.avatar_type=="user":
+                conversation_id = request.GET.get("conversation_id")
+                avatar = Avatar.objects.get(bot=bot, bot_conversation=conversation_id)
+            else:
+                avatar = Avatar.objects.get(bot=bot, bot_conversation=None)
 
-            if avatar.bot.avatar_type in ("none", "user"):
+            if avatar.image:
+                with open(avatar.image.path, "rb") as f:
+                    encoded_string = base64.b64encode(f.read()).decode()
+                    data["image_base64"] = f"data:image/png;base64,{encoded_string}"
+            else:
                 data["image_base64"] = None
-                return JsonResponse(data, status=200)
-            # elif avatar.avatar_type=="user":
-            #     conversation_id = request.GET.get("conversation_id")
-
-            # If using ImageField (with actual file stored):
-            image_path = avatar.image.path
-            with open(image_path, "rb") as f:
-                encoded_string = base64.b64encode(f.read()).decode()
-
-            data["image_base64"] = f"data:image/png;base64,{encoded_string}"
             return JsonResponse(data, status=200)
         except Bot.DoesNotExist:
             return JsonResponse({"error": "Bot not found"}, status=404)
 
-    def post(self, request, pk, *args, **kwargs):
+    def post(self, request, bot_name, *args, **kwargs):
         try:
-            bot=Bot.objects.get(pk=pk)
-            avatar = Avatar.objects.get(bot=bot)
+            bot=Bot.objects.get(pk=int(bot_name))
+            avatar = Avatar.objects.get(bot=bot, bot_conversation=None)
         except Bot.DoesNotExist:
             return JsonResponse({"error": "Bot not found"}, status=404)
 
@@ -160,16 +152,18 @@ class AvatarDetailAPIView(View):
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON payload."}, status=400)
         except Exception as e:
-            print(f"Error in BotDetailAPIView PUT: {e}")
             return JsonResponse({"error": str(e)}, status=500)
 
-    def delete(self, request, pk, *args, **kwargs):
+    def delete(self, request, bot_name, *args, **kwargs):
         try:
-            bot = Bot.objects.get(pk=pk)
-            bot.delete()
+            # bot = Bot.objects.get(name=bot_name)
+            avatars = Avatar.objects.filter(bot=Bot.objects.filter(name=bot_name))
+            for avatar in avatars:
+                if avatar.image and os.path.isfile(avatar.image):
+                    os.remove(avatar.image)
+            avatars.delete()
             return JsonResponse({"message": "Bot deleted successfully."}, status=204)
         except Bot.DoesNotExist:
             return JsonResponse({"error": "Bot not found"}, status=404)
         except Exception as e:
-            print(f"Error in BotDetailAPIView DELETE: {e}")
             return JsonResponse({"error": str(e)}, status=500)

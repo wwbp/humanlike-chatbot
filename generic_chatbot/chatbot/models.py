@@ -48,3 +48,14 @@ class Keystroke(models.Model):
 
     def __str__(self):
         return f"Keystroke log for conversation {self.conversation_id} at {self.timestamp}"
+
+class Avatar(models.Model):
+    AVATAR_CHOICES = [
+        ('none', 'None'),
+        ('default', 'Default'),
+        ('user', 'User Provided'),
+    ]
+    bot = models.ForeignKey(Bot, on_delete=models.CASCADE, related_name="avatars",null=True, blank=True)
+    bot_conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="bot_conversation", null=True, blank=True)
+    avatar_type = models.CharField(max_length=20, choices=AVATAR_CHOICES, default="none")
+    image = models.ImageField(upload_to='bot_avatars/', null=True, blank=True)

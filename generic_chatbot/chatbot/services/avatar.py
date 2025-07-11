@@ -13,6 +13,9 @@ from PIL import Image
 import base64
 from .s3_helper import download, upload, delete, get_presigned_url
 
+import logging
+logger = logging.getLogger(__name__)
+
 def make_square(image, fill_color=(255, 255, 255, 0)):
         """
         Pads the image to make it square.
@@ -52,7 +55,7 @@ def generate_avatar(file, bot_name, avatar_type, conversation_id=None):
             f"{bot_name}_{avatar_type}_{conversation_id if conversation_id else ''}_{str(int(datetime.now().timestamp()))}.png"
         )
     except Exception as e:
-        print(f'[ERROR] {e}')
+        logger.exception(f'[ERROR] {e}')
         return None
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -75,7 +78,6 @@ class AvatarAPIView(View):
 
             if bot.avatar_type == "default":
                 image, image_key = generate_avatar(
-                    # request.FILES.get("image"),
                     download('uploads', image_url),
                     bot_name,
                     bot.avatar_type
@@ -92,6 +94,7 @@ class AvatarAPIView(View):
                 upload(image, image_key)
                 delete('uploads', image_url)
 
+            logger.debug(f'[DEBUG] {bot.name}, {conversation_id}, {image_key}')
             avatar = Avatar.objects.create(
                 bot=bot,
                 bot_conversation=conversation_id,
@@ -103,7 +106,7 @@ class AvatarAPIView(View):
                 status=201
             )
         except Exception as e:
-            print(f'[ERROR] {e}') 
+            logger.exception(f'[ERROR] {e}') 
             return JsonResponse(
                 {'message': "FAILED!"},
                 status=500
@@ -134,7 +137,7 @@ class AvatarDetailAPIView(View):
         except Bot.DoesNotExist:
             return JsonResponse({"error": "Bot not found"}, status=404)
         except Exception as e:
-            print(f'[ERROR] {e}')
+            logger.exception(f'[ERROR] {e}')
 
     def post(self, request, bot_name, *args, **kwargs):
         try:

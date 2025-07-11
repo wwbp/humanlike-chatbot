@@ -78,6 +78,7 @@ class AvatarAPIView(View):
 
             if bot.avatar_type == "default":
                 image, image_key = generate_avatar(
+                    # request.FILES.get("image"),
                     download('uploads', image_url),
                     bot_name,
                     bot.avatar_type

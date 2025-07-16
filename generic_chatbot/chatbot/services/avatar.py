@@ -16,6 +16,9 @@ from .s3_helper import download, upload, delete, get_presigned_url, get_random_i
 import logging
 logger = logging.getLogger(__name__)
 
+import logging
+logger = logging.getLogger(__name__)
+
 def make_square(image, fill_color=(255, 255, 255, 0)):
         """
         Pads the image to make it square.
@@ -106,7 +109,6 @@ class AvatarAPIView(View):
                 )
 
             logger.debug(f'[DEBUG] {bot.name}, {conversation_id}, {image_key}')
-
             return JsonResponse(
                 {"message": "SUCCESS!"},
                 status=201

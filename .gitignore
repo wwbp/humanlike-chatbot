@@ -21,6 +21,15 @@ dist/
 build/
 *.ipynb_checkpoints/
 
+# Coverage
+.coverage
+*.coverage
+htmlcov/
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+
 # Django
 db.sqlite3
 /media/

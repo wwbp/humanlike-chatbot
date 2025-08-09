@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 class Persona(models.Model):
@@ -26,7 +27,7 @@ class Conversation(models.Model):
         null=True, blank=True,
     )  # Survey metadata (can be long)
     started_time = models.DateTimeField(auto_now_add=True)  # Start time
-    
+
     # Track which persona was randomly selected for this conversation
     selected_persona = models.ForeignKey(
         Persona,
@@ -53,7 +54,7 @@ class Utterance(models.Model):
     speaker_id = models.CharField(max_length=255)  # 'participant' or 'bot'
     bot_name = models.CharField(max_length=255, null=True, blank=True)
     participant_id = models.CharField(max_length=255, null=True, blank=True)
-    created_time = models.DateTimeField(auto_now_add=True)  # Timestamp
+    created_time = models.DateTimeField(default=timezone.now)  # Timestamp - allow manual setting
     text = models.TextField()
 
     # new fields added for voice chat
@@ -85,7 +86,7 @@ class Bot(models.Model):
     avatar_type = models.CharField(
         max_length=20, choices=AVATAR_CHOICES, default="none",
     )
-    
+
     # Message chunking control (bot-specific)
     chunk_messages = models.BooleanField(
         default=True,

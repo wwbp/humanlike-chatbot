@@ -21,6 +21,9 @@ services:
     volumes:
       - mariadb-data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --init-file=/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
       interval: 5s
@@ -36,33 +39,16 @@ services:
       - ./generic_chatbot:/app
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
-      DEBUG: ${DEBUG}
-      SECRET_KEY: ${SECRET_KEY}
-      DATABASE_ENGINE: django.db.backends.mysql
-      DATABASE_NAME: ${DATABASE_NAME}
-      DATABASE_USER: ${DATABASE_USER}
-      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-      DATABASE_HOST: ${DATABASE_HOST}
-      DATABASE_PORT: ${DATABASE_PORT}
-      CORS_ALLOW_ALL_ORIGINS: ${CORS_ALLOW_ALL_ORIGINS}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
-      OPENAI_API_KEY: ${OPENAI_API_KEY} 
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       PYTHONBUFFERED: 1
-      AWS_BUCKET_NAME: ${AWS_BUCKET_NAME}
-      AWS_REGION: ${AWS_REGION}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      BACKEND_ENVIRONMENT: ${BACKEND_ENVIRONMENT}
-      CHATBOT_CONTROL_IMAGE: ${CHATBOT_CONTROL_IMAGE}
-      CHATBOT_AVATAR_PROMPT: ${CHATBOT_AVATAR_PROMPT}
     depends_on:
       - db
-  
+
   frontend:
     build:
-      context: ./generic_chatbot_frontend  
+      context: ./generic_chatbot_frontend
       dockerfile: Dockerfile.local
     container_name: react_app
     stdin_open: true
@@ -70,10 +56,10 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./generic_chatbot_frontend:/app  
+      - ./generic_chatbot_frontend:/app
       - /app/node_modules
-    environment:
-      - REACT_APP_API_URL=${REACT_APP_API_URL}
+    env_file:
+      - .env
     working_dir: /app
     command: npm start
     depends_on:

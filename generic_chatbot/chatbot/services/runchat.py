@@ -1,7 +1,9 @@
 import logging
+from datetime import datetime, timedelta
 
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
+from django.utils import timezone
 from kani import ChatMessage, ChatRole, Kani
 
 from server.engine import get_or_create_engine
@@ -18,28 +20,28 @@ engine_instances = {}
 
 def generate_system_prompt(bot, selected_persona=None):
     """
-    Generate a dynamic system prompt by combining the bot's base prompt 
+    Generate a dynamic system prompt by combining the bot's base prompt
     with instructions from the selected persona for this conversation.
-    
+
     Args:
         bot: Bot instance with prompt
         selected_persona: Persona instance selected for this conversation (can be None)
-        
+
     Returns:
         str: Combined system prompt
     """
     try:
         # Start with the bot's base prompt
         system_prompt = bot.prompt.strip() if bot.prompt else ""
-        
+
         # Add selected persona instructions if available
         if selected_persona and hasattr(selected_persona, "name") and hasattr(selected_persona, "instructions"):
             # Combine base prompt with persona instructions
             if system_prompt:
                 system_prompt += "\n\n"
-            
+
             system_prompt += f"Additional personality instructions:\nPersona '{selected_persona.name}': {selected_persona.instructions}"
-        
+
         return system_prompt
     except Exception as e:
         logger.error(f"Error generating system prompt: {e}")
@@ -109,18 +111,18 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     # Retrieve history from cache
     cache_key = f"conversation_cache_{conversation_id}"
     conversation_history = cache.get(cache_key, [])
-    
+
     # If cache is empty, try to load from database
     if not conversation_history:
         try:
             conversation = await sync_to_async(Conversation.objects.get)(conversation_id=conversation_id)
             utterances = await sync_to_async(list)(Utterance.objects.filter(conversation=conversation).order_by("created_time"))
-            
+
             # Build conversation history from database
             for utterance in utterances:
                 role = "user" if utterance.speaker_id == "user" else "assistant"
                 conversation_history.append({"role": role, "content": utterance.text})
-            
+
             # Populate cache
             cache.set(cache_key, conversation_history, timeout=3600)
             logger.info(f"Loaded {len(conversation_history)} messages from database for conversation {conversation_id}")
@@ -143,10 +145,10 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     # Get the selected persona for this conversation
     conversation = await sync_to_async(Conversation.objects.select_related("selected_persona").get)(conversation_id=conversation_id)
     selected_persona = conversation.selected_persona
-    
+
     # Generate dynamic system prompt combining bot prompt with selected persona
     system_prompt = generate_system_prompt(bot, selected_persona)
-    
+
     # Log the generated prompt for debugging
     logger.info(f"Bot '{bot.name}' system prompt:")
     logger.info(f"   Base prompt: {bot.prompt[:100] if bot.prompt else 'None'}...")
@@ -188,3 +190,80 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     )
 
     return response_text
+
+
+async def get_last_user_message_time(conversation_id):
+    """
+    Get the timestamp of the last user message in a conversation.
+    Returns None if no user messages exist.
+    """
+    try:
+        last_user_utterance = await sync_to_async(Utterance.objects.filter)(
+            conversation__conversation_id=conversation_id,
+            speaker_id="user",
+        )
+
+        last_user_utterance = await sync_to_async(lambda: last_user_utterance.order_by("-created_time").first())()
+
+        return last_user_utterance.created_time if last_user_utterance else None
+    except Exception as e:
+        logger.error(f"Error getting last user message time: {e}")
+        return None
+
+
+async def is_user_idle(conversation_id, idle_time_minutes):
+    """
+    Check if user is idle based on last message timestamp.
+    Returns True if user is idle, False otherwise.
+    """
+    last_message_time = await get_last_user_message_time(conversation_id)
+    if not last_message_time:
+        return False
+
+    # Use timezone-aware comparison
+    now = timezone.now()
+    idle_threshold = now - timedelta(minutes=idle_time_minutes)
+
+    # User is idle if their last message is at or before the idle threshold
+    # (i.e., if the message is older than or equal to the idle time)
+    return last_message_time <= idle_threshold
+
+
+async def generate_followup_message(bot_name, conversation_id, participant_id):
+    """
+    Generate a follow-up message when user is idle.
+    Uses the bot's follow-up instruction prompt to guide the response.
+    """
+    try:
+        # Get bot configuration
+        bot = await sync_to_async(Bot.objects.get)(name=bot_name)
+
+        if not bot.follow_up_on_idle:
+            return None, "Follow-up not enabled for this bot"
+
+        if not bot.follow_up_instruction_prompt:
+            return None, "No follow-up instruction prompt configured"
+
+        # Check if user is actually idle
+        is_idle = await is_user_idle(conversation_id, bot.idle_time_minutes)
+        if not is_idle:
+            return None, "User is not idle"
+
+        # Create a follow-up message using the instruction prompt
+        followup_message = f"[FOLLOW-UP REQUEST] {bot.follow_up_instruction_prompt}"
+
+        # Use the existing chat round function to generate response
+        response_text = await run_chat_round(
+            bot_name=bot_name,
+            conversation_id=conversation_id,
+            participant_id=participant_id,
+            message=followup_message,
+        )
+
+        return response_text, None
+
+    except Bot.DoesNotExist:
+        return None, f"Bot '{bot_name}' not found"
+    except Exception as e:
+        logger.error(f"Error generating follow-up message: {e}")
+        return None, str(e)

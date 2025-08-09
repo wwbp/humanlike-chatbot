@@ -15,14 +15,14 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pipenv 
+# Install pipenv
 RUN pip install pipenv
 
 # Copy Pipfile and Pipfile.lock (if available)
 COPY Pipfile Pipfile.lock /app/
 
-# Install dependencies using Pipenv
-RUN pipenv install --deploy --system
+# Install dependencies using Pipenv (including dev packages)
+RUN pipenv install --deploy --system --dev
 
 # Copy the application code into the container
 COPY . /app

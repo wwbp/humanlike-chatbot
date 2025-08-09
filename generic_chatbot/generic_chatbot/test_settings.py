@@ -113,7 +113,7 @@ BACKEND_ENVIRONMENT = os.getenv("BACKEND_ENVIRONMENT", "test")
 
 # Static files
 STATIC_URL = "/static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Templates
 TEMPLATES = [

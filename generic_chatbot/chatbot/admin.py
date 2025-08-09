@@ -3,6 +3,7 @@ import io
 import logging
 import time
 import uuid
+from pathlib import Path
 
 from django import forms
 from django.contrib import admin
@@ -14,6 +15,18 @@ from PIL import Image
 from .models import Avatar, Bot, Control, Conversation, Keystroke, Persona, Utterance
 from .services.avatar import generate_avatar
 from .services.s3_helper import delete, get_presigned_url, upload
+
+
+class AvatarUploadError(Exception):
+    """Custom exception for avatar upload failures."""
+
+
+class AvatarProcessingError(Exception):
+    """Custom exception for avatar processing failures."""
+
+
+class S3OperationError(Exception):
+    """Custom exception for S3 operation failures."""
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
@@ -72,14 +85,14 @@ class BotAdminForm(forms.ModelForm):
                 avatar = Avatar.objects.filter(bot=self.instance, bot_conversation__isnull=True).first()
                 if avatar and avatar.chatbot_avatar:
                     # Check if we're in local development
-                    import os
-                    is_local = os.getenv("BACKEND_ENVIRONMENT") == "local"
+                    from django.conf import settings
+                    is_local = settings.BACKEND_ENVIRONMENT == "local"
                     
                     if is_local:
                         # For local development, serve from media directory
                         from django.conf import settings
-                        local_path = os.path.join(settings.MEDIA_ROOT, "avatars", avatar.chatbot_avatar)
-                        if os.path.exists(local_path):
+                        local_path = Path(settings.MEDIA_ROOT) / "avatars" / avatar.chatbot_avatar
+                        if local_path.exists():
                             image_url = f"/media/avatars/{avatar.chatbot_avatar}"
                             self.fields["avatar_image"].help_text = format_html(
                                 '<div class="current-avatar-section"><strong>Current Avatar:</strong><br>'
@@ -106,12 +119,9 @@ class BotAdminForm(forms.ModelForm):
                 else:
                     # Hide remove avatar option if no avatar exists
                     self.fields["remove_avatar"].widget = forms.HiddenInput()
-            except Exception:
+            except (AvatarUploadError, S3OperationError, OSError):
                 # Hide remove avatar option on error
                 self.fields["remove_avatar"].widget = forms.HiddenInput()
-        else:
-            # Hide remove avatar option for new bots
-            self.fields["remove_avatar"].widget = forms.HiddenInput()
 
 
 class BaseAdmin(admin.ModelAdmin):
@@ -330,9 +340,9 @@ class BotAdmin(BaseAdmin):
                 
                 if is_local:
                     # For local development, serve from media directory
-                    import os
-                    local_path = os.path.join(settings.MEDIA_ROOT, "avatars", avatar.chatbot_avatar)
-                    if os.path.exists(local_path):
+                    from django.conf import settings
+                    local_path = Path(settings.MEDIA_ROOT) / "avatars" / avatar.chatbot_avatar
+                    if local_path.exists():
                         image_url = f"/media/avatars/{avatar.chatbot_avatar}"
                         return format_html(
                             '<img src="{}" alt="Avatar" class="avatar-preview" title="{}" />',
@@ -346,7 +356,7 @@ class BotAdmin(BaseAdmin):
                             '<img src="{}" alt="Avatar" class="avatar-preview" title="{}" />',
                             image_url, avatar.chatbot_avatar,
                         )
-        except Exception:
+        except (S3OperationError, OSError):
             pass
         return format_html('<span class="no-avatar">No avatar</span>')
     avatar_preview.short_description = "Avatar"
@@ -409,16 +419,14 @@ class BotAdmin(BaseAdmin):
                         
                         if image and image_key:
                             # For local development, save to local media directory
-                            import os
-
                             from django.conf import settings
                             
                             # Create media directory if it doesn't exist
-                            media_dir = os.path.join(settings.MEDIA_ROOT, "avatars")
-                            os.makedirs(media_dir, exist_ok=True)
+                            media_dir = Path(settings.MEDIA_ROOT) / "avatars"
+                            media_dir.mkdir(parents=True, exist_ok=True)
                             
                             # Save processed image locally
-                            local_path = os.path.join(media_dir, image_key)
+                            local_path = media_dir / image_key
                             with open(local_path, "wb") as f:
                                 f.write(image.read())
                             
@@ -433,9 +441,9 @@ class BotAdmin(BaseAdmin):
                             if not created:
                                 # Delete old avatar file if exists
                                 if avatar.chatbot_avatar:  # Check if there's an existing avatar
-                                    old_path = os.path.join(media_dir, avatar.chatbot_avatar)
-                                    if os.path.exists(old_path):
-                                        os.remove(old_path)
+                                    old_path = media_dir / avatar.chatbot_avatar
+                                    if old_path.exists():
+                                        old_path.unlink()
                                 avatar.chatbot_avatar = image_key
                                 avatar.save()
                             
@@ -479,14 +487,14 @@ class BotAdmin(BaseAdmin):
                             logger.debug(f"Successfully uploaded raw image to S3: {raw_image_key}")
                         except Exception as e:
                             logger.error(f"Failed to upload raw image to S3: {e}")
-                            raise Exception(f"Failed to upload raw image to S3: {e!s}")
+                            raise S3OperationError(f"Failed to upload raw image to S3: {e!s}")
                         
                         # Step 2: Process through generate_avatar (like frontend does)
                         from .services.avatar import download
                         try:
                             processed_image = download("uploads", raw_filename)
                             if not processed_image:
-                                raise Exception(f"Failed to download image from S3: {raw_image_key}")
+                                raise S3OperationError(f"Failed to download image from S3: {raw_image_key}")
                             logger.debug(f"Successfully downloaded image from S3: {raw_image_key}")
                         except Exception as e:
                             logger.error(f"Failed to download image from S3: {e}")
@@ -495,7 +503,7 @@ class BotAdmin(BaseAdmin):
                                 Bucket=os.getenv("AWS_BUCKET_NAME"),
                                 Key=raw_image_key,
                             )
-                            raise Exception(f"Failed to download image from S3: {e!s}")
+                            raise S3OperationError(f"Failed to download image from S3: {e!s}")
                         
                         if processed_image:
                             image = generate_avatar(
@@ -510,7 +518,7 @@ class BotAdmin(BaseAdmin):
                                     # Upload processed image to S3
                                     upload_result = upload(image, image_key)
                                     if not upload_result:
-                                        raise Exception("S3 upload returned None")
+                                        raise S3OperationError("S3 upload returned None")
                                     
                                     # Clean up raw image (use direct S3 delete to avoid avatar prefix)
                                     s3.delete_object(
@@ -538,7 +546,7 @@ class BotAdmin(BaseAdmin):
                                         f"Avatar uploaded and processed successfully: {image_key}",
                                         level="SUCCESS",
                                     )
-                                except Exception as e:
+                                except (S3OperationError, OSError) as e:
                                     # Clean up raw image on failure
                                     s3.delete_object(
                                         Bucket=os.getenv("AWS_BUCKET_NAME"),
@@ -572,7 +580,7 @@ class BotAdmin(BaseAdmin):
                                 level="ERROR",
                             )
                         
-                except Exception as e:
+                except (S3OperationError, OSError) as e:
                     self.message_user(
                         request,
                         f"Error uploading avatar: {e!s}",
@@ -597,9 +605,9 @@ class BotAdmin(BaseAdmin):
                     if is_local:
                         # Delete local file
                         from django.conf import settings
-                        local_path = os.path.join(settings.MEDIA_ROOT, "avatars", avatar.chatbot_avatar)
-                        if os.path.exists(local_path):
-                            os.remove(local_path)
+                        local_path = Path(settings.MEDIA_ROOT) / "avatars" / avatar.chatbot_avatar
+                        if local_path.exists():
+                            local_path.unlink()
                     else:
                         # Delete from S3
                         delete("avatar", avatar.chatbot_avatar)
@@ -623,7 +631,7 @@ class BotAdmin(BaseAdmin):
                         "No avatar found to remove.",
                         level="WARNING",
                     )
-            except Exception as e:
+            except (S3OperationError, OSError) as e:
                 self.message_user(
                     request,
                     f"Error removing avatar: {e!s}",
@@ -640,7 +648,7 @@ class BotAdmin(BaseAdmin):
                     delete("avatar", avatar.chatbot_avatar)
                 if avatar.participant_avatar:
                     delete("avatar", avatar.participant_avatar)
-        except Exception:
+        except (S3OperationError, OSError):
             pass  # Don't prevent deletion if cleanup fails
         
         super().delete_model(request, obj)
@@ -656,7 +664,7 @@ class BotAdmin(BaseAdmin):
                         delete("avatar", avatar.chatbot_avatar)
                     if avatar.participant_avatar:
                         delete("avatar", avatar.participant_avatar)
-        except Exception:
+        except (S3OperationError, OSError):
             pass  # Don't prevent deletion if cleanup fails
         
         super().delete_queryset(request, queryset)
@@ -692,9 +700,9 @@ class AvatarAdmin(BaseAdmin):
                 
                 if is_local:
                     # For local development, serve from media directory
-                    import os
-                    local_path = os.path.join(settings.MEDIA_ROOT, "avatars", obj.chatbot_avatar)
-                    if os.path.exists(local_path):
+                    from django.conf import settings
+                    local_path = Path(settings.MEDIA_ROOT) / "avatars" / obj.chatbot_avatar
+                    if local_path.exists():
                         image_url = f"/media/avatars/{obj.chatbot_avatar}"
                         return format_html(
                             '<img src="{}" alt="Chatbot Avatar" class="avatar-preview" title="{}" />',
@@ -708,7 +716,7 @@ class AvatarAdmin(BaseAdmin):
                             '<img src="{}" alt="Chatbot Avatar" class="avatar-preview" title="{}" />',
                             image_url, obj.chatbot_avatar,
                         )
-            except Exception:
+            except (S3OperationError, OSError):
                 pass
         return format_html('<span class="no-avatar">No chatbot avatar</span>')
     avatar_preview.short_description = "Chatbot Avatar"
@@ -725,8 +733,8 @@ class AvatarAdmin(BaseAdmin):
                         f'<div class="avatar-detail-section"><strong>Participant Avatar:</strong><br>'
                         f'<img src="{participant_url}" alt="Participant Avatar" class="avatar-detail" /><br>'
                         f'<small>{obj.participant_avatar}</small></div>',
-                    )
-            except Exception:
+                                            )
+            except (S3OperationError, OSError):
                 html_parts.append("<div class='avatar-detail-section'><strong>Participant Avatar:</strong> Error loading image</div>")
         
         if obj.chatbot_avatar:
@@ -737,9 +745,9 @@ class AvatarAdmin(BaseAdmin):
                 
                 if is_local:
                     # For local development, serve from media directory
-                    import os
-                    local_path = os.path.join(settings.MEDIA_ROOT, "avatars", obj.chatbot_avatar)
-                    if os.path.exists(local_path):
+                    from django.conf import settings
+                    local_path = Path(settings.MEDIA_ROOT) / "avatars" / obj.chatbot_avatar
+                    if local_path.exists():
                         chatbot_url = f"/media/avatars/{obj.chatbot_avatar}"
                         html_parts.append(
                             f'<div class="avatar-detail-section"><strong>Chatbot Avatar:</strong><br>'
@@ -758,8 +766,8 @@ class AvatarAdmin(BaseAdmin):
                             f'<small>{obj.chatbot_avatar}</small></div>',
                         )
                     else:
-                        html_parts.append("<div class='avatar-detail-section'><strong>Chatbot Avatar:</strong> Error loading image</div>")
-            except Exception:
+                        html_parts.append("<div class='avatar-detail-section'><strong>Chatbot Avatar:</strong> Error loading image</div>"                        )
+            except (S3OperationError, OSError):
                 html_parts.append("<div class='avatar-detail-section'><strong>Chatbot Avatar:</strong> Error loading image</div>")
         
         if not html_parts:
@@ -801,20 +809,32 @@ class AvatarAdmin(BaseAdmin):
     def delete_avatars(self, request, queryset):
         """Custom action to delete avatar files from S3"""
         deleted_count = 0
+        errors = []
+        
         for avatar in queryset:
-            try:
-                if avatar.participant_avatar:
+            if avatar.participant_avatar:
+                try:
                     delete("avatar", avatar.participant_avatar)
-                if avatar.chatbot_avatar:
+                except (S3OperationError, OSError) as e:
+                    errors.append(f"Error deleting participant avatar {avatar.id}: {e!s}")
+                    continue
+            
+            if avatar.chatbot_avatar:
+                try:
                     delete("avatar", avatar.chatbot_avatar)
+                except (S3OperationError, OSError) as e:
+                    errors.append(f"Error deleting chatbot avatar {avatar.id}: {e!s}")
+                    continue
+            
+            try:
                 avatar.delete()
                 deleted_count += 1
             except Exception as e:
-                self.message_user(
-                    request,
-                    f"Error deleting avatar {avatar.id}: {e!s}",
-                    level="ERROR",
-                )
+                errors.append(f"Error deleting avatar record {avatar.id}: {e!s}")
+        
+        # Report any errors
+        for error in errors:
+            self.message_user(request, error, level="ERROR")
         
         self.message_user(
             request,

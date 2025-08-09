@@ -182,16 +182,15 @@ class TestEngine:
         """Test that engine creation is logged."""
         engine_instances = {}
         
-        with patch("server.engine.logger") as mock_logger:
-            with patch("server.engine.initialize_engine") as mock_init:
-                mock_engine = Mock()
-                mock_init.return_value = mock_engine
-                
-                get_or_create_engine("OpenAI", "gpt-4", engine_instances)
-                
-                mock_logger.info.assert_called_once_with(
-                    "Initializing Engine: Type=OpenAI, Model=gpt-4",
-                )
+        with patch("server.engine.logger") as mock_logger, patch("server.engine.initialize_engine") as mock_init:
+            mock_engine = Mock()
+            mock_init.return_value = mock_engine
+            
+            get_or_create_engine("OpenAI", "gpt-4", engine_instances)
+            
+            mock_logger.info.assert_called_once_with(
+                "Initializing Engine: Type=OpenAI, Model=gpt-4",
+            )
     
     @pytest.mark.unit
     def test_get_or_create_engine_no_logging_for_existing(self):

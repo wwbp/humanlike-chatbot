@@ -83,19 +83,7 @@ class UtteranceFactory(DjangoModelFactory):
     text = factory.Faker("text", max_nb_chars=100)
     is_voice = False
     
-    @factory.lazy_attribute
-    def bot_name(self):
-        """Set bot_name based on speaker_id."""
-        if self.speaker_id == "bot":
-            return factory.Sequence(lambda n: f"TestBot{n}")
-        return None
-    
-    @factory.lazy_attribute
-    def participant_id(self):
-        """Set participant_id based on speaker_id."""
-        if self.speaker_id == "user":
-            return factory.Sequence(lambda n: f"test-user-{n}")
-        return None
+
 
 
 class AvatarFactory(DjangoModelFactory):

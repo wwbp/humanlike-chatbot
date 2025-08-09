@@ -1,11 +1,10 @@
 import json
 
+import pytest
 from django.test import TestCase
 from django.utils import timezone
 
-# Remove problematic imports at module level
-# from chatbot.models import Bot, Conversation, Utterance, Persona
-# from tests.factories import BotFactory, ConversationFactory, PersonaFactory, create_chat_session
+# Import statements moved to individual test methods to avoid circular imports
 
 class TestChatFlowIntegration(TestCase):
     """Integration tests for chat flow functionality."""
@@ -56,23 +55,23 @@ class TestChatFlowIntegration(TestCase):
         )
         
         # Verify session was created
-        self.assertIn("conversation_id", session_data)
-        self.assertIn("bot_name", session_data)
-        self.assertIn("participant_id", session_data)
-        self.assertEqual(session_data["participant_id"], "test-user-789")
+        assert "conversation_id" in session_data
+        assert "bot_name" in session_data
+        assert "participant_id" in session_data
+        assert session_data["participant_id"] == "test-user-789"
 
     def test_chat_flow_conversation_persistence(self):
         """Test that conversation data persists correctly."""
         # Verify conversation was created
-        self.assertEqual(self.conversation.bot_name, "TestBot")
-        self.assertEqual(self.conversation.participant_id, "test-user-456")
-        self.assertEqual(self.conversation.selected_persona, self.persona)
+        assert self.conversation.bot_name == "TestBot"
+        assert self.conversation.participant_id == "test-user-456"
+        assert self.conversation.selected_persona == self.persona
         
         # Verify initial message was created
         from chatbot.models import Utterance
         utterances = Utterance.objects.filter(conversation=self.conversation)
-        self.assertEqual(utterances.count(), 1)
-        self.assertEqual(utterances.first().speaker_id, "bot")
+        assert utterances.count() == 1
+        assert utterances.first().speaker_id == "bot"
 
     def test_chat_flow_with_different_bot_configs(self):
         """Test chat flow with various bot configurations."""
@@ -85,8 +84,8 @@ class TestChatFlowIntegration(TestCase):
             model_id="claude-3-sonnet",
         )
         
-        self.assertEqual(anthropic_bot.model_type, "Anthropic")
-        self.assertEqual(anthropic_bot.model_id, "claude-3-sonnet")
+        assert anthropic_bot.model_type == "Anthropic"
+        assert anthropic_bot.model_id == "claude-3-sonnet"
 
     def test_chat_flow_error_handling(self):
         """Test error handling in chat flow."""
@@ -100,7 +99,7 @@ class TestChatFlowIntegration(TestCase):
         )
         
         # Verify it was created successfully
-        self.assertEqual(session_data["bot_name"], "CustomTestBot")
+        assert session_data["bot_name"] == "CustomTestBot"
 
     def test_chat_flow_missing_required_fields(self):
         """Test chat flow with missing required fields."""
@@ -113,8 +112,8 @@ class TestChatFlowIntegration(TestCase):
         )
         
         # Should create a bot with a unique name
-        self.assertIsNotNone(session_data["bot_name"])
-        self.assertNotEqual(session_data["bot_name"], "")
+        assert session_data["bot_name"] is not None
+        assert session_data["bot_name"] != ""
 
     def test_chat_flow_invalid_json(self):
         """Test chat flow with invalid JSON data."""
@@ -122,7 +121,7 @@ class TestChatFlowIntegration(TestCase):
         # For now, we'll test basic JSON validation
         invalid_json = "{'invalid': json}"
         
-        with self.assertRaises(json.JSONDecodeError):
+        with pytest.raises(json.JSONDecodeError):
             json.loads(invalid_json)
 
     def test_chat_flow_moderation_blocked(self):
@@ -132,4 +131,4 @@ class TestChatFlowIntegration(TestCase):
         
         # Test with potentially problematic message
         result = moderate_message("This is a normal message")
-        self.assertIsInstance(result, str)
+        assert isinstance(result, str)

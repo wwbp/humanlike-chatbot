@@ -5,6 +5,7 @@ import logging
 import os
 import time
 from datetime import datetime
+from pathlib import Path
 
 import openai
 import requests
@@ -20,6 +21,10 @@ from ..models import Avatar, Bot
 from .s3_helper import delete, download, get_presigned_url, get_random_image, upload
 
 logger = logging.getLogger(__name__)
+
+
+class AvatarServiceException(Exception):
+    """Custom exception for avatar service errors."""
 
 
 def make_square(image, fill_color=(255, 255, 255, 0)):
@@ -158,7 +163,7 @@ class AvatarAPIView(View):
                 
                 if hasattr(Avatar, "image"):
                     # Main branch structure (ImageField)
-                    avatar = Avatar.objects.create(
+                    Avatar.objects.create(
                         bot=bot,
                         bot_conversation=None,
                         image=image,
@@ -183,7 +188,7 @@ class AvatarAPIView(View):
                             # Fallback to local path if S3 fails
                             chatbot_avatar_key = image.name if hasattr(image, "name") else str(image)
                     
-                    avatar = Avatar.objects.create(
+                    Avatar.objects.create(
                         bot=bot,
                         bot_conversation=None,
                         chatbot_avatar=chatbot_avatar_key,
@@ -204,7 +209,6 @@ class AvatarAPIView(View):
 
             if bot.avatar_type == "default":
                 image = generate_avatar(
-                    # request.FILES.get("image"),
                     download("uploads", image_url),
                     bot_name,
                     bot.avatar_type,
@@ -284,8 +288,8 @@ class AvatarDetailAPIView(View):
                     if os.getenv("BACKEND_ENVIRONMENT") == "local":
                         # For local development, serve from media directory
                         from django.conf import settings
-                        local_path = os.path.join(settings.MEDIA_ROOT, "avatars", avatar.chatbot_avatar)
-                        if os.path.exists(local_path):
+                        local_path = Path(settings.MEDIA_ROOT) / "avatars" / avatar.chatbot_avatar
+                        if local_path.exists():
                             data["image_url"] = f"/media/avatars/{avatar.chatbot_avatar}"
                         else:
                             data["image_url"] = None
@@ -302,8 +306,8 @@ class AvatarDetailAPIView(View):
                         if os.getenv("BACKEND_ENVIRONMENT") == "local":
                             # For local development, serve from media directory
                             from django.conf import settings
-                            local_path = os.path.join(settings.MEDIA_ROOT, "avatars", avatar.chatbot_avatar)
-                            if os.path.exists(local_path):
+                            local_path = Path(settings.MEDIA_ROOT) / "avatars" / avatar.chatbot_avatar
+                            if local_path.exists():
                                 data["image_url"] = f"/media/avatars/{avatar.chatbot_avatar}"
                             else:
                                 data["image_url"] = None
@@ -346,10 +350,9 @@ class AvatarDetailAPIView(View):
                     avatar.image.delete(save=False)
                 elif avatar.chatbot_avatar:
                     # Delete from S3 if it exists
-                    try:
+                    from contextlib import suppress
+                    with suppress(Exception):
                         delete("avatar", avatar.chatbot_avatar)
-                    except:
-                        pass  # Ignore S3 errors in local development
                 
                 # Generate new avatar
                 edit_image = generate_avatar(
@@ -368,17 +371,16 @@ class AvatarDetailAPIView(View):
                 # For local development, save the file locally
                 elif settings.BACKEND_ENVIRONMENT == "local":
                     logger.info("[DEBUG] Using local environment - saving file locally")
-                    import os
                     
                     # Create media directory if it doesn't exist
-                    media_dir = os.path.join(settings.MEDIA_ROOT, "avatars")
-                    os.makedirs(media_dir, exist_ok=True)
+                    media_dir = Path(settings.MEDIA_ROOT) / "avatars"
+                    media_dir.mkdir(parents=True, exist_ok=True)
                     
                     # Get the filename from the image
                     image_key = edit_image.name if hasattr(edit_image, "name") else f"{bot.name}_{int(time.time())}.png"
                     
                     # Save the processed image locally
-                    local_path = os.path.join(media_dir, image_key)
+                    local_path = media_dir / image_key
                     with open(local_path, "wb") as f:
                         f.write(edit_image.read())
                     
@@ -398,7 +400,7 @@ class AvatarDetailAPIView(View):
                             logger.info(f"[DEBUG] Avatar record updated with S3 key: {s3_key}")
                         else:
                             logger.error("[ERROR] S3 upload returned None")
-                            raise Exception("S3 upload failed - returned None")
+                            raise AvatarServiceException("S3 upload failed - returned None")
                     except Exception as e:
                         logger.exception(f"[ERROR] S3 upload failed: {e}")
                         # For production, we can't fallback to local storage

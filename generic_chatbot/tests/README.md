@@ -15,19 +15,19 @@ We follow a **test-driven development** approach with these principles:
 
 ### Test Categories
 
-1. **Unit Tests** (`tests/unit/`)
+1. **Unit Tests**
    - Fast, isolated tests for individual functions
    - Mock all external dependencies
    - Test edge cases and error conditions
    - Marked with `@pytest.mark.unit`
 
-2. **Integration Tests** (`tests/integration/`)
+2. **Integration Tests**
    - Test component interactions
    - Use test database with real models
    - Mock external APIs but test internal flows
    - Marked with `@pytest.mark.integration`
 
-3. **End-to-End Tests** (`tests/e2e/`)
+3. **End-to-End Tests**
    - Full system tests
    - Test complete user workflows
    - Use test containers for external services
@@ -39,14 +39,15 @@ We follow a **test-driven development** approach with these principles:
 tests/
 ├── conftest.py          # Global pytest configuration
 ├── factories.py         # Test data factories
-├── unit/               # Unit tests
-│   ├── test_post_processing.py
-│   ├── test_moderation.py
-│   ├── test_runchat.py
-│   └── test_engine.py
-├── integration/         # Integration tests
-│   └── test_chat_flow.py
-├── e2e/                # End-to-end tests
+├── test_post_processing.py  # Unit tests
+├── test_moderation.py       # Unit tests
+├── test_runchat.py          # Unit tests
+├── test_engine.py           # Unit tests
+├── test_chat_flow.py        # Integration tests
+├── test_followup_e2e.py     # End-to-end tests
+├── test_followup.py         # Unit tests
+├── test_core_functionality.py # Core functionality tests
+├── test_config.py            # Configuration tests
 └── fixtures/           # Test data fixtures
 ```
 
@@ -77,7 +78,7 @@ make test-e2e          # End-to-end tests only
 make test-coverage
 
 # Run specific test file
-make test-file FILE=tests/unit/test_runchat.py
+make test-file FILE=tests/test_runchat.py
 
 # Run tests with specific marker
 make test-marker MARKER=unit

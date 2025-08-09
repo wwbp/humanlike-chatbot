@@ -15,75 +15,63 @@ We've consolidated the scattered test files into a single, robust testing approa
 - `tests/e2e/test_followup_e2e.py` (16KB, 431 lines)
 - `tests/integration/test_chat_flow.py` (5.1KB, 136 lines)
 
-**Total**: ~79KB across 7 files with overlapping concerns
+**Total**: ~79KB across 7 files in scattered subdirectories
 
 ### After (Consolidated Approach)
-- `tests/test_core_functionality.py` - All core functionality tests
-- `tests/test_config.py` - Test configuration and utilities
-- `run_tests.py` - Simplified test runner
+- `tests/test_followup.py` - Followup functionality tests
+- `tests/test_engine.py` - Engine tests
+- `tests/test_post_processing.py` - Post-processing tests
+- `tests/test_runchat.py` - Runtime chat tests
+- `tests/test_moderation.py` - Moderation tests
+- `tests/test_followup_e2e.py` - End-to-end followup tests
+- `tests/test_chat_flow.py` - Chat flow integration tests
+- `tests/test_core_functionality.py` - Core functionality tests
+- `tests/test_config.py` - Configuration tests
 
-**Total**: ~15KB across 3 focused files
+**Total**: ~79KB across 9 files in single directory
 
 ## Benefits of Consolidation
 
-1. **Eliminates Duplication**: No more overlapping test setup and utilities
-2. **Single Source of Truth**: All tests in one place with consistent patterns
-3. **Easier Maintenance**: Update one file instead of hunting through scattered tests
-4. **Better Organization**: Logical grouping by functionality, not file type
-5. **Faster Execution**: No need to load multiple test modules
-6. **Cleaner Dependencies**: Centralized imports and test data
+1. **Simplified Structure**: All tests in one directory instead of scattered subdirectories
+2. **Easier Navigation**: No need to navigate through multiple directory levels
+3. **Consistent Organization**: All test files follow the same naming convention
+4. **Simplified Test Discovery**: pytest can find all tests in one location
+5. **Easier Maintenance**: Update test files without worrying about directory structure
+6. **Cleaner Project Layout**: Reduced directory nesting and complexity
 
 ## Test Structure
 
-### Core Functionality Tests (`test_core_functionality.py`)
+### Unit Tests
+- `test_followup.py` - Followup service functionality
+- `test_engine.py` - Chat engine operations
+- `test_post_processing.py` - Post-processing operations
+- `test_runchat.py` - Runtime chat functionality
+- `test_moderation.py` - Content moderation
+- `test_config.py` - Configuration and settings
 
-#### `TestCoreChatFunctionality`
-- Chat round execution
-- Moderation integration
-- Text chunking
-- Basic chat flow
+### Integration Tests
+- `test_chat_flow.py` - Chat flow integration scenarios
+- `test_core_functionality.py` - Core system functionality
 
-#### `TestFollowupFunctionality`
-- User idle detection
-- Followup message generation
-- Bot configuration validation
-- Error handling
-
-#### `TestIntegrationScenarios`
-- Bot and conversation creation
-- Persona relationships
-- Utterance management
-- Factory validation
-
-#### `TestEdgeCases`
-- Boundary conditions
-- Zero-value scenarios
-- Empty input handling
-- Time threshold testing
-
-#### `TestAPIEndpoints`
-- API endpoint validation
-- URL routing verification
-- Basic endpoint accessibility
-
-#### `TestConfiguration`
-- Test environment setup
-- Factory availability
-- Settings validation
+### End-to-End Tests
+- `test_followup_e2e.py` - Complete followup workflows
 
 ## Running Tests
 
 ### Using the Makefile (Recommended)
 
 ```bash
-# Run all consolidated tests
+# Run all tests
 make test
 
 # Run tests with coverage
 make test-coverage
 
-# Run specific test class
-make test-specific TEST_NAME=TestCoreChatFunctionality
+# Run specific test file
+make test-file FILE=tests/test_runchat.py
+
+# Run tests with specific marker
+make test-marker MARKER=unit
 
 # Quick test run (fastest)
 make test-quick
@@ -92,11 +80,18 @@ make test-quick
 make test-help
 ```
 
-### Using the Test Runner Directly
+### Using pytest Directly
 
 ```bash
 # Run all tests
-python run_tests.py all
+pytest tests/
+
+# Run specific test file
+pytest tests/test_followup.py
+
+# Run tests with specific marker
+pytest -m unit tests/
+```
 
 # Run specific test
 python run_tests.py test TestCoreChatFunctionality

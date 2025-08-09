@@ -253,7 +253,7 @@ class TestFollowupAPIView(TestCase):
         with patch("chatbot.services.followup.generate_followup_message") as mock_generate:
             mock_generate.return_value = ("Followup response", None)
             
-            with patch("chatbot.services.followup.human_like_chunks") as mock_chunks:
+            with patch("chatbot.services.post_processing.human_like_chunks") as mock_chunks:
                 mock_chunks.return_value = ["Followup", "response"]
                 
                 view = FollowupAPIView()
@@ -781,7 +781,7 @@ class TestFollowupEndToEnd(TestCase):
             "participant_id": "new-test-user",
         }
         
-        with patch("chatbot.services.runchat.run_chat_round") as mock_run_chat:
+        with patch("chatbot.views.run_chat_round") as mock_run_chat:
             mock_run_chat.return_value = "Hello! I'm here to help you with your new conversation."
             
             response = self.client.post(

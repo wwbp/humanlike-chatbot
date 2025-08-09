@@ -12,7 +12,7 @@ into a single, robust testing approach that covers:
 
 import asyncio
 from datetime import timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 from asgiref.sync import sync_to_async
 from django.test import TestCase
@@ -118,19 +118,59 @@ class TestCoreChatFunctionality(TestCase):
         for chunk in chunks:
             assert len(chunk.strip()) > 0
 
-    def test_moderation_clean_message(self):
+    @patch("chatbot.services.moderation.OpenAI")
+    def test_moderation_clean_message(self, mock_openai_class):
         """Test moderation with clean message."""
-        result = moderate_message("Hello, how are you?")
-        # Moderation returns empty string for clean messages
-        assert result == ""
+        # Mock OpenAI client
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+        
+        # Mock moderation response for clean content
+        mock_response = Mock()
+        mock_response.results = [Mock()]
+        mock_response.results[0].category_scores = Mock()
+        
+        # Mock model_dump to return a proper dictionary
+        with patch("chatbot.services.moderation.model_dump") as mock_model_dump:
+            mock_model_dump.return_value = {
+                "harassment": 0.1,
+                "hate": 0.2,
+                "sexual": 0.1,
+                "self_harm": 0.0,
+                "violence": 0.1,
+            }
+            
+            mock_client.moderations.create.return_value = mock_response
+            
+            result = moderate_message("Hello, how are you?")
+            # Moderation returns empty string for clean messages
+            assert result == ""
 
-    def test_moderation_blocked_message(self):
+    @patch("chatbot.services.moderation.OpenAI")
+    def test_moderation_blocked_message(self, mock_openai_class):
         """Test moderation with blocked content."""
-        # This would depend on your actual moderation rules
-        # For now, we'll test the function exists and works
-        result = moderate_message("Test message")
-        # Assuming clean message passes (returns empty string)
-        assert result == ""
+        # Mock OpenAI client
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+        
+        # Mock moderation response for blocked content
+        mock_response = Mock()
+        mock_response.results = [Mock()]
+        mock_response.results[0].category_scores = Mock()
+        
+        # Mock model_dump to return a proper dictionary
+        with patch("chatbot.services.moderation.model_dump") as mock_model_dump:
+            mock_model_dump.return_value = {
+                "harassment": 0.8,  # High score to trigger blocking
+                "hate": 0.2,
+                "sexual": 0.1,
+            }
+            
+            mock_client.moderations.create.return_value = mock_response
+            
+            result = moderate_message("Test message")
+            # Should be blocked due to high harassment score
+            assert result == "harassment"
 
 
 class TestFollowupFunctionality(TestCase):

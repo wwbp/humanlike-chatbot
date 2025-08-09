@@ -42,23 +42,27 @@ class TestLoadTesting(TestCase):
         conversation_count = 10
         conversations = []
         
-        for i in range(conversation_count):
-            init_data = {
-                "bot_name": "LoadTestBot",
-                "conversation_id": f"load-test-conv-{i}",
-                "participant_id": f"load-test-user-{i}",
-                "study_name": "load_test_study",
-                "user_group": "treatment",
-                "survey_id": f"load_test_survey_{i}",
-            }
+        # Mock the save_chat_to_db function to avoid real API calls
+        with patch("chatbot.services.conversation.save_chat_to_db") as mock_save_chat:
+            mock_save_chat.return_value = None
             
-            response = self.client.post(
-                reverse("initialize_conversation"),
-                data=json.dumps(init_data),
-                content_type="application/json",
-            )
-            
-            conversations.append(response)
+            for i in range(conversation_count):
+                init_data = {
+                    "bot_name": "LoadTestBot",
+                    "conversation_id": f"load-test-conv-{i}",
+                    "participant_id": f"load-test-user-{i}",
+                    "study_name": "load_test_study",
+                    "user_group": "treatment",
+                    "survey_id": f"load_test_survey_{i}",
+                }
+                
+                response = self.client.post(
+                    reverse("initialize_conversation"),
+                    data=json.dumps(init_data),
+                    content_type="application/json",
+                )
+                
+                conversations.append(response)
         
         # Verify all conversations were created successfully
         successful_conversations = [c for c in conversations if c.status_code == 200]
@@ -71,7 +75,7 @@ class TestLoadTesting(TestCase):
         responses = []
         
         # Mock the run_chat_round function to avoid real API calls
-        with patch("chatbot.services.runchat.run_chat_round") as mock_run_chat:
+        with patch("chatbot.views.run_chat_round") as mock_run_chat:
             mock_run_chat.return_value = "Load test response"
             
             for i in range(message_count):
@@ -83,7 +87,7 @@ class TestLoadTesting(TestCase):
                 }
                 
                 response = self.client.post(
-                    reverse("chatbot"),
+                    reverse("chatbot_api"),
                     data=json.dumps(chat_data),
                     content_type="application/json",
                 )
@@ -100,8 +104,8 @@ class TestLoadTesting(TestCase):
         request_count = 15
         responses = []
         
-        for i in range(request_count):
-            response = self.client.get(reverse("bots"))
+        for _i in range(request_count):
+            response = self.client.get(reverse("list_bots"))
             responses.append(response)
         
         # Verify all requests were successful
@@ -115,10 +119,13 @@ class TestLoadTesting(TestCase):
         responses = []
         
         # Create idle user messages
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from chatbot.models import Utterance
+        
         for i in range(followup_count):
-            from chatbot.models import Utterance
-            from django.utils import timezone
-            from datetime import timedelta
             
             Utterance.objects.create(
                 conversation=self.conversation,
@@ -132,7 +139,7 @@ class TestLoadTesting(TestCase):
         with patch("chatbot.services.followup.generate_followup_message") as mock_generate:
             mock_generate.return_value = ("Load test followup", None)
             
-            for i in range(followup_count):
+            for _i in range(followup_count):
                 followup_data = {
                     "bot_name": "LoadTestBot",
                     "conversation_id": "load-test-conv-123",
@@ -140,7 +147,7 @@ class TestLoadTesting(TestCase):
                 }
                 
                 response = self.client.post(
-                    reverse("followup"),
+                    reverse("followup_api"),
                     data=json.dumps(followup_data),
                     content_type="application/json",
                 )
@@ -153,8 +160,9 @@ class TestLoadTesting(TestCase):
 
     def test_memory_usage_under_load(self):
         """Test memory usage doesn't grow excessively under load."""
-        import psutil
         import os
+
+        import psutil
         
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss
@@ -174,7 +182,7 @@ class TestLoadTesting(TestCase):
         response_times = []
         
         # Mock the run_chat_round function
-        with patch("chatbot.services.runchat.run_chat_round") as mock_run_chat:
+        with patch("chatbot.views.run_chat_round") as mock_run_chat:
             mock_run_chat.return_value = "Performance test response"
             
             for i in range(10):
@@ -188,7 +196,7 @@ class TestLoadTesting(TestCase):
                 }
                 
                 response = self.client.post(
-                    reverse("chatbot"),
+                    reverse("chatbot_api"),
                     data=json.dumps(chat_data),
                     content_type="application/json",
                 )
@@ -207,39 +215,40 @@ class TestLoadTesting(TestCase):
 
     def test_error_handling_under_load(self):
         """Test error handling remains robust under load."""
-        error_count = 0
         total_requests = 20
         
         # Mock the run_chat_round function to occasionally fail
-        with patch("chatbot.services.runchat.run_chat_round") as mock_run_chat:
+        with patch("chatbot.views.run_chat_round") as mock_run_chat:
             def mock_run_chat_with_failures(*args, **kwargs):
                 if random.random() < 0.1:  # 10% failure rate
-                    raise Exception("Simulated load test failure")
+                    raise RuntimeError("Simulated load test failure")
                 return "Load test response"
             
             mock_run_chat.side_effect = mock_run_chat_with_failures
             
+            # Process all requests and collect results
+            responses = []
             for i in range(total_requests):
+                chat_data = {
+                    "message": f"Error test message {i}",
+                    "bot_name": "LoadTestBot",
+                    "conversation_id": "load-test-conv-123",
+                    "participant_id": "load-test-user-456",
+                }
+                
                 try:
-                    chat_data = {
-                        "message": f"Error test message {i}",
-                        "bot_name": "LoadTestBot",
-                        "conversation_id": "load-test-conv-123",
-                        "participant_id": "load-test-user-456",
-                    }
-                    
                     response = self.client.post(
-                        reverse("chatbot"),
+                        reverse("chatbot_api"),
                         data=json.dumps(chat_data),
                         content_type="application/json",
                     )
-                    
-                    # Even with failures, the system should handle them gracefully
-                    if response.status_code != 200:
-                        error_count += 1
-                        
-                except Exception:
-                    error_count += 1
+                    responses.append(response)
+                except RuntimeError:
+                    # Count this as an error response
+                    responses.append(None)
+            
+            # Count errors (both HTTP errors and exceptions)
+            error_count = sum(1 for r in responses if r is None or r.status_code != 200)
         
         # Error rate should be reasonable (less than 20%)
         error_rate = error_count / total_requests
@@ -285,7 +294,7 @@ class TestLoadTestingUtilities(TestCase):
         bot = BotFactory(name="CleanupTestBot")
         conversation = ConversationFactory(
             conversation_id="cleanup-test-conv",
-            bot_name="CleanupTestBot"
+            bot_name="CleanupTestBot",
         )
         
         # Verify data was created

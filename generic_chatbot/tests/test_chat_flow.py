@@ -1,4 +1,5 @@
 import json
+from unittest.mock import Mock, patch
 
 import pytest
 from django.test import TestCase
@@ -124,11 +125,33 @@ class TestChatFlowIntegration(TestCase):
         with pytest.raises(json.JSONDecodeError):
             json.loads(invalid_json)
 
-    def test_chat_flow_moderation_blocked(self):
+    @patch("chatbot.services.moderation.OpenAI")
+    def test_chat_flow_moderation_blocked(self, mock_openai_class):
         """Test chat flow when message is blocked by moderation."""
         # Test moderation integration
         from chatbot.services.moderation import moderate_message
         
-        # Test with potentially problematic message
-        result = moderate_message("This is a normal message")
-        assert isinstance(result, str)
+        # Mock OpenAI client
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+        
+        # Mock moderation response
+        mock_response = Mock()
+        mock_response.results = [Mock()]
+        mock_response.results[0].category_scores = Mock()
+        
+        # Mock model_dump to return a proper dictionary
+        with patch("chatbot.services.moderation.model_dump") as mock_model_dump:
+            mock_model_dump.return_value = {
+                "harassment": 0.1,
+                "hate": 0.2,
+                "sexual": 0.1,
+                "self_harm": 0.0,
+                "violence": 0.1,
+            }
+            
+            mock_client.moderations.create.return_value = mock_response
+            
+            # Test with potentially problematic message
+            result = moderate_message("This is a normal message")
+            assert isinstance(result, str)

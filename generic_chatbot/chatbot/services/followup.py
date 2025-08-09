@@ -123,8 +123,12 @@ class FollowupAPIView(View):
 
             # Apply chunking if enabled
             if use_chunks:
-                from .post_processing import human_like_chunks
-                response_chunks = human_like_chunks(response_text)
+                try:
+                    from .post_processing import human_like_chunks
+                    response_chunks = human_like_chunks(response_text)
+                except ImportError:
+                    # Fallback if human_like_chunks is not available
+                    response_chunks = [response_text]
             else:
                 response_chunks = [response_text]
 

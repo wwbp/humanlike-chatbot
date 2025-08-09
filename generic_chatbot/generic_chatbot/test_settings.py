@@ -69,9 +69,9 @@ CACHES = {
     },
 }
 
-# Use environment variables for API keys, fallback to test keys if not set
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "test-key-12345")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "test-key-67890")
+# Use test API keys to prevent external API calls during testing
+OPENAI_API_KEY = "test-key-12345"
+ANTHROPIC_API_KEY = "test-key-67890"
 
 # Disable logging during tests
 LOGGING = {
@@ -87,11 +87,11 @@ SECRET_KEY = os.getenv("SECRET_KEY", "test-secret-key-for-testing-only")
 DEBUG = os.getenv("DEBUG", "True").lower() == "true"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0,backend").split(",")
 
-# AWS settings for testing
-AWS_BUCKET_NAME = os.getenv("AWS_BUCKET_NAME", "test-bucket")
-AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
-AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "test-key")
-AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "test-secret")
+# AWS settings for testing - use test values to prevent external calls
+AWS_BUCKET_NAME = "test-bucket"
+AWS_REGION = "us-east-1"
+AWS_ACCESS_KEY_ID = "test-key"
+AWS_SECRET_ACCESS_KEY = "test-secret"
 
 # Moderation settings for testing
 MODERATION_VALUES_FOR_BLOCKED = {

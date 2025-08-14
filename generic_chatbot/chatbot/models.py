@@ -293,6 +293,13 @@ class Bot(models.Model):
         default="none",
     )
 
+    # Avatar generation prompt
+    avatar_prompt = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Prompt used for generating bot avatars. If empty, will use default prompt.",
+    )
+
     # Message chunking control (bot-specific)
     chunk_messages = models.BooleanField(
         default=True,

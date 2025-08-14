@@ -559,7 +559,12 @@ class BotAdmin(BaseAdmin):
         (
             "Avatar Settings",
             {
-                "fields": ("avatar_type", "avatar_prompt", "avatar_image", "remove_avatar"),
+                "fields": (
+                    "avatar_type",
+                    "avatar_prompt",
+                    "avatar_image",
+                    "remove_avatar",
+                ),
                 "description": "Configure avatar type, prompt, and upload avatar image",
             },
         ),

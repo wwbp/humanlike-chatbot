@@ -66,9 +66,15 @@ def generate_avatar(
         client = openai.OpenAI()
 
         # Get avatar prompt from bot or fallback to environment variable
-        chatbot_avatar_prompt = bot.avatar_prompt if hasattr(bot, 'avatar_prompt') and bot.avatar_prompt else os.getenv("CHATBOT_AVATAR_PROMPT")
+        chatbot_avatar_prompt = (
+            bot.avatar_prompt
+            if hasattr(bot, "avatar_prompt") and bot.avatar_prompt
+            else os.getenv("CHATBOT_AVATAR_PROMPT")
+        )
         if not chatbot_avatar_prompt:
-            logger.error("[ERROR] No avatar prompt available - neither bot.avatar_prompt nor CHATBOT_AVATAR_PROMPT environment variable is set")
+            logger.error(
+                "[ERROR] No avatar prompt available - neither bot.avatar_prompt nor CHATBOT_AVATAR_PROMPT environment variable is set",
+            )
             return None, None
 
         try:

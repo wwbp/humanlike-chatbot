@@ -271,13 +271,18 @@ class Bot(models.Model):
         null=True,
         blank=True,
     )
-    model_id = models.CharField(max_length=255, default="gpt-4o-mini", null=True, blank=True)
+    model_id = models.CharField(
+        max_length=255,
+        default="gpt-4o-mini",
+        null=True,
+        blank=True,
+    )
     ai_model = models.ForeignKey(
-        Model, 
-        on_delete=models.CASCADE, 
+        Model,
+        on_delete=models.CASCADE,
         related_name="bots",
         null=False,
-        blank=False
+        blank=False,
     )
     initial_utterance = models.TextField(blank=True, null=True)
 

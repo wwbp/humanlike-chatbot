@@ -31,7 +31,11 @@ services:
   backend:
     build:
       context: ./generic_chatbot
-      dockerfile: Dockerfile.local
+      dockerfile: Dockerfile
+      target: development
+      args:
+        ENVIRONMENT: development
+        PYTHON_VERSION: 3.11
     volumes:
       - ./generic_chatbot:/app
     ports:

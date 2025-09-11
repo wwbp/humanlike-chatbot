@@ -15,7 +15,7 @@ channels = "*"
 mariadb = "*"
 jupyter = "*"
 setuptools = "*"
-kani = {extras = ["openai", "anthropic"]}
+kani = {extras = ["openai", "anthropic", "huggingface", "llamacpp"]}
 anthropic = "*" 
 asgiref = "*"
 python-dotenv = "*"
@@ -25,6 +25,12 @@ nltk = "*"
 certifi = "*"
 pillow = "*"
 boto3 = "*"
+psutil = "*"
+torch = "*"
+transformers = "*"
+accelerate = "*"
+bitsandbytes = "*"
+llama-cpp-python = "*"
 
 [requires]
 python_version = "3.12"

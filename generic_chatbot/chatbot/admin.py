@@ -274,6 +274,7 @@ class ConversationAdmin(ExportMixin, BaseAdmin):
     list_display = (
         "conversation_id",
         "bot_name",
+        "bot_config",
         "participant_id",
         "utterance_count",
         "selected_persona",
@@ -297,7 +298,8 @@ class ConversationAdmin(ExportMixin, BaseAdmin):
         "started_time",
         "selected_persona",
     )
-    readonly_fields = ("started_time", "utterance_count", "selected_persona")
+    readonly_fields = ("started_time", "utterance_count",
+                       "selected_persona", "bot_config")
     ordering = ("-started_time",)
     list_per_page = 25
 
@@ -346,7 +348,7 @@ class ConversationAdmin(ExportMixin, BaseAdmin):
         (
             "Metadata",
             {
-                "fields": ("survey_meta_data", "started_time"),
+                "fields": ("survey_meta_data", "started_time", "bot_config"),
                 "classes": ("collapse",),
             },
         ),

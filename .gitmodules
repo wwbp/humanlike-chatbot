@@ -1,0 +1,3 @@
+[submodule "chatlab"]
+	path = chatlab
+	url = https://github.com/sjgiorgi/chatlab.git

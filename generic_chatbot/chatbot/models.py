@@ -19,6 +19,7 @@ class Conversation(models.Model):
         max_length=255, unique=True)  # Conversation ID
     bot_name = models.CharField(
         max_length=255, default="DefaultBot")  # Bot Name
+    bot_config = models.TextField(null=True, blank=True)  # Bot Config
     participant_id = models.CharField(max_length=255)
     initial_utterance = models.CharField(max_length=255, null=True, blank=True)
     study_name = models.CharField(max_length=255, null=True, blank=True)

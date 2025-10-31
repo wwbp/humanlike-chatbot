@@ -20,7 +20,17 @@ services:
       - mariadb-data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "user", "-ptest123"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "user",
+          "-ptest123",
+        ]
       interval: 5s
       retries: 5
       timeout: 3s
@@ -45,10 +55,10 @@ services:
       PYTHONBUFFERED: 1
     depends_on:
       - db
-  
+
   frontend:
     build:
-      context: ./generic_chatbot_frontend  
+      context: ./generic_chatbot_frontend
       dockerfile: Dockerfile.local
     container_name: react_app
     stdin_open: true
@@ -56,7 +66,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./generic_chatbot_frontend:/app  
+      - ./generic_chatbot_frontend:/app
       - /app/node_modules
     env_file:
       - .env
@@ -64,6 +74,24 @@ services:
     command: npm start
     depends_on:
       - backend
+
+  # sphinx docs using chatlab/docs
+  docs:
+    image: sphinxdoc/sphinx:latest
+    container_name: docs
+    volumes:
+      - ./chatlab/docs:/docs
+    working_dir: /docs
+    # Install requirements, build the HTML, then serve the built site on container port 8000
+    # Host port 8001 is mapped to container port 8000 below
+    command: >
+      /bin/sh -c "
+      pip install -r requirements.txt &&
+      make html &&
+      python -m http.server 8000 -d _build/html
+      "
+    ports:
+      - "8001:8000"
 
 volumes:
   mariadb-data:

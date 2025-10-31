@@ -29,7 +29,8 @@ def randomly_select_persona(bot):
         )
         return selected_persona
     else:
-        logger.info(f"No personas assigned to bot '{bot.name}', using default behavior")
+        logger.info(
+            f"No personas assigned to bot '{bot.name}', using default behavior")
         return None
 
 
@@ -39,7 +40,8 @@ def load_conversation_history(conversation_id):
     Returns the conversation history as a list of messages.
     """
     try:
-        conversation = Conversation.objects.get(conversation_id=conversation_id)
+        conversation = Conversation.objects.get(
+            conversation_id=conversation_id)
         utterances = Utterance.objects.filter(conversation=conversation).order_by(
             "created_time",
         )
@@ -149,12 +151,17 @@ class InitializeConversationAPIView(View):
 
             # Randomly select a persona for this conversation
             selected_persona = randomly_select_persona(bot)
+            # json string of bot object
+            from django.forms.models import model_to_dict
+            from django.core.serializers.json import DjangoJSONEncoder
+            bot_config = json.dumps(model_to_dict(bot), cls=DjangoJSONEncoder)
 
             # Create new conversation
             try:
                 Conversation.objects.create(
                     conversation_id=conversation_id,
                     bot_name=bot.name,
+                    bot_config=bot_config,
                     participant_id=participant_id,
                     initial_utterance=bot.initial_utterance,
                     study_name=study_name,
@@ -196,7 +203,8 @@ class InitializeConversationAPIView(View):
                         },
                     )
                 except Exception as e:
-                    logger.exception("Failed to save initial bot message: %s", str(e))
+                    logger.exception(
+                        "Failed to save initial bot message: %s", str(e))
 
             return JsonResponse(
                 {
@@ -210,5 +218,6 @@ class InitializeConversationAPIView(View):
             )
 
         except Exception:
-            logger.exception("Unhandled exception in InitializeConversationAPIView")
+            logger.exception(
+                "Unhandled exception in InitializeConversationAPIView")
             return JsonResponse({"error": "Unexpected error occurred."}, status=500)

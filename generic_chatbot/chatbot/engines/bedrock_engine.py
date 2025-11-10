@@ -139,6 +139,12 @@ class BedrockEngine(BaseEngine):
             return len(message.content) // 4
         return 50  # Default for complex content
 
+    async def prompt_len(self, messages: List[ChatMessage], functions: Optional[List] = None, **kwargs) -> int:
+        """Approximate prompt length for Bedrock models."""
+        total = sum(self.message_len(message) for message in messages)
+        total += self.function_token_reserve(functions)
+        return total
+
     async def predict(
         self,
         messages: List[ChatMessage],

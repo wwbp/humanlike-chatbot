@@ -261,12 +261,27 @@ class Model(models.Model):
             "Bedrock": [
                 {
                     "model_id": "meta.llama3-8b-instruct-v1:0",
-                    "display_name": "Llama 3 8B Instruct",
+                    "display_name": "Meta Llama 3 8B Instruct",
                     "capabilities": ["Chat", "Basic Reasoning", "Code"],
                 },
                 {
                     "model_id": "meta.llama3-70b-instruct-v1:0",
-                    "display_name": "Llama 3 70B Instruct",
+                    "display_name": "Meta Llama 3 70B Instruct",
+                    "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
+                },
+                {
+                    "model_id": "anthropic.claude-3-haiku-20240307-v1:0",
+                    "display_name": "Anthropic Claude 3 Haiku",
+                    "capabilities": ["Chat", "Basic Reasoning"],
+                },
+                {
+                    "model_id": "anthropic.claude-3-sonnet-20240229-v1:0",
+                    "display_name": "Anthropic Claude 3 Sonnet",
+                    "capabilities": ["Chat", "Reasoning", "Code"],
+                },
+                {
+                    "model_id": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+                    "display_name": "Anthropic Claude 3.5 Sonnet",
                     "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
                 },
             ],

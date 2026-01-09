@@ -8,6 +8,7 @@ from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from import_export import resources
 from import_export.admin import ExportMixin
 from PIL import Image
@@ -247,7 +248,7 @@ class PersonaAdmin(BaseAdmin):
                 + f"?personas__id__exact={obj.id}"
             )
             return format_html('<a href="{}" class="bot-link">{} bots</a>', url, count)
-        return format_html('<span class="no-bots">0 bots</span>')
+        return format_html('<span class="no-bots">{}</span>', "0 bots")
 
     bot_count.short_description = "Assigned Bots"
 
@@ -315,7 +316,7 @@ class ConversationAdmin(ExportMixin, BaseAdmin):
                 url,
                 count,
             )
-        return format_html('<span class="no-utterances">0 utterances</span>')
+        return format_html('<span class="no-utterances">{}</span>', "0 utterances")
 
     utterance_count.short_description = "Messages"
 
@@ -393,7 +394,7 @@ class UtteranceAdmin(ExportMixin, BaseAdmin):
                 url,
                 obj.conversation.conversation_id,
             )
-        return format_html('<span class="no-conversation">No conversation</span>')
+        return format_html('<span class="no-conversation">{}</span>', "No conversation")
 
     conversation_link.short_description = "Conversation ID"
 
@@ -1111,7 +1112,7 @@ class AvatarAdmin(BaseAdmin):
                         )
             except Exception:
                 pass
-        return format_html('<span class="no-avatar">No chatbot avatar</span>')
+        return format_html('<span class="no-avatar">{}</span>', "No chatbot avatar")
 
     avatar_preview.short_description = "Chatbot Avatar"
 
@@ -1186,9 +1187,12 @@ class AvatarAdmin(BaseAdmin):
                 )
 
         if not html_parts:
-            return format_html('<span class="no-avatar">No avatars available</span>')
+            return format_html(
+                '<span class="no-avatar">{}</span>',
+                "No avatars available",
+            )
 
-        return format_html("".join(html_parts))
+        return format_html("{}", mark_safe("".join(html_parts)))
 
     avatar_preview_field.short_description = "Avatar Images"
 

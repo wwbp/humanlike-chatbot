@@ -25,7 +25,8 @@ RUN pip install pipenv
 # Copy Pipfile
 COPY Pipfile /app/
 
-# Install dependencies using Pipenv (conditionally include dev packages)
+# Install dependencies using Pipenv (conditionally include dev packages).
+# NOTE: --skip-lock resolves fresh versions from Pipfile and ignores Pipfile.lock.
 ARG ENVIRONMENT=production
 RUN if [ "$ENVIRONMENT" = "development" ]; then \
         pipenv install --system --skip-lock --dev; \

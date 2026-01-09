@@ -1,6 +1,6 @@
 # ChatLab (Humanlike Chatbot)
 
-ChatLab is a dockerized research chat lab for running configurable, LLM-backed chat experiments. It includes a Django API/admin, a React chat UI, MariaDB, Redis, and Sphinx docs. LLM providers and bot personas are configured through `.env` and `generic_chatbot/config.json`.
+ChatLab is a dockerized research chat lab for running configurable, LLM-backed chat experiments. It includes a Django API/admin, a React chat UI, MariaDB, Redis, and Sphinx docs. Secrets and service credentials live in `.env`, while LLM provider selection and bot personas are managed through the Django admin UI.
 
 ## Quick start (local)
 
@@ -30,6 +30,11 @@ Prereqs: Docker Engine, Docker Compose, Git.
    - Chat UI: <http://localhost:3000>
    - Admin/API: <http://localhost:8000/api/admin/>
    - Docs: <http://localhost:8001>
+
+## Configuration
+
+- `.env` holds secrets and service credentials (see `sample.env`).
+- LLM provider selection and bot personas are configured in the Django admin UI.
 
 ## Repo layout
 

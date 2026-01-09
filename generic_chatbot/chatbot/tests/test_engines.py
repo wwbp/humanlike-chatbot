@@ -93,8 +93,8 @@ class TestEngines:
 
         bedrock_model_ids = set(
             Model.objects.filter(provider__name="Bedrock").values_list(
-                "model_id", flat=True
-            )
+                "model_id", flat=True,
+            ),
         )
 
         expected_ids = {

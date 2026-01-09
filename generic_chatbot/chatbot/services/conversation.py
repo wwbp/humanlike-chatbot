@@ -152,9 +152,13 @@ class InitializeConversationAPIView(View):
             # Randomly select a persona for this conversation
             selected_persona = randomly_select_persona(bot)
             # json string of bot object
-            from django.forms.models import model_to_dict
             from django.core.serializers.json import DjangoJSONEncoder
-            bot_config = json.dumps(model_to_dict(bot), cls=DjangoJSONEncoder)
+            from django.forms.models import model_to_dict
+            bot_config_data = model_to_dict(bot, exclude=["personas"])
+            bot_config_data["personas"] = list(
+                bot.personas.values("id", "name"),
+            )
+            bot_config = json.dumps(bot_config_data, cls=DjangoJSONEncoder)
 
             # Create new conversation
             try:

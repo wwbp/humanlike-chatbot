@@ -579,7 +579,7 @@ class BotAdmin(ExportMixin, BaseAdmin):
                         )
         except Exception:
             pass
-        return format_html('<span class="no-avatar">No avatar</span>')
+        return format_html('<span class="no-avatar">{}</span>', "No avatar")
 
     avatar_preview.short_description = "Avatar"
 
@@ -607,7 +607,10 @@ class BotAdmin(ExportMixin, BaseAdmin):
                 custom_count += 1
 
         if custom_count == 0:
-            return format_html('<span class="default-moderation">Using defaults</span>')
+            return format_html(
+                '<span class="default-moderation">{}</span>',
+                "Using defaults",
+            )
         else:
             return format_html(
                 '<span class="custom-moderation">{} custom values</span>', custom_count,

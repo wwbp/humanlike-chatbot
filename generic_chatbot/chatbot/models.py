@@ -285,7 +285,7 @@ class Model(models.Model):
                     "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
                 },
                 {
-                    "model_id": "anthropic.claude-sonnet-4-20250514-v1:0",
+                    "model_id": "us.anthropic.claude-sonnet-4-20250514-v1:0",
                     "display_name": "Anthropic Claude Sonnet 4",
                     "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
                 },

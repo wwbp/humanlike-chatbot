@@ -12,6 +12,12 @@ Prereqs: Docker Engine, Docker Compose, Git.
    cp sample.env .env
    ```
 
+   Create the required init SQL file (MariaDB expects a file, not a directory):
+
+   ```bash
+   touch init.sql
+   ```
+
 2. Build and start services:
 
    ```bash

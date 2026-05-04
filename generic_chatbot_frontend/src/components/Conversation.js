@@ -18,7 +18,7 @@ const Conversation = () => {
   // const [lastUserActivity, setLastUserActivity] = useState(Date.now());
   const [, setFollowupRequested] = useState(false);
 
-  const apiUrl = process.env.REACT_APP_API_URL;
+  const apiUrl = import.meta.env.VITE_API_URL;
   const params = new URLSearchParams(window.location.search);
   const botName = params.get('bot_name');
   const conversationId = params.get('conversation_id');

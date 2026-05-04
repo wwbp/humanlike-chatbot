@@ -26,5 +26,3 @@ init.sql
 .pytest_cache
 .ruff_cache
 
-# Pipenv lockfiles
-Pipfile.lock

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
+  baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ export async function sendMessage(sessionId, message, sender) {
 
 export const createWebSocket = (sessionId, isAudioMode) => {
   const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  const wsUrl = process.env.REACT_APP_API_URL.replace(
+  const wsUrl = import.meta.env.VITE_API_URL.replace(
     /^https?/,
     protocol
   ).replace('/api/v1', '');

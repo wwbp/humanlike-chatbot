@@ -19,19 +19,18 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pipenv 
-RUN pip install pipenv
+# Upgrade pip to fix known CVEs, then install pipenv
+RUN pip install --upgrade "pip>=26.0" && pip install pipenv
 
-# Copy Pipfile
-COPY Pipfile /app/
+# Copy Pipfile and lock file for reproducible installs
+COPY Pipfile Pipfile.lock /app/
 
 # Install dependencies using Pipenv (conditionally include dev packages).
-# NOTE: --skip-lock resolves fresh versions from Pipfile and ignores Pipfile.lock.
 ARG ENVIRONMENT=production
 RUN if [ "$ENVIRONMENT" = "development" ]; then \
-        pipenv install --system --skip-lock --dev; \
+        pipenv install --system --deploy --dev; \
     else \
-        pipenv install --system --skip-lock; \
+        pipenv install --system --deploy; \
     fi
 
 # Copy the application code into the container

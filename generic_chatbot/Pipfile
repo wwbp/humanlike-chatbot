@@ -26,6 +26,7 @@ certifi = "*"
 pillow = "*"
 boto3 = "*"
 django-import-export = "*"
+django-storages = {extras = ["s3"], version = "*"}
 
 [requires]
 python_version = "3.12"

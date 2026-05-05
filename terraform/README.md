@@ -298,9 +298,100 @@ terraform apply -var-file=terraform.tfvars   # picks up from where it left off
 
 ---
 
-## Pending / Notes
+## Manual deployment (tf-iac / test branch)
 
-- **GitHub Actions CI/CD not yet configured.** The IAM OIDC role and GitHub deployment role are provisioned by Terraform, but the `TEST_*` GitHub repository secrets have not been added yet. App deployments are currently done manually (see commands below). Wire up CI/CD after the manual flow is verified working end-to-end.
+After `setup.sh` completes and the infrastructure is up, deploy the app manually:
+
+### Backend (Django on Elastic Beanstalk)
+
+```bash
+cd generic_chatbot
+pip install awsebcli
+eb init humanlike-chatbot --platform docker --region us-east-1
+eb use humanlike-chatbot-staging-env
+eb deploy
+```
+
+On first deploy, set the FRONTEND_URL env var (CloudFront domain from `terraform output frontend_url`):
+
+```bash
+CF_DOMAIN=$(cd terraform && terraform output -raw frontend_url)
+aws elasticbeanstalk update-environment \
+  --environment-name humanlike-chatbot-staging-env \
+  --option-settings Namespace=aws:elasticbeanstalk:application:environment,OptionName=FRONTEND_URL,Value="https://${CF_DOMAIN}"
+```
+
+To create a Django admin superuser on first deploy, set these env vars before `eb deploy`:
+
+```bash
+aws elasticbeanstalk update-environment \
+  --environment-name humanlike-chatbot-staging-env \
+  --option-settings \
+    Namespace=aws:elasticbeanstalk:application:environment,OptionName=DJANGO_SUPERUSER_PASSWORD,Value="YourPassword" \
+    Namespace=aws:elasticbeanstalk:application:environment,OptionName=DJANGO_SUPERUSER_USERNAME,Value="admin" \
+    Namespace=aws:elasticbeanstalk:application:environment,OptionName=DJANGO_SUPERUSER_EMAIL,Value="admin@example.com"
+# Wait for env to be Ready, then deploy
+eb deploy
+# Remove the password var after the user is created
+aws elasticbeanstalk update-environment \
+  --environment-name humanlike-chatbot-staging-env \
+  --options-to-remove Namespace=aws:elasticbeanstalk:application:environment,OptionName=DJANGO_SUPERUSER_PASSWORD
+```
+
+### Frontend (React on S3 + CloudFront)
+
+```bash
+cd react-frontend    # or wherever the React app lives
+npm ci
+npm run build
+# Sync to S3
+aws s3 sync build/ s3://$(cd ../terraform && terraform output -raw frontend_bucket_name) --delete
+# Invalidate CloudFront cache
+aws cloudfront create-invalidation \
+  --distribution-id $(cd ../terraform && terraform output -raw cloudfront_distribution_id) \
+  --paths "/*"
+```
+
+### Access
+
+| URL | What |
+|---|---|
+| `https://<cloudfront-domain>/` | React frontend |
+| `https://<cloudfront-domain>/api/` | Django REST API |
+| `https://<cloudfront-domain>/api/admin/` | Django admin (login with superuser credentials above) |
+| `https://<cloudfront-domain>/health/` | Health check |
+
+---
+
+## Pending
+
+### GitHub Actions CI/CD
+
+The IAM OIDC role (`humanlike-chatbot-staging-github-actions`) and the workflow file
+(`.github/workflows/test-iac.yml`) are in place. What's missing is the `TEST_*`
+GitHub repository secrets. After `setup.sh` finishes on the test account, add:
+
+| GitHub secret | Value |
+|---|---|
+| `TEST_AWS_ACCOUNT_ID` | `terraform output -raw github_secret_AWS_ACCOUNT_ID` |
+| `TEST_AWS_ROLE_NAME` | `terraform output -raw github_secret_AWS_ROLE_NAME` |
+| `TEST_AWS_S3_BUCKET_NAME_FRONTEND` | `terraform output -raw github_secret_AWS_S3_BUCKET_NAME_FRONTEND` |
+| `TEST_AWS_CLOUDFRONT_DISTRIBUTION_ID` | `terraform output -raw github_secret_AWS_CLOUDFRONT_DISTRIBUTION_ID` |
+| `TEST_AWS_BACKEND_APPLICATION_NAME` | `terraform output -raw github_secret_AWS_BACKEND_APPLICATION_NAME` |
+| `TEST_AWS_BACKEND_ENVIRONMENT_NAME` | `terraform output -raw github_secret_AWS_BACKEND_ENVIRONMENT_NAME` |
+| `TEST_REACT_APP_API_URL` | `http://` + `terraform output -raw backend_api_url` + `/api` |
+
+Once secrets are set, push to `tf-iac` to trigger the workflow — it will build and
+deploy both frontend and backend automatically.
+
+### Performance testing
+
+Not yet done. Suggested baseline before any load test:
+
+1. **Health endpoint** — `curl https://<cf-domain>/health/` should return 200 in < 200 ms
+2. **API under load** — use `ab` or `k6` against `/api/` endpoints; watch EB CPU and RDS connections
+3. **WebSocket** — verify the `/ws/` path stays open under concurrent connections
+4. **CloudFront cache hit rate** — check CloudFront metrics in the AWS console after serving real traffic
 
 ---
 

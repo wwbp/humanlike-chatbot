@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     "chatbot",
     "rest_framework",
     "import_export",
+    "storages",
 ]
 
 MIDDLEWARE = [
@@ -98,6 +99,9 @@ CSRF_TRUSTED_ORIGINS = [
     "https://dev.bot.wwbp.org",
     "https://bot.wwbp.org",
 ]
+_frontend_url = os.getenv("FRONTEND_URL")
+if _frontend_url:
+    CSRF_TRUSTED_ORIGINS.append(_frontend_url)
 
 ROOT_URLCONF = "generic_chatbot.urls"
 
@@ -201,25 +205,47 @@ if DEBUG:
         BASE_DIR / "static",
     ]
 
-# WhiteNoise configuration for both development and production
-# This ensures consistent static file serving
-STATICFILES_STORAGE = "whitenoise.storage.StaticFilesStorage"
-
 # WhiteNoise configuration
 WHITENOISE_USE_FINDERS = True
-WHITENOISE_AUTOREFRESH = DEBUG  # Auto-refresh in development
-WHITENOISE_MAX_AGE = (
-    31536000 if not DEBUG else 0
-)  # 1 year in production, no cache in dev
+WHITENOISE_AUTOREFRESH = DEBUG
+WHITENOISE_MAX_AGE = 31536000 if not DEBUG else 0
 WHITENOISE_INDEX_FILE = True
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Storage backends — Django 5.1 requires the STORAGES dict.
+# STATICFILES_STORAGE and DEFAULT_FILE_STORAGE were removed in 5.1.
+#
+# staticfiles: WhiteNoise serves static files (JS, CSS) from the container
+#   filesystem in both environments. collectstatic writes to /app/staticfiles/
+#   and nginx serves them directly — no S3 involved for static files.
+#
+# default (media/uploads): locally I use the filesystem so development works
+#   without AWS credentials. In production I route all FileField writes to S3
+#   so voice audio and uploads survive EB instance replacements. The EC2
+#   instance role handles AWS authentication — no keys are hardcoded.
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.StaticFilesStorage",
+    },
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": os.getenv("AWS_BUCKET_NAME"),
+            "region_name": os.getenv("AWS_REGION", "us-east-1"),
+            "default_acl": None,
+            "file_overwrite": False,
+        },
+    }
+    if not DEBUG
+    else {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+}
 
 X_FRAME_OPTIONS = "ALLOWALL"
 # consider restricting in production

@@ -17,20 +17,17 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install pipenv
-        run: pip install pipenv
-
-      - name: Install dependencies
-        run: cd generic_chatbot && pipenv install --dev
+      - name: Install lint tools
+        run: pip install ruff isort
 
       - name: Ruff lint
-        run: cd generic_chatbot && pipenv run ruff check .
+        run: cd generic_chatbot && ruff check .
 
       - name: Ruff format
-        run: cd generic_chatbot && pipenv run ruff format --check .
+        run: cd generic_chatbot && ruff format --check .
 
       - name: isort
-        run: cd generic_chatbot && pipenv run isort . --profile black --check --diff
+        run: cd generic_chatbot && isort . --profile black --check --diff
 
   backend-test:
     name: Backend test
@@ -67,7 +64,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install system dependencies
-        run: sudo apt-get update -q && sudo apt-get install -y default-libmysqlclient-dev build-essential pkg-config mariadb-client
+        run: sudo apt-get update -q && sudo apt-get install -y default-libmysqlclient-dev libmariadb-dev build-essential pkg-config mariadb-client
 
       - name: Install pipenv
         run: pip install pipenv

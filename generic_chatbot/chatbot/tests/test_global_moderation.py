@@ -112,8 +112,7 @@ class TestGlobalModeration(TestCase):
 
         # Mock model_dump to return our test data
         with patch("chatbot.services.moderation.model_dump") as mock_model_dump:
-            mock_model_dump.return_value = {
-                "harassment": 0.8}  # Above threshold
+            mock_model_dump.return_value = {"harassment": 0.8}  # Above threshold
 
             # Test message
             test_message = "This message has harassment content"

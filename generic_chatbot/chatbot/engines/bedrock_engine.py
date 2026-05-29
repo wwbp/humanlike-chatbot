@@ -217,17 +217,28 @@ class BedrockEngine(BaseEngine):
         except Exception as e:
             raise RuntimeError(f"Bedrock streaming API call failed: {e}")
 
+    # Models that do not support temperature/top_p at all
+    _NO_SAMPLING_PARAMS_MODELS = {
+        "us.anthropic.claude-opus-4-7",
+        "anthropic.claude-opus-4-7",
+        "us.anthropic.claude-opus-4-8",
+        "anthropic.claude-opus-4-8",
+    }
+
+    def _build_inference_config(self) -> Dict[str, Any]:
+        """Build inferenceConfig, omitting sampling params for models that don't support them."""
+        config: Dict[str, Any] = {"maxTokens": self.max_tokens}
+        if self.model_id not in self._NO_SAMPLING_PARAMS_MODELS:
+            config["temperature"] = self.temperature
+        return config
+
     def _call_bedrock(self, conversation: List[Dict]) -> Dict[str, Any]:
         """Make the actual Bedrock API call."""
         try:
             response = self.client.converse(
                 modelId=self.model_id,
                 messages=conversation,
-                inferenceConfig={
-                    "maxTokens": self.max_tokens,
-                    "temperature": self.temperature,
-                    "topP": self.top_p,
-                },
+                inferenceConfig=self._build_inference_config(),
             )
             return response
         except ClientError as e:
@@ -239,11 +250,7 @@ class BedrockEngine(BaseEngine):
             response = self.client.converse_stream(
                 modelId=self.model_id,
                 messages=conversation,
-                inferenceConfig={
-                    "maxTokens": self.max_tokens,
-                    "temperature": self.temperature,
-                    "topP": self.top_p,
-                },
+                inferenceConfig=self._build_inference_config(),
             )
             return response
         except ClientError as e:

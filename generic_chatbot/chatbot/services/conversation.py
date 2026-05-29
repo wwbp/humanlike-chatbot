@@ -29,8 +29,7 @@ def randomly_select_persona(bot):
         )
         return selected_persona
     else:
-        logger.info(
-            f"No personas assigned to bot '{bot.name}', using default behavior")
+        logger.info(f"No personas assigned to bot '{bot.name}', using default behavior")
         return None
 
 
@@ -40,8 +39,7 @@ def load_conversation_history(conversation_id):
     Returns the conversation history as a list of messages.
     """
     try:
-        conversation = Conversation.objects.get(
-            conversation_id=conversation_id)
+        conversation = Conversation.objects.get(conversation_id=conversation_id)
         utterances = Utterance.objects.filter(conversation=conversation).order_by(
             "created_time",
         )
@@ -154,6 +152,7 @@ class InitializeConversationAPIView(View):
             # json string of bot object
             from django.core.serializers.json import DjangoJSONEncoder
             from django.forms.models import model_to_dict
+
             bot_config_data = model_to_dict(bot, exclude=["personas"])
             bot_config_data["personas"] = list(
                 bot.personas.values("id", "name"),
@@ -207,8 +206,7 @@ class InitializeConversationAPIView(View):
                         },
                     )
                 except Exception as e:
-                    logger.exception(
-                        "Failed to save initial bot message: %s", str(e))
+                    logger.exception("Failed to save initial bot message: %s", str(e))
 
             return JsonResponse(
                 {
@@ -222,6 +220,5 @@ class InitializeConversationAPIView(View):
             )
 
         except Exception:
-            logger.exception(
-                "Unhandled exception in InitializeConversationAPIView")
+            logger.exception("Unhandled exception in InitializeConversationAPIView")
             return JsonResponse({"error": "Unexpected error occurred."}, status=500)

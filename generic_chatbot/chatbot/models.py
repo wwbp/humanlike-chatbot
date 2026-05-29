@@ -15,17 +15,14 @@ class Persona(models.Model):
 
 
 class Conversation(models.Model):
-    conversation_id = models.CharField(
-        max_length=255, unique=True)  # Conversation ID
-    bot_name = models.CharField(
-        max_length=255, default="DefaultBot")  # Bot Name
+    conversation_id = models.CharField(max_length=255, unique=True)  # Conversation ID
+    bot_name = models.CharField(max_length=255, default="DefaultBot")  # Bot Name
     bot_config = models.TextField(null=True, blank=True)  # Bot Config
     participant_id = models.CharField(max_length=255)
     initial_utterance = models.CharField(max_length=255, null=True, blank=True)
     study_name = models.CharField(max_length=255, null=True, blank=True)
     user_group = models.CharField(max_length=255, null=True, blank=True)
-    survey_id = models.CharField(
-        max_length=255, null=True, blank=True)  # Survey ID
+    survey_id = models.CharField(max_length=255, null=True, blank=True)  # Survey ID
     survey_meta_data = models.TextField(
         null=True,
         blank=True,
@@ -144,8 +141,7 @@ class Model(models.Model):
         max_length=255,
         help_text="The actual model ID used by the provider",
     )
-    display_name = models.CharField(
-        max_length=255, help_text="Human-readable name")
+    display_name = models.CharField(max_length=255, help_text="Human-readable name")
     description = models.TextField(blank=True)
     capabilities = models.JSONField(
         default=list,
@@ -373,8 +369,7 @@ class ModerationSettings(models.Model):
 
 class Bot(models.Model):
     # Make name the unique identifier
-    name = models.CharField(max_length=255, unique=True,
-                            default="DefaultBotName")
+    name = models.CharField(max_length=255, unique=True, default="DefaultBotName")
     prompt = models.TextField()  # Bot's prompt
     # Use foreign key to Model instead of separate model_type and model_id
     # Keep old fields for migration compatibility

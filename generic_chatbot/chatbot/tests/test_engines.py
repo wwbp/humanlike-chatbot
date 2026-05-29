@@ -103,6 +103,14 @@ class TestEngines:
             "anthropic.claude-3-haiku-20240307-v1:0",
             "anthropic.claude-3-sonnet-20240229-v1:0",
             "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            "us.anthropic.claude-opus-4-1-20250805-v1:0",
+            "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+            "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "us.anthropic.claude-opus-4-5-20251101-v1:0",
+            "us.anthropic.claude-opus-4-6-v1",
+            "us.anthropic.claude-sonnet-4-6",
+            "us.anthropic.claude-opus-4-7",
+            "us.anthropic.claude-opus-4-8",
         }
 
         for model_id in expected_ids:

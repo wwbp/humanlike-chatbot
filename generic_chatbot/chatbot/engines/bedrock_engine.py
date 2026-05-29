@@ -85,6 +85,16 @@ class BedrockEngine(BaseEngine):
             "meta.llama3-70b-instruct-v1:0": 8192,
             "anthropic.claude-3-sonnet-20240229-v1:0": 200000,
             "anthropic.claude-3-haiku-20240307-v1:0": 200000,
+            "anthropic.claude-3-5-sonnet-20240620-v1:0": 200000,
+            "us.anthropic.claude-sonnet-4-20250514-v1:0": 200000,
+            "us.anthropic.claude-opus-4-1-20250805-v1:0": 200000,
+            "us.anthropic.claude-sonnet-4-5-20250929-v1:0": 200000,
+            "us.anthropic.claude-haiku-4-5-20251001-v1:0": 200000,
+            "us.anthropic.claude-opus-4-5-20251101-v1:0": 200000,
+            "us.anthropic.claude-opus-4-6-v1": 200000,
+            "us.anthropic.claude-sonnet-4-6": 200000,
+            "us.anthropic.claude-opus-4-7": 200000,
+            "us.anthropic.claude-opus-4-8": 200000,
         }
         return context_sizes.get(model_id, 8192)
 

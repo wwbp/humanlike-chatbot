@@ -25,6 +25,10 @@ def moderate_message(message: str, bot=None) -> str:
     Returns:
         A string with the category if blocked, or an empty string if acceptable.
     """
+    # Skip moderation when no API key is configured (e.g. CI or local dev without key)
+    if not getattr(settings, "OPENAI_API_KEY", None):
+        return ""
+
     # Check global moderation setting first
     if not is_moderation_enabled():
         return ""  # Bypass all moderation

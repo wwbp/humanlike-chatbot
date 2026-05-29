@@ -15,17 +15,14 @@ class Persona(models.Model):
 
 
 class Conversation(models.Model):
-    conversation_id = models.CharField(
-        max_length=255, unique=True)  # Conversation ID
-    bot_name = models.CharField(
-        max_length=255, default="DefaultBot")  # Bot Name
+    conversation_id = models.CharField(max_length=255, unique=True)  # Conversation ID
+    bot_name = models.CharField(max_length=255, default="DefaultBot")  # Bot Name
     bot_config = models.TextField(null=True, blank=True)  # Bot Config
     participant_id = models.CharField(max_length=255)
     initial_utterance = models.CharField(max_length=255, null=True, blank=True)
     study_name = models.CharField(max_length=255, null=True, blank=True)
     user_group = models.CharField(max_length=255, null=True, blank=True)
-    survey_id = models.CharField(
-        max_length=255, null=True, blank=True)  # Survey ID
+    survey_id = models.CharField(max_length=255, null=True, blank=True)  # Survey ID
     survey_meta_data = models.TextField(
         null=True,
         blank=True,
@@ -144,8 +141,7 @@ class Model(models.Model):
         max_length=255,
         help_text="The actual model ID used by the provider",
     )
-    display_name = models.CharField(
-        max_length=255, help_text="Human-readable name")
+    display_name = models.CharField(max_length=255, help_text="Human-readable name")
     description = models.TextField(blank=True)
     capabilities = models.JSONField(
         default=list,
@@ -289,6 +285,46 @@ class Model(models.Model):
                     "display_name": "Anthropic Claude Sonnet 4",
                     "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
                 },
+                {
+                    "model_id": "us.anthropic.claude-opus-4-1-20250805-v1:0",
+                    "display_name": "Anthropic Claude Opus 4.1",
+                    "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
+                },
+                {
+                    "model_id": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                    "display_name": "Anthropic Claude Sonnet 4.5",
+                    "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
+                },
+                {
+                    "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+                    "display_name": "Anthropic Claude Haiku 4.5",
+                    "capabilities": ["Chat", "Basic Reasoning", "Code"],
+                },
+                {
+                    "model_id": "us.anthropic.claude-opus-4-5-20251101-v1:0",
+                    "display_name": "Anthropic Claude Opus 4.5",
+                    "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
+                },
+                {
+                    "model_id": "us.anthropic.claude-opus-4-6-v1",
+                    "display_name": "Anthropic Claude Opus 4.6",
+                    "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
+                },
+                {
+                    "model_id": "us.anthropic.claude-sonnet-4-6",
+                    "display_name": "Anthropic Claude Sonnet 4.6",
+                    "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
+                },
+                {
+                    "model_id": "us.anthropic.claude-opus-4-7",
+                    "display_name": "Anthropic Claude Opus 4.7",
+                    "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
+                },
+                {
+                    "model_id": "us.anthropic.claude-opus-4-8",
+                    "display_name": "Anthropic Claude Opus 4.8",
+                    "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
+                },
             ],
         }
 
@@ -333,8 +369,7 @@ class ModerationSettings(models.Model):
 
 class Bot(models.Model):
     # Make name the unique identifier
-    name = models.CharField(max_length=255, unique=True,
-                            default="DefaultBotName")
+    name = models.CharField(max_length=255, unique=True, default="DefaultBotName")
     prompt = models.TextField()  # Bot's prompt
     # Use foreign key to Model instead of separate model_type and model_id
     # Keep old fields for migration compatibility

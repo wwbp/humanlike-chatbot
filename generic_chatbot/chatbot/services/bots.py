@@ -160,43 +160,50 @@ class BotDetailAPIView(View):
             bot.model_type = data.get("model_type", bot.model_type)
             bot.model_id = data.get("model_id", bot.model_id)
             bot.prompt = data.get("prompt", bot.prompt)
-            bot.initial_utterance = data.get(
-                "initial_utterance", bot.initial_utterance)
+            bot.initial_utterance = data.get("initial_utterance", bot.initial_utterance)
             bot.avatar_type = data.get("avatar_type", bot.avatar_type)
             bot.chunk_messages = data.get("chunk_messages", bot.chunk_messages)
-            bot.humanlike_delay = data.get(
-                "humanlike_delay", bot.humanlike_delay)
+            bot.humanlike_delay = data.get("humanlike_delay", bot.humanlike_delay)
             bot.reading_words_per_minute = data.get(
-                "reading_words_per_minute", bot.reading_words_per_minute)
+                "reading_words_per_minute", bot.reading_words_per_minute
+            )
             bot.reading_jitter_min = data.get(
-                "reading_jitter_min", bot.reading_jitter_min)
+                "reading_jitter_min", bot.reading_jitter_min
+            )
             bot.reading_jitter_max = data.get(
-                "reading_jitter_max", bot.reading_jitter_max)
+                "reading_jitter_max", bot.reading_jitter_max
+            )
             bot.reading_thinking_min = data.get(
-                "reading_thinking_min", bot.reading_thinking_min)
+                "reading_thinking_min", bot.reading_thinking_min
+            )
             bot.reading_thinking_max = data.get(
-                "reading_thinking_max", bot.reading_thinking_max)
+                "reading_thinking_max", bot.reading_thinking_max
+            )
             bot.writing_words_per_minute = data.get(
-                "writing_words_per_minute", bot.writing_words_per_minute)
+                "writing_words_per_minute", bot.writing_words_per_minute
+            )
             bot.writing_jitter_min = data.get(
-                "writing_jitter_min", bot.writing_jitter_min)
+                "writing_jitter_min", bot.writing_jitter_min
+            )
             bot.writing_jitter_max = data.get(
-                "writing_jitter_max", bot.writing_jitter_max)
+                "writing_jitter_max", bot.writing_jitter_max
+            )
             bot.writing_thinking_min = data.get(
-                "writing_thinking_min", bot.writing_thinking_min)
+                "writing_thinking_min", bot.writing_thinking_min
+            )
             bot.writing_thinking_max = data.get(
-                "writing_thinking_max", bot.writing_thinking_max)
+                "writing_thinking_max", bot.writing_thinking_max
+            )
             bot.intra_message_delay_min = data.get(
-                "intra_message_delay_min", bot.intra_message_delay_min)
+                "intra_message_delay_min", bot.intra_message_delay_min
+            )
             bot.intra_message_delay_max = data.get(
-                "intra_message_delay_max", bot.intra_message_delay_max)
-            bot.min_reading_delay = data.get(
-                "min_reading_delay", bot.min_reading_delay)
+                "intra_message_delay_max", bot.intra_message_delay_max
+            )
+            bot.min_reading_delay = data.get("min_reading_delay", bot.min_reading_delay)
             # OLD: Legacy fields (commented out)
-            bot.follow_up_on_idle = data.get(
-                "follow_up_on_idle", bot.follow_up_on_idle)
-            bot.idle_time_minutes = data.get(
-                "idle_time_minutes", bot.idle_time_minutes)
+            bot.follow_up_on_idle = data.get("follow_up_on_idle", bot.follow_up_on_idle)
+            bot.idle_time_minutes = data.get("idle_time_minutes", bot.idle_time_minutes)
             bot.follow_up_instruction_prompt = data.get(
                 "follow_up_instruction_prompt",
                 bot.follow_up_instruction_prompt,

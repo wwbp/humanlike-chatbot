@@ -6,7 +6,7 @@ Provides consistent logging patterns and helper functions.
 import functools
 import logging
 import time
-from typing import Callable
+from collections.abc import Callable
 
 
 def get_logger(name: str) -> logging.Logger:

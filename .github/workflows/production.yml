@@ -30,8 +30,7 @@ jobs:
 
       - name: Build frontend
         env:
-          REACT_APP_API_URL: https://bot.wwbp.org/api
-          CI: false
+          VITE_API_URL: https://bot.wwbp.org/api
         run: |
           cd generic_chatbot_frontend
           npm run build

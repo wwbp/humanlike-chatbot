@@ -64,8 +64,14 @@ class TestSimpleChat:
 
             mock_kani.full_round = mock_full_round
 
-            # Mock Kani constructor
-            with patch("chatbot.services.runchat.Kani", return_value=mock_kani):
+            # Mock Kani constructor and engine creation (no API keys needed in CI)
+            with (
+                patch(
+                    "chatbot.services.runchat.get_or_create_engine_from_model",
+                    return_value=MagicMock(),
+                ),
+                patch("chatbot.services.runchat.Kani", return_value=mock_kani),
+            ):
                 # Send a message
                 response = await run_chat_round(
                     bot_name=self.bot.name,

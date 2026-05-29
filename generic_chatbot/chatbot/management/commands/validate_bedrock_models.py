@@ -1,6 +1,5 @@
 import logging
 import os
-from typing import List, Tuple
 
 import boto3
 from botocore.exceptions import ClientError
@@ -39,18 +38,24 @@ class Command(BaseCommand):
         dry_run = options["dry_run"]
         delete_invalid = options["delete"]
 
-        bedrock_models = Model.objects.filter(provider__name="Bedrock").order_by("model_id")
+        bedrock_models = Model.objects.filter(provider__name="Bedrock").order_by(
+            "model_id"
+        )
         total_models = bedrock_models.count()
 
         if total_models == 0:
-            self.stdout.write(self.style.WARNING("No Bedrock models found to validate."))
+            self.stdout.write(
+                self.style.WARNING("No Bedrock models found to validate.")
+            )
             return
 
-        self.stdout.write(f"Validating {total_models} Bedrock models in region '{region}'...")
+        self.stdout.write(
+            f"Validating {total_models} Bedrock models in region '{region}'..."
+        )
 
         client = boto3.client("bedrock-runtime", region_name=region)
-        active_models: List[Tuple[int, str]] = []
-        invalid_models: List[Tuple[int, str, str]] = []
+        active_models: list[tuple[int, str]] = []
+        invalid_models: list[tuple[int, str, str]] = []
 
         conversation = [
             {
@@ -75,18 +80,26 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f"[OK] {model.model_id}"))
             except ClientError as error:
                 error_code = error.response.get("Error", {}).get("Code", "Unknown")
-                error_message = error.response.get("Error", {}).get("Message", str(error))
+                error_message = error.response.get("Error", {}).get(
+                    "Message", str(error)
+                )
                 invalid_models.append((model.id, model.model_id, error_message))
                 self.stdout.write(
-                    self.style.ERROR(f"[INVALID] {model.model_id} -> {error_code}: {error_message}"),
+                    self.style.ERROR(
+                        f"[INVALID] {model.model_id} -> {error_code}: {error_message}"
+                    ),
                 )
 
         if dry_run:
-            self.stdout.write(self.style.WARNING("Dry run enabled, no changes applied."))
+            self.stdout.write(
+                self.style.WARNING("Dry run enabled, no changes applied.")
+            )
             return
 
         if not invalid_models:
-            self.stdout.write(self.style.SUCCESS("All Bedrock models validated successfully."))
+            self.stdout.write(
+                self.style.SUCCESS("All Bedrock models validated successfully.")
+            )
             return
 
         for model_id, model_identifier, reason in invalid_models:
@@ -121,4 +134,3 @@ class Command(BaseCommand):
                 f"Validation finished. {len(active_models)} valid, {len(invalid_models)} invalid.",
             ),
         )
-

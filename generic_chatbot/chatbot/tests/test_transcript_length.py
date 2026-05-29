@@ -407,8 +407,8 @@ class TestTranscriptLength:
 
     @pytest.mark.django_db
     @pytest.mark.asyncio
-    @patch("chatbot.services.runchat.get_or_create_engine_from_model")
-    @patch("chatbot.services.moderation.moderate_message")
+    @patch("server.engine.get_or_create_engine_from_model")
+    @patch("chatbot.services.runchat.moderate_message")
     @patch("chatbot.services.runchat.save_chat_to_db")
     async def test_followup_with_transcript_limit(
         self,

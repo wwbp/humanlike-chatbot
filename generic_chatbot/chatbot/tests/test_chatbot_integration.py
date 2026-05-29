@@ -47,8 +47,8 @@ class TestChatbotIntegration(TestCase):
             participant_id="test_user",
         )
 
-    @patch("chatbot.services.moderation.moderate_message")
-    @patch("server.engine.get_or_create_engine_from_model")
+    @patch("chatbot.services.runchat.moderate_message")
+    @patch("chatbot.services.runchat.get_or_create_engine_from_model")
     async def test_basic_conversation_flow(self, mock_get_engine, mock_moderate):
         """Test basic conversation flow with new model structure"""
         # Mock moderation to allow all messages
@@ -125,8 +125,8 @@ class TestChatbotIntegration(TestCase):
 
             await sync_to_async(verify_bot_model_relationship)()
 
-    @patch("chatbot.services.moderation.moderate_message")
-    @patch("server.engine.get_or_create_engine_from_model")
+    @patch("chatbot.services.runchat.moderate_message")
+    @patch("chatbot.services.runchat.get_or_create_engine_from_model")
     async def test_legacy_bot_compatibility(self, mock_get_engine, mock_moderate):
         """Test that legacy bots with old model fields still work"""
         # Mock moderation to allow all messages

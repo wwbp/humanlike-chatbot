@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, staging]
+  push:
+    branches: [main, staging]
+
+jobs:
+  backend-lint:
+    name: Backend lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install lint tools
+        run: pip install ruff isort
+
+      - name: Ruff lint
+        run: cd generic_chatbot && ruff check .
+
+      - name: Ruff format
+        run: cd generic_chatbot && ruff format --check .
+
+      - name: isort
+        run: cd generic_chatbot && isort . --profile black --check --diff
+
+  backend-test:
+    name: Backend test
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root
+          MYSQL_DATABASE: chatbot_db
+          MYSQL_USER: ci_user
+          MYSQL_PASSWORD: ci_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies
+        run: sudo apt-get update -q && sudo apt-get install -y libmariadb-dev build-essential pkg-config mariadb-client
+
+      - name: Install pipenv
+        run: pip install pipenv
+
+      - name: Install dependencies
+        run: cd generic_chatbot && pipenv install --dev
+
+      - name: Grant test DB privileges
+        run: |
+          mysql -h 127.0.0.1 -u root -pci_root \
+            -e "GRANT ALL PRIVILEGES ON *.* TO 'ci_user'@'%'; FLUSH PRIVILEGES;"
+
+      - name: Run tests
+        env:
+          DJANGO_SETTINGS_MODULE: generic_chatbot.settings
+          DEBUG: "True"
+          SECRET_KEY: "ci-secret-key-for-testing-only-not-for-production-use"
+          DATABASE_ENGINE: django.db.backends.mysql
+          DATABASE_NAME: chatbot_db
+          DATABASE_USER: ci_user
+          DATABASE_PASSWORD: ci_password
+          DATABASE_HOST: 127.0.0.1
+          DATABASE_PORT: "3306"
+          REDIS_URL: redis://127.0.0.1:6379
+          ALLOWED_HOSTS: localhost,127.0.0.1
+        run: cd generic_chatbot && pipenv run pytest --create-db
+
+  frontend-lint:
+    name: Frontend lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: npm
+          cache-dependency-path: generic_chatbot_frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd generic_chatbot_frontend && npm ci
+
+      - name: ESLint
+        run: cd generic_chatbot_frontend && npm run lint
+
+      - name: Prettier
+        run: cd generic_chatbot_frontend && npm run format:check
+
+  frontend-test:
+    name: Frontend test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: npm
+          cache-dependency-path: generic_chatbot_frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd generic_chatbot_frontend && npm ci
+
+      - name: Run tests
+        run: cd generic_chatbot_frontend && npm test -- --run

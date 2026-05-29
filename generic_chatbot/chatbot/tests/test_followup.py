@@ -3,6 +3,7 @@ Test script for the follow-up functionality
 """
 
 import json
+import os
 import time
 from datetime import datetime
 
@@ -36,6 +37,9 @@ class TestFollowupFunctionality(TestCase):
         self.client = Client()
 
     def test_followup_functionality(self):
+        if not os.getenv("OPENAI_API_KEY") and not os.getenv("ANTHROPIC_API_KEY"):
+            self.skipTest("No AI API keys configured — skipping live integration test")
+
         # Step 1: Initialize conversation
         init_data = {
             "bot_name": BOT_NAME,

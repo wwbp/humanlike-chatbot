@@ -2,6 +2,7 @@
 Comprehensive engine testing - minimal, DRY, focused.
 Tests engine initialization, real API calls, and engine agnosticism.
 """
+
 import os
 
 import pytest
@@ -28,13 +29,11 @@ class TestEngines:
             m.setenv("AWS_SECRET_ACCESS_KEY", "test-secret")
             m.setenv("AWS_REGION", "us-east-1")
 
-            engine = initialize_engine(
-                "Bedrock", "meta.llama3-8b-instruct-v1:0")
+            engine = initialize_engine("Bedrock", "meta.llama3-8b-instruct-v1:0")
             assert isinstance(engine, BedrockEngine)
             assert engine.model_id == "meta.llama3-8b-instruct-v1:0"
             assert engine.max_tokens == 1000
             assert engine.temperature == 0.7
-
 
     # Real API call tests (sample models only)
     @pytest.mark.asyncio
@@ -59,7 +58,8 @@ class TestEngines:
             pytest.skip("ANTHROPIC_API_KEY not set")
 
         engine = AnthropicEngine(
-            api_key=anthropic_key, model="claude-sonnet-4-20250514")
+            api_key=anthropic_key, model="claude-sonnet-4-20250514"
+        )
         kani = Kani(engine, system_prompt=self.SYSTEM_PROMPT)
         response = await kani.chat_round_str(self.TEST_PROMPT)
 
@@ -93,7 +93,8 @@ class TestEngines:
 
         bedrock_model_ids = set(
             Model.objects.filter(provider__name="Bedrock").values_list(
-                "model_id", flat=True,
+                "model_id",
+                flat=True,
             ),
         )
 
@@ -123,7 +124,9 @@ class TestEngines:
         elif provider == "Anthropic":
             return bool(os.getenv("ANTHROPIC_API_KEY"))
         elif provider == "Bedrock":
-            return bool(os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"))
+            return bool(
+                os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY")
+            )
         return False
 
     # Engine agnosticism test

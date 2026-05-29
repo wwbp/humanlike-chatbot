@@ -75,9 +75,11 @@ async def save_chat_to_db(
             logger.info(f"  - conversation_id: {conversation_id}")
             logger.info(f"  - speaker_id: {speaker_id}")
             logger.info(
-                f"  - instruction_prompt: {len(instruction_prompt) if instruction_prompt else 'None'}")
+                f"  - instruction_prompt: {len(instruction_prompt) if instruction_prompt else 'None'}"
+            )
             logger.info(
-                f"  - chat_history_used: {len(chat_history_used) if chat_history_used else 'None'}")
+                f"  - chat_history_used: {len(chat_history_used) if chat_history_used else 'None'}"
+            )
 
         await sync_to_async(Utterance.objects.create)(
             conversation=conversation,
@@ -89,8 +91,7 @@ async def save_chat_to_db(
             chat_history_used=chat_history_used,
         )
 
-        logger.info(
-            f"Successfully saved utterance for conversation {conversation_id}")
+        logger.info(f"Successfully saved utterance for conversation {conversation_id}")
 
     except Conversation.DoesNotExist:
         logger.warning(f"Conversation with ID {conversation_id} not found.")
@@ -162,8 +163,7 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
             # Build conversation history from database
             for utterance in utterances:
                 role = "user" if utterance.speaker_id == "user" else "assistant"
-                conversation_history.append(
-                    {"role": role, "content": utterance.text})
+                conversation_history.append({"role": role, "content": utterance.text})
 
             # Populate cache
             cache.set(cache_key, conversation_history, timeout=3600)
@@ -171,14 +171,13 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
                 f"Loaded {len(conversation_history)} messages from database for conversation {conversation_id}",
             )
         except Exception as e:
-            logger.warning(
-                f"Failed to load conversation history from database: {e}")
+            logger.warning(f"Failed to load conversation history from database: {e}")
             conversation_history = []
 
     # Apply transcript length limit to history only (before adding new message)
     if bot.max_transcript_length > 0:
         # Keep only the latest messages from history up to the limit
-        conversation_history = conversation_history[-bot.max_transcript_length:]
+        conversation_history = conversation_history[-bot.max_transcript_length :]
         logger.info(
             f"Limited history to {len(conversation_history)} messages (max: {bot.max_transcript_length})",
         )
@@ -214,8 +213,7 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
 
     # Log the generated prompt for debugging
     logger.info(f"Bot '{bot.name}' system prompt:")
-    logger.info(
-        f"   Base prompt: {bot.prompt[:100] if bot.prompt else 'None'}...")
+    logger.info(f"   Base prompt: {bot.prompt[:100] if bot.prompt else 'None'}...")
     logger.info(
         f"   Selected persona: {selected_persona.name if selected_persona and hasattr(selected_persona, 'name') else 'None'}",
     )
@@ -223,8 +221,7 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
 
     # Run Kani - ai_model is now required
     engine = get_or_create_engine_from_model(bot.ai_model, engine_instances)
-    kani = Kani(engine, system_prompt=system_prompt,
-                chat_history=formatted_history)
+    kani = Kani(engine, system_prompt=system_prompt, chat_history=formatted_history)
 
     latest_user_message = formatted_history[-1].content
     response_text = ""
@@ -246,8 +243,7 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
         logger.info(f"Chat history length: {len(chat_history_json)}")
 
     # Append bot response
-    conversation_history.append(
-        {"role": "assistant", "content": response_text})
+    conversation_history.append({"role": "assistant", "content": response_text})
     cache.set(cache_key, conversation_history, timeout=3600)
 
     # Save to DB (but not followup requests)

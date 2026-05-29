@@ -240,7 +240,9 @@ STORAGES = {
             "default_acl": None,
             "file_overwrite": False,
         },
-    } if not DEBUG else {
+    }
+    if not DEBUG
+    else {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
 }

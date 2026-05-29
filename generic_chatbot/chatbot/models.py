@@ -289,6 +289,46 @@ class Model(models.Model):
                     "display_name": "Anthropic Claude Sonnet 4",
                     "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
                 },
+                {
+                    "model_id": "us.anthropic.claude-opus-4-1-20250805-v1:0",
+                    "display_name": "Anthropic Claude Opus 4.1",
+                    "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
+                },
+                {
+                    "model_id": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+                    "display_name": "Anthropic Claude Sonnet 4.5",
+                    "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
+                },
+                {
+                    "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+                    "display_name": "Anthropic Claude Haiku 4.5",
+                    "capabilities": ["Chat", "Basic Reasoning", "Code"],
+                },
+                {
+                    "model_id": "us.anthropic.claude-opus-4-5-20251101-v1:0",
+                    "display_name": "Anthropic Claude Opus 4.5",
+                    "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
+                },
+                {
+                    "model_id": "us.anthropic.claude-opus-4-6-v1",
+                    "display_name": "Anthropic Claude Opus 4.6",
+                    "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
+                },
+                {
+                    "model_id": "us.anthropic.claude-sonnet-4-6",
+                    "display_name": "Anthropic Claude Sonnet 4.6",
+                    "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
+                },
+                {
+                    "model_id": "us.anthropic.claude-opus-4-7",
+                    "display_name": "Anthropic Claude Opus 4.7",
+                    "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
+                },
+                {
+                    "model_id": "us.anthropic.claude-opus-4-8",
+                    "display_name": "Anthropic Claude Opus 4.8",
+                    "capabilities": ["Chat", "Reasoning", "Code", "Analysis"],
+                },
             ],
         }
 

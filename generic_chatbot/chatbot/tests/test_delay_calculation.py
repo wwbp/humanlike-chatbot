@@ -29,8 +29,7 @@ class TestDelayCalculation(unittest.TestCase):
         """Test that delays are zero when humanlike_delay is disabled"""
         self.bot_config.humanlike_delay = False
         response_segments = ["Hello", "World"]
-        result = calculate_typing_delays(
-            "Hi", response_segments, self.bot_config)
+        result = calculate_typing_delays("Hi", response_segments, self.bot_config)
 
         assert result["reading_time"] == 0.0
         assert result["min_reading_delay"] == 0.0
@@ -43,8 +42,7 @@ class TestDelayCalculation(unittest.TestCase):
         message = "Hello world this is a test message"
         response_segments = ["Response part 1", "Response part 2"]
 
-        result = calculate_typing_delays(
-            message, response_segments, self.bot_config)
+        result = calculate_typing_delays(message, response_segments, self.bot_config)
 
         # Should have positive reading time
         assert result["reading_time"] > 0.0
@@ -76,8 +74,7 @@ class TestDelayCalculation(unittest.TestCase):
         message = "Test message"
         response_segments = ["First part", "Second part"]
 
-        result = calculate_typing_delays(
-            message, response_segments, self.bot_config)
+        result = calculate_typing_delays(message, response_segments, self.bot_config)
 
         # Check structure
         assert "reading_time" in result
@@ -98,8 +95,7 @@ class TestDelayCalculation(unittest.TestCase):
         message = "A short message"  # 3 words
         response_segments = ["Response"]
 
-        result = calculate_typing_delays(
-            message, response_segments, self.bot_config)
+        result = calculate_typing_delays(message, response_segments, self.bot_config)
 
         # Reading time should be reasonable (based on 3 words at 250 WPM)
         # base + min jitter + min thinking
@@ -128,8 +124,7 @@ class TestDelayCalculation(unittest.TestCase):
         message = "Test"
         response_segments = []
 
-        result = calculate_typing_delays(
-            message, response_segments, self.bot_config)
+        result = calculate_typing_delays(message, response_segments, self.bot_config)
 
         assert len(result["response_segments"]) == 0
         # Reading time should still be calculated
@@ -140,8 +135,7 @@ class TestDelayCalculation(unittest.TestCase):
         message = "Test message"
         response_segments = ["Single response"]
 
-        result = calculate_typing_delays(
-            message, response_segments, self.bot_config)
+        result = calculate_typing_delays(message, response_segments, self.bot_config)
 
         assert len(result["response_segments"]) == 1
         segment = result["response_segments"][0]

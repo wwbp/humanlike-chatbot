@@ -90,8 +90,7 @@ async def run_followup_chat_round(
             # Build conversation history from database
             for utterance in utterances:
                 role = "user" if utterance.speaker_id == "user" else "assistant"
-                conversation_history.append(
-                    {"role": role, "content": utterance.text})
+                conversation_history.append({"role": role, "content": utterance.text})
 
             # Populate cache
             cache.set(cache_key, conversation_history, timeout=3600)
@@ -99,14 +98,13 @@ async def run_followup_chat_round(
                 f"Loaded {len(conversation_history)} messages from database for conversation {conversation_id}",
             )
         except Exception as e:
-            logger.warning(
-                f"Failed to load conversation history from database: {e}")
+            logger.warning(f"Failed to load conversation history from database: {e}")
             conversation_history = []
 
     # Apply transcript length limit to history only (before adding followup instruction)
     if bot.max_transcript_length > 0:
         # Keep only the latest messages from history up to the limit
-        conversation_history = conversation_history[-bot.max_transcript_length:]
+        conversation_history = conversation_history[-bot.max_transcript_length :]
         logger.info(
             f"Limited history to {len(conversation_history)} messages (max: {bot.max_transcript_length})",
         )
@@ -120,8 +118,7 @@ async def run_followup_chat_round(
         )
 
     # Add followup instruction to history for AI processing (but don't save to DB)
-    conversation_history.append(
-        {"role": "user", "content": followup_instruction})
+    conversation_history.append({"role": "user", "content": followup_instruction})
 
     # Format for Kani
     formatted_history = [
@@ -144,10 +141,8 @@ async def run_followup_chat_round(
     system_prompt = generate_system_prompt(bot, selected_persona)
 
     # Run Kani - ai_model is now required
-    engine = get_or_create_engine_from_model(
-        bot.ai_model, followup_engine_instances)
-    kani = Kani(engine, system_prompt=system_prompt,
-                chat_history=formatted_history)
+    engine = get_or_create_engine_from_model(bot.ai_model, followup_engine_instances)
+    kani = Kani(engine, system_prompt=system_prompt, chat_history=formatted_history)
 
     latest_user_message = formatted_history[-1].content
     response_text = ""
@@ -163,8 +158,7 @@ async def run_followup_chat_round(
     chat_history_json = json.dumps(conversation_history[:-1], indent=2)
 
     # Update cache with the followup instruction and response (for future context)
-    conversation_history.append(
-        {"role": "assistant", "content": response_text})
+    conversation_history.append({"role": "assistant", "content": response_text})
     cache.set(cache_key, conversation_history, timeout=3600)
 
     # Only save the bot's response to database, NOT the followup request
@@ -332,6 +326,7 @@ class FollowupAPIView(View):
                         calculate_typing_delays,
                         human_like_chunks,
                     )
+
                     response_chunks = human_like_chunks(response_text)
                 else:
                     response_chunks = [response_text]
@@ -341,7 +336,8 @@ class FollowupAPIView(View):
 
                 # Calculate delays using new system
                 delay_data = calculate_typing_delays(
-                    simulated_user_message, response_chunks, bot)
+                    simulated_user_message, response_chunks, bot
+                )
 
                 delay_config = {
                     "reading_time": delay_data["reading_time"],
@@ -378,16 +374,20 @@ class FollowupAPIView(View):
                         calculate_typing_delays,
                         human_like_chunks,
                     )
+
                     response_chunks = human_like_chunks(response_text)
                 else:
                     response_chunks = [response_text]
 
                 # For followup messages, simulate a 10-word user message for reading delay calculation
-                simulated_user_message = "How are you doing today? I hope you're having a great time!"
+                simulated_user_message = (
+                    "How are you doing today? I hope you're having a great time!"
+                )
 
                 # Calculate delays using new system
                 delay_data = calculate_typing_delays(
-                    simulated_user_message, response_chunks, default_bot)
+                    simulated_user_message, response_chunks, default_bot
+                )
 
                 delay_config = {
                     "reading_time": delay_data["reading_time"],

@@ -26,3 +26,17 @@ init.sql
 .pytest_cache
 .ruff_cache
 
+# Pipenv lockfiles
+Pipfile.lock
+
+# Terraform — never commit secrets or local state to git
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+terraform/backend.hcl
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/bootstrap/.terraform/
+terraform/bootstrap/.terraform.lock.hcl
+terraform/bootstrap/*.tfstate
+terraform/bootstrap/*.tfstate.backup

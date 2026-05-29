@@ -88,8 +88,7 @@ class BotAdminForm(forms.ModelForm):
 
         # Validate follow-up configuration
         follow_up_on_idle = cleaned_data.get("follow_up_on_idle")
-        follow_up_instruction_prompt = cleaned_data.get(
-            "follow_up_instruction_prompt")
+        follow_up_instruction_prompt = cleaned_data.get("follow_up_instruction_prompt")
 
         if follow_up_on_idle and not follow_up_instruction_prompt:
             raise ValidationError(
@@ -299,8 +298,12 @@ class ConversationAdmin(ExportMixin, BaseAdmin):
         "started_time",
         "selected_persona",
     )
-    readonly_fields = ("started_time", "utterance_count",
-                       "selected_persona", "bot_config")
+    readonly_fields = (
+        "started_time",
+        "utterance_count",
+        "selected_persona",
+        "bot_config",
+    )
     ordering = ("-started_time",)
     list_per_page = 25
 
@@ -500,8 +503,7 @@ class BotAdmin(ExportMixin, BaseAdmin):
         "avatar_preview",
     )
     list_display_links = ("name",)
-    search_fields = ("name", "ai_model__provider__name",
-                     "ai_model__display_name")
+    search_fields = ("name", "ai_model__provider__name", "ai_model__display_name")
     list_filter = (
         "ai_model__provider",
         "avatar_type",
@@ -555,8 +557,7 @@ class BotAdmin(ExportMixin, BaseAdmin):
                     from pathlib import Path
 
                     local_path = (
-                        Path(settings.MEDIA_ROOT) /
-                        "avatars" / avatar.chatbot_avatar
+                        Path(settings.MEDIA_ROOT) / "avatars" / avatar.chatbot_avatar
                     )
                     if local_path.exists():
                         image_url = f"/media/avatars/{avatar.chatbot_avatar}"
@@ -614,7 +615,8 @@ class BotAdmin(ExportMixin, BaseAdmin):
             )
         else:
             return format_html(
-                '<span class="custom-moderation">{} custom values</span>', custom_count,
+                '<span class="custom-moderation">{} custom values</span>',
+                custom_count,
             )
 
     moderation_summary.short_description = "Moderation"
@@ -831,8 +833,7 @@ class BotAdmin(ExportMixin, BaseAdmin):
                                 f"Successfully uploaded raw image to S3: {raw_image_key}",
                             )
                         except Exception as e:
-                            logger.error(
-                                f"Failed to upload raw image to S3: {e}")
+                            logger.error(f"Failed to upload raw image to S3: {e}")
                             raise RuntimeError(
                                 f"Failed to upload raw image to S3: {e!s}",
                             )
@@ -850,8 +851,7 @@ class BotAdmin(ExportMixin, BaseAdmin):
                                 f"Successfully downloaded image from S3: {raw_image_key}",
                             )
                         except Exception as e:
-                            logger.error(
-                                f"Failed to download image from S3: {e}")
+                            logger.error(f"Failed to download image from S3: {e}")
                             # Clean up raw image on failure
                             s3.delete_object(
                                 Bucket=os.getenv("AWS_BUCKET_NAME"),
@@ -878,8 +878,7 @@ class BotAdmin(ExportMixin, BaseAdmin):
                                     # Upload processed image to S3
                                     upload_result = upload(image, image_key)
                                     if not upload_result:
-                                        raise RuntimeError(
-                                            "S3 upload returned None")
+                                        raise RuntimeError("S3 upload returned None")
 
                                     # Clean up raw image (use direct S3 delete to avoid avatar prefix)
                                     s3.delete_object(
@@ -899,8 +898,7 @@ class BotAdmin(ExportMixin, BaseAdmin):
                                     if not created:
                                         # Delete old avatar from S3 if exists
                                         if avatar.chatbot_avatar:
-                                            delete(
-                                                "avatar", avatar.chatbot_avatar)
+                                            delete("avatar", avatar.chatbot_avatar)
                                         avatar.chatbot_avatar = image_key
                                         avatar.save()
 
@@ -1087,8 +1085,7 @@ class AvatarAdmin(BaseAdmin):
                     from pathlib import Path
 
                     local_path = (
-                        Path(settings.MEDIA_ROOT) /
-                        "avatars" / obj.chatbot_avatar
+                        Path(settings.MEDIA_ROOT) / "avatars" / obj.chatbot_avatar
                     )
                     if local_path.exists():
                         image_url = f"/media/avatars/{obj.chatbot_avatar}"
@@ -1150,8 +1147,7 @@ class AvatarAdmin(BaseAdmin):
                     from pathlib import Path
 
                     local_path = (
-                        Path(settings.MEDIA_ROOT) /
-                        "avatars" / obj.chatbot_avatar
+                        Path(settings.MEDIA_ROOT) / "avatars" / obj.chatbot_avatar
                     )
                     if local_path.exists():
                         chatbot_url = f"/media/avatars/{obj.chatbot_avatar}"
@@ -1249,8 +1245,7 @@ class AvatarAdmin(BaseAdmin):
                 try:
                     delete("avatar", avatar.participant_avatar)
                 except Exception as e:
-                    errors.append(
-                        f"Avatar {avatar.id} participant file: {e!s}")
+                    errors.append(f"Avatar {avatar.id} participant file: {e!s}")
 
             if avatar.chatbot_avatar:
                 try:
@@ -1267,8 +1262,7 @@ class AvatarAdmin(BaseAdmin):
 
         # Report any errors
         for error in errors:
-            self.message_user(
-                request, f"Error deleting {error}", level="ERROR")
+            self.message_user(request, f"Error deleting {error}", level="ERROR")
 
         self.message_user(
             request,

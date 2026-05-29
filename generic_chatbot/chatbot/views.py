@@ -95,8 +95,7 @@ class ChatbotAPIView(View):
                     response_chunks = [response_text]
 
                 # Calculate delays using new system
-                delay_data = calculate_typing_delays(
-                    message, response_chunks, bot)
+                delay_data = calculate_typing_delays(message, response_chunks, bot)
 
                 delay_config = {
                     "reading_time": delay_data["reading_time"],
@@ -136,7 +135,8 @@ class ChatbotAPIView(View):
 
                 # Calculate delays using new system
                 delay_data = calculate_typing_delays(
-                    message, response_chunks, default_bot)
+                    message, response_chunks, default_bot
+                )
 
                 delay_config = {
                     "reading_time": delay_data["reading_time"],

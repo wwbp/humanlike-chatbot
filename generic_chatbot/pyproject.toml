@@ -40,6 +40,9 @@ ignore = ["E501", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004", "PLW290
 fixable = ["ALL"]
 unfixable = []
 
+[tool.ruff.lint.isort]
+known-first-party = ["chatbot", "server", "generic_chatbot"]
+
 [tool.ruff.format]
 # Like Black, use double quotes for strings.
 quote-style = "double"

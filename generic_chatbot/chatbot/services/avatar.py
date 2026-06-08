@@ -16,8 +16,6 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from PIL import Image
 
-from django.http import JsonResponse
-
 from ..models import Avatar, Bot
 from .s3_helper import delete, download, get_presigned_url, get_random_image, upload
 
@@ -563,7 +561,9 @@ class AvatarDetailAPIView(View):
                 if avatar.chatbot_avatar:
                     delete("avatar", avatar.chatbot_avatar)
             avatars.delete()
-            return JsonResponse({"message": "Avatars deleted successfully."}, status=204)
+            return JsonResponse(
+                {"message": "Avatars deleted successfully."}, status=204
+            )
         except Bot.DoesNotExist:
             return JsonResponse({"error": "Bot not found"}, status=404)
         except Exception as e:

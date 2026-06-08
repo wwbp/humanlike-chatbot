@@ -10,9 +10,12 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
 from ..models import Bot, Conversation, Utterance
-
-# Dictionary to store engine instances for followup
-followup_engine_instances = {}
+from .post_processing import (
+    _DEFAULT_BOT_CONFIG,
+    calculate_typing_delays,
+    human_like_chunks,
+)
+from .runchat import engine_instances, generate_system_prompt, save_chat_to_db
 
 logger = logging.getLogger(__name__)
 
@@ -135,13 +138,10 @@ async def run_followup_chat_round(
     )(conversation_id=conversation_id)
     selected_persona = conversation.selected_persona
 
-    # Generate dynamic system prompt combining bot prompt with selected persona
-    from .runchat import generate_system_prompt
-
     system_prompt = generate_system_prompt(bot, selected_persona)
 
     # Run Kani - ai_model is now required
-    engine = get_or_create_engine_from_model(bot.ai_model, followup_engine_instances)
+    engine = get_or_create_engine_from_model(bot.ai_model, engine_instances)
     kani = Kani(engine, system_prompt=system_prompt, chat_history=formatted_history)
 
     latest_user_message = formatted_history[-1].content
@@ -173,42 +173,6 @@ async def run_followup_chat_round(
     )
 
     return response_text
-
-
-async def save_chat_to_db(
-    conversation_id,
-    speaker_id,
-    text,
-    bot_name=None,
-    participant_id=None,
-    instruction_prompt=None,
-    chat_history_used=None,
-):
-    """
-    Save chat messages asynchronously to the Utterance table.
-    """
-    try:
-        conversation = await sync_to_async(Conversation.objects.get)(
-            conversation_id=conversation_id,
-        )
-
-        await sync_to_async(Utterance.objects.create)(
-            conversation=conversation,
-            speaker_id=speaker_id,
-            bot_name=bot_name,
-            participant_id=participant_id,
-            text=text,
-            instruction_prompt=instruction_prompt,
-            chat_history_used=chat_history_used,
-        )
-
-    except Conversation.DoesNotExist:
-        logger.warning(f"Conversation with ID {conversation_id} not found.")
-    except Exception as e:
-        logger.error(f"Failed to save message to Utterance table: {e}")
-        import traceback
-
-        traceback.print_exc()
 
 
 async def generate_followup_message(bot_name, conversation_id, participant_id):
@@ -274,7 +238,7 @@ async def generate_followup_message(bot_name, conversation_id, participant_id):
         return None, f"Bot '{bot_name}' not found"
     except Exception as e:
         logger.error(f"Error generating follow-up message: {e}")
-        return None, str(e)
+        return None, "An internal error occurred."
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -322,11 +286,6 @@ class FollowupAPIView(View):
 
                 # Split response into chunks
                 if use_chunks:
-                    from .post_processing import (
-                        calculate_typing_delays,
-                        human_like_chunks,
-                    )
-
                     response_chunks = human_like_chunks(response_text)
                 else:
                     response_chunks = [response_text]
@@ -346,47 +305,17 @@ class FollowupAPIView(View):
                 }
 
             except Bot.DoesNotExist:
-                use_chunks = True  # Default to chunking
-                use_humanlike_delay = True  # Default to delay
+                use_chunks = True
+                use_humanlike_delay = True
 
-                # Create default bot configuration for calculation
-                class DefaultBotConfiguration:
-                    humanlike_delay = True
-                    reading_words_per_minute = 250.0
-                    reading_jitter_min = 0.1
-                    reading_jitter_max = 0.3
-                    reading_thinking_min = 0.2
-                    reading_thinking_max = 0.5
-                    writing_words_per_minute = 200.0
-                    writing_jitter_min = 0.05
-                    writing_jitter_max = 0.15
-                    writing_thinking_min = 0.1
-                    writing_thinking_max = 0.3
-                    intra_message_delay_min = 0.1
-                    intra_message_delay_max = 0.3
-                    min_reading_delay = 1.0
+                response_chunks = [response_text]
 
-                default_bot = DefaultBotConfiguration()
-
-                # Split response into chunks
-                if use_chunks:
-                    from .post_processing import (
-                        calculate_typing_delays,
-                        human_like_chunks,
-                    )
-
-                    response_chunks = human_like_chunks(response_text)
-                else:
-                    response_chunks = [response_text]
-
-                # For followup messages, simulate a 10-word user message for reading delay calculation
                 simulated_user_message = (
                     "How are you doing today? I hope you're having a great time!"
                 )
 
-                # Calculate delays using new system
                 delay_data = calculate_typing_delays(
-                    simulated_user_message, response_chunks, default_bot
+                    simulated_user_message, response_chunks, _DEFAULT_BOT_CONFIG
                 )
 
                 delay_config = {

@@ -6,28 +6,14 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from .services.post_processing import calculate_typing_delays, human_like_chunks
+from .services.post_processing import (
+    _DEFAULT_BOT_CONFIG,
+    calculate_typing_delays,
+    human_like_chunks,
+)
 from .services.runchat import run_chat_round
 
 logger = logging.getLogger(__name__)
-
-
-class _DEFAULT_BOT_CONFIG:
-    """Fallback delay config used when the bot object is unavailable."""
-    humanlike_delay = True
-    reading_words_per_minute = 250.0
-    reading_jitter_min = 0.1
-    reading_jitter_max = 0.3
-    reading_thinking_min = 0.2
-    reading_thinking_max = 0.5
-    writing_words_per_minute = 200.0
-    writing_jitter_min = 0.05
-    writing_jitter_max = 0.15
-    writing_thinking_min = 0.1
-    writing_thinking_max = 0.3
-    intra_message_delay_min = 0.1
-    intra_message_delay_max = 0.3
-    min_reading_delay = 1.0
 
 
 def health_check(request):
@@ -99,7 +85,9 @@ class ChatbotAPIView(View):
             if bot is not None:
                 use_chunks = bot.chunk_messages
                 use_humanlike_delay = bot.humanlike_delay
-                response_chunks = human_like_chunks(response_text) if use_chunks else [response_text]
+                response_chunks = (
+                    human_like_chunks(response_text) if use_chunks else [response_text]
+                )
                 delay_data = calculate_typing_delays(message, response_chunks, bot)
             else:
                 # bot is None only for the [FOLLOW-UP REQUEST] guard path (shouldn't
@@ -107,7 +95,9 @@ class ChatbotAPIView(View):
                 use_chunks = True
                 use_humanlike_delay = True
                 response_chunks = [response_text]
-                delay_data = calculate_typing_delays(message, response_chunks, _DEFAULT_BOT_CONFIG)
+                delay_data = calculate_typing_delays(
+                    message, response_chunks, _DEFAULT_BOT_CONFIG
+                )
 
             delay_config = {
                 "reading_time": delay_data["reading_time"],

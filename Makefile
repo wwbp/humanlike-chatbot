@@ -28,7 +28,12 @@ shell:
 
 superuser:
 	$(call require_up)
-	$(BACKEND) python manage.py createsuperuser --noinput
+	@docker exec \
+		-e DJANGO_SUPERUSER_USERNAME=$$(grep '^DJANGO_SUPERUSER_USERNAME=' api/.env | cut -d= -f2) \
+		-e DJANGO_SUPERUSER_EMAIL=$$(grep '^DJANGO_SUPERUSER_EMAIL=' api/.env | cut -d= -f2) \
+		-e DJANGO_SUPERUSER_PASSWORD=$$(grep '^DJANGO_SUPERUSER_PASSWORD=' api/.env | cut -d= -f2) \
+		humanlike-chatbot-backend-1 \
+		python manage.py createsuperuser --noinput
 
 # ── Tests ──────────────────────────────────────────────────────────────────────
 

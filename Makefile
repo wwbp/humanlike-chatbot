@@ -5,7 +5,7 @@ define require_up
 	@$(COMPOSE) ps | grep -q "Up" || (echo "Services not running — run 'make up' first" && exit 1)
 endef
 
-.PHONY: up down reset migrate shell test test-api test-web coverage lint
+.PHONY: up down reset migrate shell superuser test test-api test-web coverage lint
 
 # ── Dev lifecycle ──────────────────────────────────────────────────────────────
 
@@ -25,6 +25,10 @@ migrate:
 shell:
 	$(call require_up)
 	docker exec -it humanlike-chatbot-backend-1 python manage.py shell
+
+superuser:
+	$(call require_up)
+	$(BACKEND) python manage.py createsuperuser --noinput
 
 # ── Tests ──────────────────────────────────────────────────────────────────────
 

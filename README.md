@@ -26,14 +26,11 @@ infra/      Terraform (separate test environment, not production)
 **Prerequisites:** Docker, Docker Compose, Make
 
 ```bash
-cp api/.env.example api/.env    # fill in SECRET_KEY and at least one LLM API key
+cp api/.env.example api/.env    # fill in SECRET_KEY, DB passwords, and at least one LLM key
 cp web/.env.example web/.env    # set VITE_API_URL if needed
-make start                      # builds and starts all services
-```
-
-First run only — create an admin user:
-```bash
-docker exec -it humanlike-chatbot-backend-1 python manage.py createsuperuser
+make up                         # builds and starts all services
+make migrate                    # run DB migrations
+make superuser                  # create admin user from DJANGO_SUPERUSER_* in api/.env
 ```
 
 | Service | URL |
@@ -44,19 +41,29 @@ docker exec -it humanlike-chatbot-backend-1 python manage.py createsuperuser
 ## Common commands
 
 ```bash
-make start          # build and start all services
-make stop           # stop services
-make stop-clean     # stop and remove volumes (wipes DB)
-make test           # run backend tests (containers must be running)
-make test-coverage  # backend tests with coverage report
+make up             # build and start all services
+make down           # stop services
+make reset          # stop and wipe volumes (fresh DB)
 make migrate        # run Django migrations
+make superuser      # create admin user (reads DJANGO_SUPERUSER_* from api/.env)
 make shell          # Django shell
+make test           # run all tests (backend + frontend)
+make coverage       # backend tests with coverage report
 make lint           # ruff + isort + eslint + prettier
 ```
 
 ## Configuration
 
-All secrets and service URLs live in `.env` (see `sample.env`). Bot prompts, personas, LLM model selection, and moderation settings are managed in the Django admin UI at `/api/admin/`.
+Secrets and service config live in `api/.env` and `web/.env` — copy from the `.env.example` files in each directory. Key variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `SECRET_KEY` | Django secret key (required) |
+| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | LLM provider keys (at least one required) |
+| `DATABASE_*` / `MYSQL_*` | DB connection + MariaDB container config |
+| `DJANGO_SUPERUSER_*` | Admin credentials created by `make superuser` |
+
+Bot prompts, personas, LLM model selection, and moderation settings are managed in the Django admin UI at `/api/admin/`.
 
 ## Deployment
 

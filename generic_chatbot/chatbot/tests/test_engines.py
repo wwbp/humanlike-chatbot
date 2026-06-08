@@ -36,6 +36,7 @@ class TestEngines:
             assert engine.temperature == 0.7
 
     # Real API call tests (sample models only)
+    @pytest.mark.integration
     @pytest.mark.asyncio
     async def test_openai_real_api(self):
         """Test OpenAI engine with real API call."""
@@ -50,6 +51,7 @@ class TestEngines:
         assert response is not None
         assert len(response) > 0
 
+    @pytest.mark.integration
     @pytest.mark.asyncio
     async def test_anthropic_real_api(self):
         """Test Anthropic engine with real API call."""
@@ -66,6 +68,7 @@ class TestEngines:
         assert response is not None
         assert len(response) > 0
 
+    @pytest.mark.integration
     @pytest.mark.asyncio
     async def test_bedrock_real_api(self):
         """Test Bedrock engine with real API call."""
@@ -130,6 +133,7 @@ class TestEngines:
         return False
 
     # Engine agnosticism test
+    @pytest.mark.integration
     @pytest.mark.asyncio
     async def test_engine_agnosticism(self):
         """Test that all engines work identically through initialization."""

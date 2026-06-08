@@ -72,7 +72,7 @@ class TestChatbotIntegration(TestCase):
         # Mock Kani constructor
         with patch("chatbot.services.runchat.Kani", return_value=mock_kani):
             # Test 1: Initial message
-            response1 = await run_chat_round(
+            response1, _ = await run_chat_round(
                 bot_name=self.bot.name,
                 conversation_id=self.conversation.conversation_id,
                 participant_id="test_user",
@@ -84,7 +84,7 @@ class TestChatbotIntegration(TestCase):
             assert len(response1) > 0
 
             # Test 2: Follow-up message (should include chat history)
-            response2 = await run_chat_round(
+            response2, _ = await run_chat_round(
                 bot_name=self.bot.name,
                 conversation_id=self.conversation.conversation_id,
                 participant_id="test_user",
@@ -163,7 +163,7 @@ class TestChatbotIntegration(TestCase):
 
         # Mock Kani constructor
         with patch("chatbot.services.runchat.Kani", return_value=mock_kani):
-            response = await run_chat_round(
+            response, _ = await run_chat_round(
                 bot_name=legacy_bot.name,
                 conversation_id=self.conversation.conversation_id,
                 participant_id="test_user",

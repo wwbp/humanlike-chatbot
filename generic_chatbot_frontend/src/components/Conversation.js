@@ -29,28 +29,8 @@ const Conversation = () => {
   const condition = params.get('condition') || '';
   const surveyMetaData = window.location.href;
 
-  // Fetch bot configuration
-  useEffect(() => {
-    if (!botName) return;
-
-    const fetchBotConfig = async () => {
-      try {
-        const res = await fetch(`${apiUrl}/bots/`);
-        if (!res.ok) throw new Error('Failed to fetch bots');
-        const data = await res.json();
-        const bot = data.bots.find(b => b.name === botName);
-        if (bot) {
-          setBotConfig(bot);
-        }
-      } catch (err) {
-        // console.error('Failed to fetch bot config:', err);
-      }
-    };
-
-    fetchBotConfig();
-  }, [apiUrl, botName]);
-
-  // Initialize conversation on mount
+  // Initialize conversation on mount.
+  // bot_config comes from the init response — no separate GET /api/bots/ call needed.
   useEffect(() => {
     if (!botName || !participantId) return;
 
@@ -71,6 +51,10 @@ const Conversation = () => {
         });
         if (!res.ok) throw new Error((await res.json()).error || 'Init failed');
         const data = await res.json();
+
+        if (data.bot_config) {
+          setBotConfig(data.bot_config);
+        }
 
         let avatar_data;
         try {

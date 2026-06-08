@@ -6,11 +6,18 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from ..models import Avatar, Bot
+from ..models import Avatar, Bot, Model
 from .s3_helper import delete
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
+
+
+def _require_staff(request):
+    """Return a 403 JsonResponse if the user is not a logged-in staff member, else None."""
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return JsonResponse({"error": "Forbidden."}, status=403)
+    return None
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -21,6 +28,9 @@ class ListBotsAPIView(View):
     """
 
     def get(self, request, *args, **kwargs):
+        forbidden = _require_staff(request)
+        if forbidden:
+            return forbidden
         try:
             bots = Bot.objects.values(
                 "id",
@@ -60,9 +70,12 @@ class ListBotsAPIView(View):
             return JsonResponse({"bots": list(bots)}, status=200)
         except Exception as e:
             logger.error(f"Error in ListBotsAPIView GET: {e}")
-            return JsonResponse({"error": str(e)}, status=500)
+            return JsonResponse({"error": "An unexpected error occurred."}, status=500)
 
     def post(self, request, *args, **kwargs):
+        forbidden = _require_staff(request)
+        if forbidden:
+            return forbidden
         try:
             data = json.loads(request.body)
             name = data.get("name")
@@ -75,10 +88,22 @@ class ListBotsAPIView(View):
             if not name or not model_type or not model_id:
                 return JsonResponse({"error": "Missing required fields."}, status=400)
 
+            ai_model = Model.objects.filter(
+                provider__name=model_type, model_id=model_id
+            ).first()
+            if not ai_model:
+                return JsonResponse(
+                    {
+                        "error": f"No model found for provider '{model_type}' and model_id '{model_id}'."
+                    },
+                    status=400,
+                )
+
             bot = Bot.objects.create(
                 name=name,
                 model_type=model_type,
                 model_id=model_id,
+                ai_model=ai_model,
                 prompt=prompt,
                 initial_utterance=initial_utterance,
                 avatar_type=avatar_type,
@@ -100,7 +125,7 @@ class ListBotsAPIView(View):
             return JsonResponse({"error": "Invalid JSON payload."}, status=400)
         except Exception as e:
             logger.error(f"Error in ListBotsAPIView POST: {e}")
-            return JsonResponse({"error": str(e)}, status=500)
+            return JsonResponse({"error": "An unexpected error occurred."}, status=500)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -112,6 +137,9 @@ class BotDetailAPIView(View):
     """
 
     def get(self, request, pk, *args, **kwargs):
+        forbidden = _require_staff(request)
+        if forbidden:
+            return forbidden
         try:
             bot = Bot.objects.get(pk=pk)
             data = {
@@ -146,9 +174,12 @@ class BotDetailAPIView(View):
             return JsonResponse({"error": "Bot not found"}, status=404)
         except Exception as e:
             logger.error(f"Error in BotDetailAPIView GET: {e}")
-            return JsonResponse({"error": str(e)}, status=500)
+            return JsonResponse({"error": "An unexpected error occurred."}, status=500)
 
     def put(self, request, pk, *args, **kwargs):
+        forbidden = _require_staff(request)
+        if forbidden:
+            return forbidden
         try:
             bot = Bot.objects.get(pk=pk)
         except Bot.DoesNotExist:
@@ -215,16 +246,19 @@ class BotDetailAPIView(View):
             return JsonResponse({"error": "Invalid JSON payload."}, status=400)
         except Exception as e:
             logger.error(f"Error in BotDetailAPIView PUT: {e}")
-            return JsonResponse({"error": str(e)}, status=500)
+            return JsonResponse({"error": "An unexpected error occurred."}, status=500)
 
     def delete(self, request, pk, *args, **kwargs):
+        forbidden = _require_staff(request)
+        if forbidden:
+            return forbidden
         try:
             bot = Bot.objects.get(pk=pk)
             try:
                 avatars = Avatar.objects.filter(bot=bot)
                 for avatar in avatars:
-                    if avatar.image_path:
-                        delete("avatar", avatar.image_path)
+                    if avatar.chatbot_avatar:
+                        delete("avatar", avatar.chatbot_avatar)
                 avatars.delete()
             except Exception:
                 logger.error("[ERROR] failed to delete S3 images")
@@ -234,4 +268,4 @@ class BotDetailAPIView(View):
             return JsonResponse({"error": "Bot not found"}, status=404)
         except Exception as e:
             logger.error(f"Error in BotDetailAPIView DELETE: {e}")
-            return JsonResponse({"error": str(e)}, status=500)
+            return JsonResponse({"error": "An unexpected error occurred."}, status=500)

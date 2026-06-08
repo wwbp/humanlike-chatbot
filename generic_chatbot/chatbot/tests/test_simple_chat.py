@@ -73,7 +73,7 @@ class TestSimpleChat:
                 patch("chatbot.services.runchat.Kani", return_value=mock_kani),
             ):
                 # Send a message
-                response = await run_chat_round(
+                response, _ = await run_chat_round(
                     bot_name=self.bot.name,
                     conversation_id=self.conversation.conversation_id,
                     participant_id="test_user",

@@ -66,6 +66,6 @@ def update_keystrokes(request):
             return JsonResponse({"error": "Invalid JSON format"}, status=400)
         except Exception as e:
             logger.error(f"Error saving keystroke: {e}")
-            return JsonResponse({"error": str(e)}, status=500)
+            return JsonResponse({"error": "An unexpected error occurred."}, status=500)
 
     return JsonResponse({"error": "Invalid request method"}, status=405)

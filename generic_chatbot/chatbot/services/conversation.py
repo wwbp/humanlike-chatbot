@@ -16,6 +16,37 @@ from .runchat import save_chat_to_db
 logger = logging.getLogger(__name__)
 
 
+def _bot_public_config(bot):
+    """
+    Return the bot fields the frontend needs after conversation init.
+
+    Only safe, non-sensitive fields — system prompt is intentionally excluded.
+    This is returned by initialize_conversation so the frontend does not need
+    to call the staff-only GET /api/bots/ endpoint.
+    """
+    return {
+        "follow_up_on_idle": bot.follow_up_on_idle,
+        "idle_time_minutes": bot.idle_time_minutes,
+        "recurring_followup": bot.recurring_followup,
+        "chunk_messages": bot.chunk_messages,
+        "humanlike_delay": bot.humanlike_delay,
+        "avatar_type": bot.avatar_type,
+        "reading_words_per_minute": bot.reading_words_per_minute,
+        "reading_jitter_min": bot.reading_jitter_min,
+        "reading_jitter_max": bot.reading_jitter_max,
+        "reading_thinking_min": bot.reading_thinking_min,
+        "reading_thinking_max": bot.reading_thinking_max,
+        "writing_words_per_minute": bot.writing_words_per_minute,
+        "writing_jitter_min": bot.writing_jitter_min,
+        "writing_jitter_max": bot.writing_jitter_max,
+        "writing_thinking_min": bot.writing_thinking_min,
+        "writing_thinking_max": bot.writing_thinking_max,
+        "intra_message_delay_min": bot.intra_message_delay_min,
+        "intra_message_delay_max": bot.intra_message_delay_max,
+        "min_reading_delay": bot.min_reading_delay,
+    }
+
+
 def randomly_select_persona(bot):
     """
     Randomly select one persona from the bot's assigned personas.
@@ -143,6 +174,7 @@ class InitializeConversationAPIView(View):
                         or "",
                         "existing_messages": existing_messages,
                         "is_existing": True,
+                        "bot_config": _bot_public_config(bot),
                     },
                     status=200,
                 )
@@ -215,6 +247,7 @@ class InitializeConversationAPIView(View):
                     "initial_utterance": bot.initial_utterance or "",
                     "existing_messages": initial_messages,
                     "is_existing": False,
+                    "bot_config": _bot_public_config(bot),
                 },
                 status=200,
             )

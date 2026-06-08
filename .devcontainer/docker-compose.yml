@@ -43,7 +43,6 @@ services:
     env_file:
       - ../api/.env
     environment:
-      DATABASE_ENGINE: django.db.backends.mysql
       PYTHONBUFFERED: 1
     depends_on:
       - db

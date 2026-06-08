@@ -9,10 +9,7 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load .env file
-ROOT_DIR = BASE_DIR.parent
-dotenv_path = ROOT_DIR / ".env"
-load_dotenv(dotenv_path)
+load_dotenv(BASE_DIR / ".env")
 
 
 STATIC_ROOT = BASE_DIR / "staticfiles"

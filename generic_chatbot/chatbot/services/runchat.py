@@ -106,14 +106,17 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     """
     Handles one full round of chat interaction: user -> bot response.
     Runs moderation on incoming message before processing.
-    Returns the bot response text.
+    Returns (response_text, bot) so callers have the bot object without a second DB fetch.
     """
     # Prevent followup requests from being processed as regular user messages
     if message.startswith("[FOLLOW-UP REQUEST]"):
         logger.warning(
             f"Followup request detected in regular chat round, ignoring: {message[:50]}...",
         )
-        return "I'm sorry, but I can't process followup requests through the regular chat. Please use the appropriate followup mechanism."
+        return (
+            "I'm sorry, but I can't process followup requests through the regular chat. Please use the appropriate followup mechanism.",
+            None,
+        )
 
     # Fetch bot object with personas and ai_model prefetched
     bot = await sync_to_async(
@@ -124,8 +127,8 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     # Run in thread to avoid blocking
     blocked = await sync_to_async(moderate_message)(message, bot)
     if blocked:
-        # Prepare a warning response without further processing
-        warning_text = f"Your message was blocked by moderation due to: {blocked}"
+        # Prepare a generic warning — do NOT expose the category to the user
+        warning_text = "Your message could not be processed. Please keep conversations respectful and constructive."
         # Save both user message and moderation response
         await save_chat_to_db(
             conversation_id=conversation_id,
@@ -142,7 +145,7 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
             participant_id=None,
             instruction_prompt=bot.prompt,  # Use bot prompt for moderation responses
         )
-        return warning_text
+        return warning_text, bot
 
     # Retrieve history from cache
     cache_key = f"conversation_cache_{conversation_id}"
@@ -273,4 +276,4 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
         chat_history_used=chat_history_json,
     )
 
-    return response_text
+    return response_text, bot

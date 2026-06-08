@@ -61,6 +61,10 @@ Prereqs: Docker Engine, Docker Compose, Git.
 
 Sphinx docs live in `chatlab/docs` and are served by the `docs` service on port 8001 when running `make start`.
 
+## Deprecated / external integration endpoints
+
+- `POST /api/update_keystrokes/` — Qualtrics-only integration point for logging keystrokes from an embedded survey. Not called by the React frontend. Planned for removal once all Qualtrics studies using it are retired.
+
 ## Deployment & CI/CD
 
 - Local dev uses Docker Compose (`docker-compose.yml`).

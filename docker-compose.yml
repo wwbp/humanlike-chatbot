@@ -65,23 +65,6 @@ services:
     depends_on:
       - backend
 
-  # sphinx docs using chatlab/docs
-  docs:
-    image: sphinxdoc/sphinx:latest
-    container_name: docs
-    volumes:
-      - ./chatlab/docs:/docs
-    working_dir: /docs
-    # Install requirements, build the HTML, then serve the built site on container port 8000
-    # Host port 8001 is mapped to container port 8000 below
-    command: >
-      /bin/sh -c "
-      pip install -r requirements.txt &&
-      make html &&
-      python -m http.server 8000 -d _build/html
-      "
-    ports:
-      - "8001:8000"
 
 volumes:
   mariadb-data:

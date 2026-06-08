@@ -6,12 +6,13 @@ Conventions:
   - `mock_llm`: opt-in — patches engine factory + Kani so no real API calls are made.
   - `make_bot` / `make_conversation`: lightweight factory fixtures.
 """
+
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from chatbot.models import Bot, Conversation, Model, ModelProvider
+from chatbot.models import Bot, Conversation, Model
 
 
 @pytest.fixture
@@ -31,11 +32,11 @@ def make_bot(openai_model):
     created = []
 
     def _make(**kwargs):
-        defaults = dict(
-            name=f"bot_{uuid.uuid4().hex[:8]}",
-            prompt="You are a test assistant.",
-            ai_model=openai_model,
-        )
+        defaults = {
+            "name": f"bot_{uuid.uuid4().hex[:8]}",
+            "prompt": "You are a test assistant.",
+            "ai_model": openai_model,
+        }
         defaults.update(kwargs)
         bot = Bot.objects.create(**defaults)
         created.append(bot)
@@ -55,11 +56,11 @@ def make_conversation(make_bot):
     def _make(bot=None, **kwargs):
         if bot is None:
             bot = make_bot()
-        defaults = dict(
-            conversation_id=f"conv_{uuid.uuid4().hex[:8]}",
-            bot_name=bot.name,
-            participant_id="p001",
-        )
+        defaults = {
+            "conversation_id": f"conv_{uuid.uuid4().hex[:8]}",
+            "bot_name": bot.name,
+            "participant_id": "p001",
+        }
         defaults.update(kwargs)
         conv = Conversation.objects.create(**defaults)
         created.append(conv)

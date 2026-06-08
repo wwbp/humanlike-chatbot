@@ -93,7 +93,9 @@ class ListBotsAPIView(View):
             ).first()
             if not ai_model:
                 return JsonResponse(
-                    {"error": f"No model found for provider '{model_type}' and model_id '{model_id}'."},
+                    {
+                        "error": f"No model found for provider '{model_type}' and model_id '{model_id}'."
+                    },
                     status=400,
                 )
 

@@ -83,7 +83,10 @@ def upload_voice_utterance(request):
 
         if audio_file:
             mime = audio_file.content_type.split(";")[0].strip()
-            if f"{mime}" not in _ALLOWED_AUDIO_MIME_TYPES and audio_file.content_type not in _ALLOWED_AUDIO_MIME_TYPES:
+            if (
+                f"{mime}" not in _ALLOWED_AUDIO_MIME_TYPES
+                and audio_file.content_type not in _ALLOWED_AUDIO_MIME_TYPES
+            ):
                 return JsonResponse({"error": "Unsupported audio format."}, status=415)
 
         conversation = Conversation.objects.get(conversation_id=conversation_id)

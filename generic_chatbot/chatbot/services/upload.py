@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+from pathlib import Path
 
 import boto3
 from django.conf import settings
@@ -29,13 +30,15 @@ def get_presigned_url(request):
     content_type = request.GET.get("content_type", "")
 
     if not file_name or not content_type:
-        return JsonResponse({"error": "filename and content_type are required."}, status=400)
+        return JsonResponse(
+            {"error": "filename and content_type are required."}, status=400
+        )
 
     if content_type not in _ALLOWED_IMAGE_CONTENT_TYPES:
         return JsonResponse({"error": "Unsupported content type."}, status=415)
 
     # Sanitize filename: strip directory traversal and allow only safe characters
-    safe_name = os.path.basename(file_name)
+    safe_name = Path(file_name).name
     if not _SAFE_FILENAME_RE.match(safe_name):
         return JsonResponse({"error": "Invalid filename."}, status=400)
 

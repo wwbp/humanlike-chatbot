@@ -28,18 +28,18 @@ jobs:
         with:
           node-version: "18"
           cache: npm
-          cache-dependency-path: generic_chatbot_frontend/package-lock.json
+          cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
         run: |
-          cd generic_chatbot_frontend
+          cd web
           npm ci
 
       - name: Build frontend
         env:
           VITE_API_URL: https://bot.wwbp.org/api
         run: |
-          cd generic_chatbot_frontend
+          cd web
           npm run build
 
       - name: Configure AWS credentials
@@ -51,7 +51,7 @@ jobs:
       - name: Sync S3 bucket
         run: |
           aws s3 rm s3://${{ secrets.AWS_S3_PROD_BUCKET_NAME_FRONTEND }} --recursive
-          aws s3 sync generic_chatbot_frontend/build/ s3://${{ secrets.AWS_S3_PROD_BUCKET_NAME_FRONTEND }} --delete
+          aws s3 sync web/build/ s3://${{ secrets.AWS_S3_PROD_BUCKET_NAME_FRONTEND }} --delete
 
       - name: Invalidate CloudFront cache
         run: |

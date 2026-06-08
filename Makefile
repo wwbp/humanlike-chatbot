@@ -50,6 +50,6 @@ lint:
 	fi
 	@echo ""
 	@echo "🎨 Frontend (React) linting..."
-	@cd generic_chatbot_frontend && npm run lint:fix && npm run format
+	@cd web && npm run lint:fix && npm run format
 	@echo ""
 	@echo "✅ All linting and formatting completed!"

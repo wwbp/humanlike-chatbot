@@ -48,7 +48,7 @@ services:
 
   frontend:
     build:
-      context: ./generic_chatbot_frontend
+      context: ./web
       dockerfile: Dockerfile.local
     container_name: react_app
     stdin_open: true
@@ -56,7 +56,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./generic_chatbot_frontend:/app
+      - ./web:/app
       - /app/node_modules
     env_file:
       - .env

@@ -103,16 +103,16 @@ jobs:
         with:
           node-version: "18"
           cache: npm
-          cache-dependency-path: generic_chatbot_frontend/package-lock.json
+          cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
-        run: cd generic_chatbot_frontend && npm ci
+        run: cd web && npm ci
 
       - name: ESLint
-        run: cd generic_chatbot_frontend && npm run lint
+        run: cd web && npm run lint
 
       - name: Prettier
-        run: cd generic_chatbot_frontend && npm run format:check
+        run: cd web && npm run format:check
 
   frontend-test:
     name: Frontend test
@@ -124,10 +124,10 @@ jobs:
         with:
           node-version: "18"
           cache: npm
-          cache-dependency-path: generic_chatbot_frontend/package-lock.json
+          cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
-        run: cd generic_chatbot_frontend && npm ci
+        run: cd web && npm ci
 
       - name: Run tests
-        run: cd generic_chatbot_frontend && npm test -- --run
+        run: cd web && npm test -- --run

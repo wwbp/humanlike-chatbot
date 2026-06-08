@@ -68,56 +68,56 @@ class TestBotsView(TestCase):
 
     def test_list_get_unauthenticated_returns_403(self):
         r = Client().get(LIST_URL)
-        self.assertEqual(r.status_code, 403)
+        assert r.status_code == 403
 
     def test_list_post_unauthenticated_returns_403(self):
         r = self._post(Client(), {"name": "x", "model_type": "OpenAI", "model_id": "gpt-4o-mini"})
-        self.assertEqual(r.status_code, 403)
+        assert r.status_code == 403
 
     def test_detail_get_unauthenticated_returns_403(self):
         r = Client().get(DETAIL_URL.format(self.bot.pk))
-        self.assertEqual(r.status_code, 403)
+        assert r.status_code == 403
 
     def test_detail_put_unauthenticated_returns_403(self):
         r = self._put(Client(), self.bot.pk, {"name": "x"})
-        self.assertEqual(r.status_code, 403)
+        assert r.status_code == 403
 
     def test_detail_delete_unauthenticated_returns_403(self):
         r = Client().delete(DETAIL_URL.format(self.bot.pk))
-        self.assertEqual(r.status_code, 403)
+        assert r.status_code == 403
 
     # ── GET /api/bots/ ─────────────────────────────────────────────────────────
 
     def test_list_returns_200_with_bots_key(self):
         r = self._staff_client().get(LIST_URL)
-        self.assertEqual(r.status_code, 200)
+        assert r.status_code == 200
         data = r.json()
-        self.assertIn("bots", data)
-        self.assertIsInstance(data["bots"], list)
+        assert "bots" in data
+        assert isinstance(data["bots"], list)
 
     def test_list_includes_created_bot(self):
         r = self._staff_client().get(LIST_URL)
         ids = [b["id"] for b in r.json()["bots"]]
-        self.assertIn(self.bot.id, ids)
+        assert self.bot.id in ids
 
     # ── POST /api/bots/ ────────────────────────────────────────────────────────
 
     def test_post_missing_fields_returns_400(self):
         r = self._post(self._staff_client(), {"name": "only_name"})
-        self.assertEqual(r.status_code, 400)
-        self.assertIn("error", r.json())
+        assert r.status_code == 400
+        assert "error" in r.json()
 
     def test_post_invalid_json_returns_400(self):
         r = self._staff_client().post(LIST_URL, data="not-json", content_type="application/json")
-        self.assertEqual(r.status_code, 400)
+        assert r.status_code == 400
 
     def test_post_unknown_model_returns_400(self):
         r = self._post(
             self._staff_client(),
             {"name": "x", "model_type": "Unknown", "model_id": "no-such"},
         )
-        self.assertEqual(r.status_code, 400)
-        self.assertIn("No model found", r.json()["error"])
+        assert r.status_code == 400
+        assert "No model found" in r.json()["error"]
 
     def test_post_creates_bot_returns_201(self):
         name = f"new_{uuid.uuid4().hex[:6]}"
@@ -125,24 +125,24 @@ class TestBotsView(TestCase):
             self._staff_client(),
             {"name": name, "model_type": "OpenAI", "model_id": "gpt-4o-mini", "prompt": "Hello."},
         )
-        self.assertEqual(r.status_code, 201)
+        assert r.status_code == 201
         body = r.json()
-        self.assertEqual(body["name"], name)
+        assert body["name"] == name
         for field in ("id", "model_type", "model_id", "prompt", "initial_utterance", "avatar_type"):
-            self.assertIn(field, body, f"missing field: {field}")
+            assert field in body, f"missing field: {field}"
 
     # ── GET /api/bots/<pk>/ ────────────────────────────────────────────────────
 
     def test_detail_get_not_found_returns_404(self):
         r = self._staff_client().get(DETAIL_URL.format(99999999))
-        self.assertEqual(r.status_code, 404)
+        assert r.status_code == 404
 
     def test_detail_get_returns_all_fields(self):
         r = self._staff_client().get(DETAIL_URL.format(self.bot.pk))
-        self.assertEqual(r.status_code, 200)
+        assert r.status_code == 200
         data = r.json()
-        self.assertEqual(data["id"], self.bot.id)
-        self.assertEqual(data["name"], self.bot.name)
+        assert data["id"] == self.bot.id
+        assert data["name"] == self.bot.name
         for field in (
             "prompt",
             "humanlike_delay",
@@ -151,13 +151,13 @@ class TestBotsView(TestCase):
             "idle_time_minutes",
             "follow_up_instruction_prompt",
         ):
-            self.assertIn(field, data, f"missing field: {field}")
+            assert field in data, f"missing field: {field}"
 
     # ── PUT /api/bots/<pk>/ ────────────────────────────────────────────────────
 
     def test_detail_put_not_found_returns_404(self):
         r = self._put(self._staff_client(), 99999999, {"name": "x"})
-        self.assertEqual(r.status_code, 404)
+        assert r.status_code == 404
 
     def test_detail_put_invalid_json_returns_400(self):
         r = self._staff_client().put(
@@ -165,7 +165,7 @@ class TestBotsView(TestCase):
             data="bad-json",
             content_type="application/json",
         )
-        self.assertEqual(r.status_code, 400)
+        assert r.status_code == 400
 
     def test_detail_put_updates_name_and_prompt(self):
         new_name = f"renamed_{uuid.uuid4().hex[:6]}"
@@ -174,16 +174,16 @@ class TestBotsView(TestCase):
             self.bot.pk,
             {"name": new_name, "prompt": "Updated prompt."},
         )
-        self.assertEqual(r.status_code, 200)
+        assert r.status_code == 200
         self.bot.refresh_from_db()
-        self.assertEqual(self.bot.name, new_name)
-        self.assertEqual(self.bot.prompt, "Updated prompt.")
+        assert self.bot.name == new_name
+        assert self.bot.prompt == "Updated prompt."
 
     # ── DELETE /api/bots/<pk>/ ─────────────────────────────────────────────────
 
     def test_detail_delete_not_found_returns_404(self):
         r = self._staff_client().delete(DETAIL_URL.format(99999999))
-        self.assertEqual(r.status_code, 404)
+        assert r.status_code == 404
 
     def test_detail_delete_removes_bot_returns_204(self):
         temp = Bot.objects.create(
@@ -195,5 +195,5 @@ class TestBotsView(TestCase):
         )
         with patch("chatbot.services.bots.delete"):
             r = self._staff_client().delete(DETAIL_URL.format(temp.pk))
-        self.assertEqual(r.status_code, 204)
-        self.assertFalse(Bot.objects.filter(pk=temp.pk).exists())
+        assert r.status_code == 204
+        assert not Bot.objects.filter(pk=temp.pk).exists()

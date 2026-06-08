@@ -60,7 +60,9 @@ class TestGetRealtimeSession(TestCase):
     @patch.dict("os.environ", {}, clear=False)
     def test_missing_api_key_returns_503(self):
         with patch("chatbot.services.voicechat.os.getenv", return_value=None):
-            r = Client().get(SESSION_URL, {"conversation_id": self.conv.conversation_id})
+            r = Client().get(
+                SESSION_URL, {"conversation_id": self.conv.conversation_id}
+            )
         assert r.status_code == 503
 
     def test_success_proxies_openai_response(self):
@@ -71,16 +73,23 @@ class TestGetRealtimeSession(TestCase):
             patch("chatbot.services.voicechat.os.getenv", return_value="sk-test"),
             patch("chatbot.services.voicechat.requests.post", return_value=mock_resp),
         ):
-            r = Client().get(SESSION_URL, {"conversation_id": self.conv.conversation_id})
+            r = Client().get(
+                SESSION_URL, {"conversation_id": self.conv.conversation_id}
+            )
         assert r.status_code == 200
         assert r.json()["id"] == "sess_123"
 
     def test_openai_request_failure_returns_500(self):
         with (
             patch("chatbot.services.voicechat.os.getenv", return_value="sk-test"),
-            patch("chatbot.services.voicechat.requests.post", side_effect=Exception("timeout")),
+            patch(
+                "chatbot.services.voicechat.requests.post",
+                side_effect=Exception("timeout"),
+            ),
         ):
-            r = Client().get(SESSION_URL, {"conversation_id": self.conv.conversation_id})
+            r = Client().get(
+                SESSION_URL, {"conversation_id": self.conv.conversation_id}
+            )
         assert r.status_code == 500
 
 

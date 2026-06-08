@@ -9,6 +9,7 @@ Coverage:
   - No double bot fetch regression: view must not re-query Bot after run_chat_round
   - Moderation blocked: warning text returned, both utterances saved to DB
 """
+
 import uuid
 from unittest.mock import MagicMock, patch
 
@@ -73,7 +74,9 @@ class TestChatbotView:
             "message": message,
             **extra,
         }
-        return client.post(URL, data=json.dumps(payload), content_type="application/json")
+        return client.post(
+            URL, data=json.dumps(payload), content_type="application/json"
+        )
 
     # ── Input validation ──────────────────────────────────────────────────────
 
@@ -87,10 +90,12 @@ class TestChatbotView:
             client = AsyncClient()
             r = await client.post(
                 URL,
-                data=json.dumps({
-                    "bot_name": self.bot.name,
-                    "conversation_id": self.conv.conversation_id,
-                }),
+                data=json.dumps(
+                    {
+                        "bot_name": self.bot.name,
+                        "conversation_id": self.conv.conversation_id,
+                    }
+                ),
                 content_type="application/json",
             )
             assert r.status_code == 400
@@ -108,7 +113,9 @@ class TestChatbotView:
             client = AsyncClient()
             r = await client.post(
                 URL,
-                data=json.dumps({"message": "Hi", "conversation_id": self.conv.conversation_id}),
+                data=json.dumps(
+                    {"message": "Hi", "conversation_id": self.conv.conversation_id}
+                ),
                 content_type="application/json",
             )
             assert r.status_code == 400
@@ -141,15 +148,26 @@ class TestChatbotView:
         try:
             client = AsyncClient()
             with (
-                patch("chatbot.services.runchat.get_or_create_engine_from_model", return_value=MagicMock()),
-                patch("chatbot.services.runchat.Kani", return_value=_mock_kani("Great!")),
+                patch(
+                    "chatbot.services.runchat.get_or_create_engine_from_model",
+                    return_value=MagicMock(),
+                ),
+                patch(
+                    "chatbot.services.runchat.Kani", return_value=_mock_kani("Great!")
+                ),
                 patch("chatbot.services.runchat.moderate_message", return_value=False),
             ):
                 r = await self._post(client)
 
             assert r.status_code == 200
             data = r.json()
-            for field in ("response", "response_chunks", "humanlike_delay", "chunk_messages", "delay_config"):
+            for field in (
+                "response",
+                "response_chunks",
+                "humanlike_delay",
+                "chunk_messages",
+                "delay_config",
+            ):
                 assert field in data, f"missing field: {field}"
         finally:
             await sync_to_async(self.tearDown)()
@@ -161,8 +179,14 @@ class TestChatbotView:
         try:
             client = AsyncClient()
             with (
-                patch("chatbot.services.runchat.get_or_create_engine_from_model", return_value=MagicMock()),
-                patch("chatbot.services.runchat.Kani", return_value=_mock_kani("Specific reply.")),
+                patch(
+                    "chatbot.services.runchat.get_or_create_engine_from_model",
+                    return_value=MagicMock(),
+                ),
+                patch(
+                    "chatbot.services.runchat.Kani",
+                    return_value=_mock_kani("Specific reply."),
+                ),
                 patch("chatbot.services.runchat.moderate_message", return_value=False),
             ):
                 r = await self._post(client, message="Tell me something")
@@ -178,7 +202,10 @@ class TestChatbotView:
         try:
             client = AsyncClient()
             with (
-                patch("chatbot.services.runchat.get_or_create_engine_from_model", return_value=MagicMock()),
+                patch(
+                    "chatbot.services.runchat.get_or_create_engine_from_model",
+                    return_value=MagicMock(),
+                ),
                 patch("chatbot.services.runchat.Kani", return_value=_mock_kani()),
                 patch("chatbot.services.runchat.moderate_message", return_value=False),
             ):
@@ -194,12 +221,20 @@ class TestChatbotView:
     @pytest.mark.django_db
     @pytest.mark.asyncio
     async def test_chunk_messages_false_returns_single_chunk(self):
-        await sync_to_async(self.setUp)(bot_kwargs={"chunk_messages": False, "humanlike_delay": False})
+        await sync_to_async(self.setUp)(
+            bot_kwargs={"chunk_messages": False, "humanlike_delay": False}
+        )
         try:
             client = AsyncClient()
             with (
-                patch("chatbot.services.runchat.get_or_create_engine_from_model", return_value=MagicMock()),
-                patch("chatbot.services.runchat.Kani", return_value=_mock_kani("One. Two. Three.")),
+                patch(
+                    "chatbot.services.runchat.get_or_create_engine_from_model",
+                    return_value=MagicMock(),
+                ),
+                patch(
+                    "chatbot.services.runchat.Kani",
+                    return_value=_mock_kani("One. Two. Three."),
+                ),
                 patch("chatbot.services.runchat.moderate_message", return_value=False),
             ):
                 r = await self._post(client)
@@ -217,14 +252,22 @@ class TestChatbotView:
         try:
             client = AsyncClient()
             with (
-                patch("chatbot.services.runchat.get_or_create_engine_from_model", return_value=MagicMock()),
-                patch("chatbot.services.runchat.Kani", return_value=_mock_kani("Bot reply.")),
+                patch(
+                    "chatbot.services.runchat.get_or_create_engine_from_model",
+                    return_value=MagicMock(),
+                ),
+                patch(
+                    "chatbot.services.runchat.Kani",
+                    return_value=_mock_kani("Bot reply."),
+                ),
                 patch("chatbot.services.runchat.moderate_message", return_value=False),
             ):
                 await self._post(client, message="User msg")
 
             utterances = await sync_to_async(list)(
-                Utterance.objects.filter(conversation=self.conv).order_by("created_time")
+                Utterance.objects.filter(conversation=self.conv).order_by(
+                    "created_time"
+                )
             )
             assert len(utterances) == 2
             assert utterances[0].speaker_id == "user"
@@ -239,6 +282,7 @@ class TestChatbotView:
     def test_views_does_not_import_bot_model(self):
         """Regression: views.py must not import Bot — it gets it from run_chat_round's return value."""
         import chatbot.views as views_module
+
         assert not hasattr(views_module, "Bot"), (
             "chatbot.views imported Bot — double fetch regression: "
             "run_chat_round already returns the bot object"
@@ -253,7 +297,10 @@ class TestChatbotView:
         try:
             client = AsyncClient()
             with (
-                patch("chatbot.services.runchat.get_or_create_engine_from_model", return_value=MagicMock()),
+                patch(
+                    "chatbot.services.runchat.get_or_create_engine_from_model",
+                    return_value=MagicMock(),
+                ),
                 patch("chatbot.services.runchat.Kani"),
                 patch("chatbot.services.runchat.moderate_message", return_value=True),
             ):
@@ -271,14 +318,19 @@ class TestChatbotView:
         try:
             client = AsyncClient()
             with (
-                patch("chatbot.services.runchat.get_or_create_engine_from_model", return_value=MagicMock()),
+                patch(
+                    "chatbot.services.runchat.get_or_create_engine_from_model",
+                    return_value=MagicMock(),
+                ),
                 patch("chatbot.services.runchat.Kani"),
                 patch("chatbot.services.runchat.moderate_message", return_value=True),
             ):
                 await self._post(client, message="Bad message")
 
             utterances = await sync_to_async(list)(
-                Utterance.objects.filter(conversation=self.conv).order_by("created_time")
+                Utterance.objects.filter(conversation=self.conv).order_by(
+                    "created_time"
+                )
             )
             assert len(utterances) == 2
             assert utterances[0].speaker_id == "user"

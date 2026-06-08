@@ -21,32 +21,30 @@ describe('MessageBubble', () => {
   });
 
   it('shows avatar image for bot messages when image_url is set', () => {
-    render(
-      <MessageBubble sender="AI Chatbot" content="Hi" avatar={avatar} />
-    );
+    render(<MessageBubble sender="AI Chatbot" content="Hi" avatar={avatar} />);
     const img = screen.getByAltText('Avatar');
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute('src', avatar.image_url);
   });
 
   it('does not show avatar for user messages', () => {
-    render(
-      <MessageBubble sender="You" content="Hello" avatar={avatar} />
-    );
+    render(<MessageBubble sender="You" content="Hello" avatar={avatar} />);
     expect(screen.queryByAltText('Avatar')).not.toBeInTheDocument();
   });
 
   it('does not show avatar when image_url is null', () => {
     render(
-      <MessageBubble sender="AI Chatbot" content="Hi" avatar={{ image_url: null }} />
+      <MessageBubble
+        sender="AI Chatbot"
+        content="Hi"
+        avatar={{ image_url: null }}
+      />
     );
     expect(screen.queryByAltText('Avatar')).not.toBeInTheDocument();
   });
 
   it('renders message content', () => {
-    render(
-      <MessageBubble sender="You" content="Test message" avatar={{}} />
-    );
+    render(<MessageBubble sender="You" content="Test message" avatar={{}} />);
     expect(screen.getByText('Test message')).toBeInTheDocument();
   });
 });

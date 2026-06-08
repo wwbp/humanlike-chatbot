@@ -39,7 +39,9 @@ class TestGetPresignedUrl(TestCase):
     # ── Auth guard ─────────────────────────────────────────────────────────────
 
     def test_unauthenticated_returns_403(self):
-        r = Client().get(UPLOAD_URL, {"filename": "a.jpg", "content_type": "image/jpeg"})
+        r = Client().get(
+            UPLOAD_URL, {"filename": "a.jpg", "content_type": "image/jpeg"}
+        )
         assert r.status_code == 403
 
     # ── Input validation ───────────────────────────────────────────────────────
@@ -75,7 +77,12 @@ class TestGetPresignedUrl(TestCase):
         mock_s3.generate_presigned_url.return_value = "https://s3.example.com/presigned"
         with (
             patch("chatbot.services.upload.boto3.client", return_value=mock_s3),
-            patch("chatbot.services.upload.os.getenv", side_effect=lambda k, *_: "test-bucket" if k == "AWS_BUCKET_NAME" else "us-east-1"),
+            patch(
+                "chatbot.services.upload.os.getenv",
+                side_effect=lambda k, *_: (
+                    "test-bucket" if k == "AWS_BUCKET_NAME" else "us-east-1"
+                ),
+            ),
             patch("django.conf.settings.BACKEND_ENVIRONMENT", "local"),
         ):
             r = self._get(
@@ -89,7 +96,10 @@ class TestGetPresignedUrl(TestCase):
 
     def test_boto3_failure_returns_500(self):
         with (
-            patch("chatbot.services.upload.boto3.client", side_effect=Exception("no creds")),
+            patch(
+                "chatbot.services.upload.boto3.client",
+                side_effect=Exception("no creds"),
+            ),
             patch("django.conf.settings.BACKEND_ENVIRONMENT", "local"),
         ):
             r = self._get(

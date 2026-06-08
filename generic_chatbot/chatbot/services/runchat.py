@@ -113,7 +113,10 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
         logger.warning(
             f"Followup request detected in regular chat round, ignoring: {message[:50]}...",
         )
-        return "I'm sorry, but I can't process followup requests through the regular chat. Please use the appropriate followup mechanism.", None
+        return (
+            "I'm sorry, but I can't process followup requests through the regular chat. Please use the appropriate followup mechanism.",
+            None,
+        )
 
     # Fetch bot object with personas and ai_model prefetched
     bot = await sync_to_async(

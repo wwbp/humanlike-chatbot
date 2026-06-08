@@ -61,7 +61,9 @@ class TestBotsView(TestCase):
 
     def _put(self, client, pk, data):
         return client.put(
-            DETAIL_URL.format(pk), data=json.dumps(data), content_type="application/json"
+            DETAIL_URL.format(pk),
+            data=json.dumps(data),
+            content_type="application/json",
         )
 
     # ── Auth guard ─────────────────────────────────────────────────────────────
@@ -71,7 +73,9 @@ class TestBotsView(TestCase):
         assert r.status_code == 403
 
     def test_list_post_unauthenticated_returns_403(self):
-        r = self._post(Client(), {"name": "x", "model_type": "OpenAI", "model_id": "gpt-4o-mini"})
+        r = self._post(
+            Client(), {"name": "x", "model_type": "OpenAI", "model_id": "gpt-4o-mini"}
+        )
         assert r.status_code == 403
 
     def test_detail_get_unauthenticated_returns_403(self):
@@ -108,7 +112,9 @@ class TestBotsView(TestCase):
         assert "error" in r.json()
 
     def test_post_invalid_json_returns_400(self):
-        r = self._staff_client().post(LIST_URL, data="not-json", content_type="application/json")
+        r = self._staff_client().post(
+            LIST_URL, data="not-json", content_type="application/json"
+        )
         assert r.status_code == 400
 
     def test_post_unknown_model_returns_400(self):
@@ -123,12 +129,24 @@ class TestBotsView(TestCase):
         name = f"new_{uuid.uuid4().hex[:6]}"
         r = self._post(
             self._staff_client(),
-            {"name": name, "model_type": "OpenAI", "model_id": "gpt-4o-mini", "prompt": "Hello."},
+            {
+                "name": name,
+                "model_type": "OpenAI",
+                "model_id": "gpt-4o-mini",
+                "prompt": "Hello.",
+            },
         )
         assert r.status_code == 201
         body = r.json()
         assert body["name"] == name
-        for field in ("id", "model_type", "model_id", "prompt", "initial_utterance", "avatar_type"):
+        for field in (
+            "id",
+            "model_type",
+            "model_id",
+            "prompt",
+            "initial_utterance",
+            "avatar_type",
+        ):
             assert field in body, f"missing field: {field}"
 
     # ── GET /api/bots/<pk>/ ────────────────────────────────────────────────────

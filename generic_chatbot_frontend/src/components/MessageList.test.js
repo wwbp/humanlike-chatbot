@@ -10,7 +10,9 @@ const avatar = { image_url: null };
 
 describe('MessageList', () => {
   it('renders all messages', () => {
-    render(<MessageList messages={messages} isTyping={false} avatar={avatar} />);
+    render(
+      <MessageList messages={messages} isTyping={false} avatar={avatar} />
+    );
     expect(screen.getByText('Hello!')).toBeInTheDocument();
     expect(screen.getByText('Hi there')).toBeInTheDocument();
   });
@@ -33,6 +35,8 @@ describe('MessageList', () => {
     const { container } = render(
       <MessageList messages={messages} isTyping={false} avatar={avatar} />
     );
-    expect(container.querySelector('.typing-indicator')).not.toBeInTheDocument();
+    expect(
+      container.querySelector('.typing-indicator')
+    ).not.toBeInTheDocument();
   });
 });

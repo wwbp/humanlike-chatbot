@@ -63,7 +63,9 @@ describe('Simulate', () => {
     expect(screen.getByLabelText(/participant id/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/study name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/user group/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /start conversation/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /start conversation/i })
+    ).toBeInTheDocument();
   });
 
   it('shows alert and does not navigate when fields are empty', () => {
@@ -77,7 +79,9 @@ describe('Simulate', () => {
   it('navigates to /conversation for a regular bot name', () => {
     renderSimulate();
     fillForm({ botName: 'my-bot' });
-    fireEvent.click(screen.getByRole('button', { name: /start conversation/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /start conversation/i })
+    );
     expect(mockNavigate).toHaveBeenCalledOnce();
     const [path] = mockNavigate.mock.calls[0];
     expect(path).toMatch(/^\/conversation\?/);
@@ -86,7 +90,9 @@ describe('Simulate', () => {
   it('navigates to /voice-conversation when bot name contains -voice', () => {
     renderSimulate();
     fillForm({ botName: 'my-bot-voice' });
-    fireEvent.click(screen.getByRole('button', { name: /start conversation/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /start conversation/i })
+    );
     const [path] = mockNavigate.mock.calls[0];
     expect(path).toMatch(/^\/voice-conversation\?/);
   });
@@ -100,7 +106,9 @@ describe('Simulate', () => {
       studyName: 'my-study',
       userGroup: 'control',
     });
-    fireEvent.click(screen.getByRole('button', { name: /start conversation/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /start conversation/i })
+    );
     const [path] = mockNavigate.mock.calls[0];
     const qs = path.split('?')[1];
     const params = new URLSearchParams(qs);

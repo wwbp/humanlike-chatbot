@@ -33,8 +33,9 @@ module.exports = {
   },
   overrides: [
     {
-      files: ['**/*.test.js', '**/*.test.jsx', '**/*.spec.js', '**/*.spec.jsx'],
+      files: ['**/*.test.js', '**/*.test.jsx', '**/*.spec.js', '**/*.spec.jsx', '**/setupTests.js'],
       env: { jest: true },
+      globals: { vi: 'readonly' },
     },
   ],
 };

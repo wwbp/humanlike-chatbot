@@ -39,7 +39,9 @@ const makeChatbotResponse = (text = 'Bot reply.') => ({
 });
 
 // Stub window.location with the required query params
-const stubLocation = (search = '?bot_name=TestBot&participant_id=p1&conversation_id=conv1') => {
+const stubLocation = (
+  search = '?bot_name=TestBot&participant_id=p1&conversation_id=conv1'
+) => {
   Object.defineProperty(window, 'location', {
     configurable: true,
     writable: true,
@@ -91,8 +93,9 @@ describe('Conversation — initialization', () => {
 
   it('calls initialize_conversation on mount with correct body', async () => {
     stubLocation();
-    const fetchMock = vi.fn((url) => {
-      if (url.includes('/initialize_conversation/')) return Promise.resolve(makeInitResponse());
+    const fetchMock = vi.fn(url => {
+      if (url.includes('/initialize_conversation/'))
+        return Promise.resolve(makeInitResponse());
       return Promise.resolve(makeAvatarResponse());
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -100,11 +103,15 @@ describe('Conversation — initialization', () => {
     render(<Conversation />);
 
     await waitFor(() => {
-      const initCall = fetchMock.mock.calls.find(c => c[0].includes('/initialize_conversation/'));
+      const initCall = fetchMock.mock.calls.find(c =>
+        c[0].includes('/initialize_conversation/')
+      );
       expect(initCall).toBeDefined();
     });
 
-    const [url, opts] = fetchMock.mock.calls.find(c => c[0].includes('/initialize_conversation/'));
+    const [url, opts] = fetchMock.mock.calls.find(c =>
+      c[0].includes('/initialize_conversation/')
+    );
     expect(url).toContain(`${API_URL}/initialize_conversation/`);
     expect(opts.method).toBe('POST');
     const body = JSON.parse(opts.body);
@@ -115,10 +122,14 @@ describe('Conversation — initialization', () => {
 
   it('shows initial_utterance as the first message', async () => {
     stubLocation();
-    vi.stubGlobal('fetch', vi.fn((url) => {
-      if (url.includes('/initialize_conversation/')) return Promise.resolve(makeInitResponse());
-      return Promise.resolve(makeAvatarResponse());
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(url => {
+        if (url.includes('/initialize_conversation/'))
+          return Promise.resolve(makeInitResponse());
+        return Promise.resolve(makeAvatarResponse());
+      })
+    );
 
     render(<Conversation />);
 
@@ -129,19 +140,22 @@ describe('Conversation — initialization', () => {
 
   it('shows existing_messages when returned from init', async () => {
     stubLocation();
-    vi.stubGlobal('fetch', vi.fn((url) => {
-      if (url.includes('/initialize_conversation/'))
-        return Promise.resolve(
-          makeInitResponse({
-            initial_utterance: '',
-            existing_messages: [
-              { sender: 'AI Chatbot', content: 'Prior message' },
-              { sender: 'You', content: 'Prior reply' },
-            ],
-          })
-        );
-      return Promise.resolve(makeAvatarResponse());
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(url => {
+        if (url.includes('/initialize_conversation/'))
+          return Promise.resolve(
+            makeInitResponse({
+              initial_utterance: '',
+              existing_messages: [
+                { sender: 'AI Chatbot', content: 'Prior message' },
+                { sender: 'You', content: 'Prior reply' },
+              ],
+            })
+          );
+        return Promise.resolve(makeAvatarResponse());
+      })
+    );
 
     render(<Conversation />);
 
@@ -153,11 +167,18 @@ describe('Conversation — initialization', () => {
 
   it('falls back to default avatar when avatar fetch fails', async () => {
     stubLocation();
-    vi.stubGlobal('fetch', vi.fn((url) => {
-      if (url.includes('/initialize_conversation/')) return Promise.resolve(makeInitResponse());
-      // Avatar fetch fails
-      return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: 'Not found' }) });
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(url => {
+        if (url.includes('/initialize_conversation/'))
+          return Promise.resolve(makeInitResponse());
+        // Avatar fetch fails
+        return Promise.resolve({
+          ok: false,
+          json: () => Promise.resolve({ error: 'Not found' }),
+        });
+      })
+    );
 
     render(<Conversation />);
 
@@ -175,12 +196,17 @@ describe('Conversation — handleSubmit', () => {
   });
 
   const renderWithInit = async (chatResponse = makeChatbotResponse()) => {
-    vi.stubGlobal('fetch', vi.fn((url) => {
-      if (url.includes('/initialize_conversation/')) return Promise.resolve(makeInitResponse());
-      if (url.includes('/avatar/')) return Promise.resolve(makeAvatarResponse());
-      if (url.includes('/chatbot/')) return Promise.resolve(chatResponse);
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(url => {
+        if (url.includes('/initialize_conversation/'))
+          return Promise.resolve(makeInitResponse());
+        if (url.includes('/avatar/'))
+          return Promise.resolve(makeAvatarResponse());
+        if (url.includes('/chatbot/')) return Promise.resolve(chatResponse);
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      })
+    );
 
     render(<Conversation />);
 
@@ -205,10 +231,13 @@ describe('Conversation — handleSubmit', () => {
   });
 
   it('calls /api/chatbot/ with the user message', async () => {
-    const fetchMock = vi.fn((url) => {
-      if (url.includes('/initialize_conversation/')) return Promise.resolve(makeInitResponse());
-      if (url.includes('/avatar/')) return Promise.resolve(makeAvatarResponse());
-      if (url.includes('/chatbot/')) return Promise.resolve(makeChatbotResponse());
+    const fetchMock = vi.fn(url => {
+      if (url.includes('/initialize_conversation/'))
+        return Promise.resolve(makeInitResponse());
+      if (url.includes('/avatar/'))
+        return Promise.resolve(makeAvatarResponse());
+      if (url.includes('/chatbot/'))
+        return Promise.resolve(makeChatbotResponse());
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -221,7 +250,9 @@ describe('Conversation — handleSubmit', () => {
     fireEvent.submit(input.closest('form'));
 
     await waitFor(() => {
-      const chatCall = fetchMock.mock.calls.find(c => c[0].includes('/chatbot/'));
+      const chatCall = fetchMock.mock.calls.find(c =>
+        c[0].includes('/chatbot/')
+      );
       expect(chatCall).toBeDefined();
       const body = JSON.parse(chatCall[1].body);
       expect(body.message).toBe('Test message');
@@ -251,16 +282,21 @@ describe('Conversation — handleSubmit', () => {
   });
 
   it('alerts on non-ok chatbot response', async () => {
-    vi.stubGlobal('fetch', vi.fn((url) => {
-      if (url.includes('/initialize_conversation/')) return Promise.resolve(makeInitResponse());
-      if (url.includes('/avatar/')) return Promise.resolve(makeAvatarResponse());
-      if (url.includes('/chatbot/'))
-        return Promise.resolve({
-          ok: false,
-          json: () => Promise.resolve({ error: 'Server error' }),
-        });
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(url => {
+        if (url.includes('/initialize_conversation/'))
+          return Promise.resolve(makeInitResponse());
+        if (url.includes('/avatar/'))
+          return Promise.resolve(makeAvatarResponse());
+        if (url.includes('/chatbot/'))
+          return Promise.resolve({
+            ok: false,
+            json: () => Promise.resolve({ error: 'Server error' }),
+          });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      })
+    );
 
     render(<Conversation />);
     await waitFor(() => screen.getByText('Hello from bot!'));
@@ -270,7 +306,9 @@ describe('Conversation — handleSubmit', () => {
     fireEvent.submit(input.closest('form'));
 
     await waitFor(() => {
-      expect(mockAlert).toHaveBeenCalledWith(expect.stringContaining('Server error'));
+      expect(mockAlert).toHaveBeenCalledWith(
+        expect.stringContaining('Server error')
+      );
     });
   });
 });

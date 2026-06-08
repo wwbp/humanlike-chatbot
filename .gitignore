@@ -1,5 +1,6 @@
 # Environment files
-.env
+api/.env
+web/.env
 
 # Python
 __pycache__/

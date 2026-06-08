@@ -13,7 +13,7 @@ services:
     image: mariadb:11.4
     container_name: db
     env_file:
-      - ../.env
+      - ../api/.env
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
     ports:
@@ -41,7 +41,7 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - ../.env
+      - ../api/.env
     environment:
       DATABASE_ENGINE: django.db.backends.mysql
       PYTHONBUFFERED: 1
@@ -61,7 +61,7 @@ services:
       - ../web:/app
       - /app/node_modules
     env_file:
-      - ../.env
+      - ../web/.env
     working_dir: /app
     command: npm start
     depends_on:

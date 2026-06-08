@@ -26,8 +26,9 @@ infra/      Terraform (separate test environment, not production)
 **Prerequisites:** Docker, Docker Compose, Make
 
 ```bash
-cp sample.env .env      # fill in SECRET_KEY and at least one LLM API key
-make start              # builds and starts all services
+cp api/.env.example api/.env    # fill in SECRET_KEY and at least one LLM API key
+cp web/.env.example web/.env    # set VITE_API_URL if needed
+make start                      # builds and starts all services
 ```
 
 First run only — create an admin user:

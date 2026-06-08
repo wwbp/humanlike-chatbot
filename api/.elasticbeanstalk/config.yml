@@ -1,0 +1,19 @@
+branch-defaults:
+  default:
+    environment: humanlike-chatbot-staging-env
+environment-defaults:
+  humanlike-chatbot-staging-env:
+    branch: null
+    repository: null
+global:
+  application_name: humanlike-chatbot-staging
+  default_ec2_keyname: null
+  default_platform: Docker
+  default_region: us-east-1
+  include_git_submodules: true
+  instance_profile: null
+  platform_name: null
+  platform_version: null
+  profile: null
+  sc: null
+  workspace_type: Application

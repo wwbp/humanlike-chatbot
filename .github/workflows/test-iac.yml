@@ -6,14 +6,14 @@
 # are completely untouched — they use different secrets and different accounts.
 #
 # How to use this workflow:
-#   1. Run `cd terraform && bash setup.sh` with credentials for the TEST account
+#   1. Run `cd infra/terraform && bash setup.sh` with credentials for the TEST account
 #   2. Copy the 9 GitHub secrets printed at the end, prefixing each with TEST_
 #      e.g. AWS_ACCOUNT_ID → TEST_AWS_ACCOUNT_ID
 #   3. Also add TEST_REACT_APP_API_URL = http://<eb-cname from terraform output>
 #   4. Push to the tf-iac branch — this workflow runs automatically
 #
 # To tear down the test environment when you are done:
-#   cd terraform && terraform destroy -var-file=terraform.tfvars
+#   cd infra/terraform && terraform destroy -var-file=terraform.tfvars
 # -----------------------------------------------------------------------------
 
 name: Deploy to TEST account (tf-iac branch only)

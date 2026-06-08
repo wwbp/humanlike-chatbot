@@ -5,6 +5,7 @@ on:
     branches: [main, staging]
   push:
     branches: [main, staging]
+  workflow_call:
 
 jobs:
   backend-lint:
@@ -21,13 +22,13 @@ jobs:
         run: pip install ruff isort
 
       - name: Ruff lint
-        run: cd generic_chatbot && ruff check .
+        run: cd api && ruff check .
 
       - name: Ruff format
-        run: cd generic_chatbot && ruff format --check .
+        run: cd api && ruff format --check .
 
       - name: isort
-        run: cd generic_chatbot && isort . --profile black --check --diff
+        run: cd api && isort . --profile black --check --diff
 
   backend-test:
     name: Backend test
@@ -70,7 +71,7 @@ jobs:
         run: pip install pipenv
 
       - name: Install dependencies
-        run: cd generic_chatbot && pipenv install --dev
+        run: cd api && pipenv install --dev
 
       - name: Grant test DB privileges
         run: |
@@ -82,15 +83,13 @@ jobs:
           DJANGO_SETTINGS_MODULE: generic_chatbot.settings
           DEBUG: "True"
           SECRET_KEY: "ci-secret-key-for-testing-only-not-for-production-use"
-          DATABASE_ENGINE: django.db.backends.mysql
           DATABASE_NAME: chatbot_db
           DATABASE_USER: ci_user
           DATABASE_PASSWORD: ci_password
           DATABASE_HOST: 127.0.0.1
           DATABASE_PORT: "3306"
           REDIS_URL: redis://127.0.0.1:6379
-          ALLOWED_HOSTS: localhost,127.0.0.1
-        run: cd generic_chatbot && pipenv run pytest --create-db
+        run: cd api && pipenv run pytest --create-db
 
   frontend-lint:
     name: Frontend lint
@@ -102,16 +101,16 @@ jobs:
         with:
           node-version: "18"
           cache: npm
-          cache-dependency-path: generic_chatbot_frontend/package-lock.json
+          cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
-        run: cd generic_chatbot_frontend && npm ci
+        run: cd web && npm ci
 
       - name: ESLint
-        run: cd generic_chatbot_frontend && npm run lint
+        run: cd web && npm run lint
 
       - name: Prettier
-        run: cd generic_chatbot_frontend && npm run format:check
+        run: cd web && npm run format:check
 
   frontend-test:
     name: Frontend test
@@ -123,10 +122,10 @@ jobs:
         with:
           node-version: "18"
           cache: npm
-          cache-dependency-path: generic_chatbot_frontend/package-lock.json
+          cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
-        run: cd generic_chatbot_frontend && npm ci
+        run: cd web && npm ci
 
       - name: Run tests
-        run: cd generic_chatbot_frontend && npm test -- --run
+        run: cd web && npm test -- --run

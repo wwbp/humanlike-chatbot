@@ -1,0 +1,70 @@
+name: humanlike-chatbot
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - mariadb-data:/data
+
+  db:
+    image: mariadb:11.4
+    container_name: db
+    env_file:
+      - ../api/.env
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+      start_period: 30s
+
+  backend:
+    build:
+      context: ../api
+      dockerfile: Dockerfile
+      target: development
+      args:
+        ENVIRONMENT: development
+        PYTHON_VERSION: 3.12
+    volumes:
+      - ../api:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../api/.env
+    environment:
+      PYTHONBUFFERED: 1
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ../web
+      dockerfile: Dockerfile.local
+    container_name: react_app
+    stdin_open: true
+    tty: true
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../web:/app
+      - /app/node_modules
+    env_file:
+      - ../web/.env
+    working_dir: /app
+    command: npm start
+    depends_on:
+      - backend
+
+volumes:
+  mariadb-data:

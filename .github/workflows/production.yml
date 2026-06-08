@@ -10,9 +10,14 @@ permissions:
   contents: read
 
 jobs:
+  # ── Run the full CI suite first ──────────────────────────────────────────────
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   deploy_frontend:
     name: Deploy Frontend Humanlike-Bot Client to Production
     runs-on: ubuntu-latest
+    needs: [ci]
 
     steps:
       - name: Checkout code
@@ -22,17 +27,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
         run: |
-          cd generic_chatbot_frontend
-          npm install
+          cd web
+          npm ci
 
       - name: Build frontend
         env:
           VITE_API_URL: https://bot.wwbp.org/api
         run: |
-          cd generic_chatbot_frontend
+          cd web
           npm run build
 
       - name: Configure AWS credentials
@@ -44,7 +51,7 @@ jobs:
       - name: Sync S3 bucket
         run: |
           aws s3 rm s3://${{ secrets.AWS_S3_PROD_BUCKET_NAME_FRONTEND }} --recursive
-          aws s3 sync generic_chatbot_frontend/build/ s3://${{ secrets.AWS_S3_PROD_BUCKET_NAME_FRONTEND }} --delete
+          aws s3 sync web/build/ s3://${{ secrets.AWS_S3_PROD_BUCKET_NAME_FRONTEND }} --delete
 
       - name: Invalidate CloudFront cache
         run: |
@@ -53,6 +60,7 @@ jobs:
   deploy_backend:
     name: Deploy Backend Humanlike-Bot Server to Production
     runs-on: ubuntu-latest
+    needs: [ci]
 
     steps:
       - name: Checkout code
@@ -70,10 +78,7 @@ jobs:
 
       - name: Deploy Django to Elastic Beanstalk
         run: |
-          cd generic_chatbot
-          pwd
-          ls -al
-          head -n3 Dockerfile
+          cd api
           eb init -p docker ${{ secrets.AWS_BACKEND_APPLICATION_NAME }} --region us-east-1
           eb use ${{ secrets.AWS_PROD_BACKEND_ENVIRONMENT_NAME }}
           eb deploy --timeout 30

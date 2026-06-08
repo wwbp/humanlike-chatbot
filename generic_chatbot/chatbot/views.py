@@ -1,21 +1,19 @@
 import json
 import logging
 
-from asgiref.sync import sync_to_async
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import Bot
-from .services.post_processing import calculate_typing_delays, human_like_chunks
+from .services.post_processing import (
+    _DEFAULT_BOT_CONFIG,
+    calculate_typing_delays,
+    human_like_chunks,
+)
 from .services.runchat import run_chat_round
 
-# Get logger for this module
 logger = logging.getLogger(__name__)
-
-# Dictionary to store per-engine configurations
-engine_instances = {}
 
 
 def health_check(request):
@@ -75,74 +73,37 @@ class ChatbotAPIView(View):
             if not message or not bot_name or not conversation_id:
                 return JsonResponse({"error": "Missing required fields."}, status=400)
 
-            response_text = await run_chat_round(
+            # run_chat_round returns (response_text, bot) — bot already fetched inside,
+            # no second DB query needed here.
+            response_text, bot = await run_chat_round(
                 bot_name=bot_name,
                 conversation_id=conversation_id,
                 participant_id=participant_id,
                 message=message,
             )
 
-            # Get bot-specific settings
-            try:
-                bot = await sync_to_async(Bot.objects.get)(name=bot_name)
+            if bot is not None:
                 use_chunks = bot.chunk_messages
                 use_humanlike_delay = bot.humanlike_delay
-
-                # Split response into chunks
-                if use_chunks:
-                    response_chunks = human_like_chunks(response_text)
-                else:
-                    response_chunks = [response_text]
-
-                # Calculate delays using new system
+                response_chunks = (
+                    human_like_chunks(response_text) if use_chunks else [response_text]
+                )
                 delay_data = calculate_typing_delays(message, response_chunks, bot)
-
-                delay_config = {
-                    "reading_time": delay_data["reading_time"],
-                    "min_reading_delay": delay_data["min_reading_delay"],
-                    "response_segments": delay_data["response_segments"],
-                }
-
-            except Bot.DoesNotExist:
-                # Use defaults if bot not found
+            else:
+                # bot is None only for the [FOLLOW-UP REQUEST] guard path (shouldn't
+                # reach here in practice, but handle gracefully).
                 use_chunks = True
                 use_humanlike_delay = True
-
-                # Create default bot configuration for calculation
-                class DefaultBotConfiguration:
-                    humanlike_delay = True
-                    reading_words_per_minute = 250.0
-                    reading_jitter_min = 0.1
-                    reading_jitter_max = 0.3
-                    reading_thinking_min = 0.2
-                    reading_thinking_max = 0.5
-                    writing_words_per_minute = 200.0
-                    writing_jitter_min = 0.05
-                    writing_jitter_max = 0.15
-                    writing_thinking_min = 0.1
-                    writing_thinking_max = 0.3
-                    intra_message_delay_min = 0.1
-                    intra_message_delay_max = 0.3
-                    min_reading_delay = 1.0
-
-                default_bot = DefaultBotConfiguration()
-
-                # Split response into chunks
-                if use_chunks:
-                    response_chunks = human_like_chunks(response_text)
-                else:
-                    response_chunks = [response_text]
-
-                # Calculate delays using new system
+                response_chunks = [response_text]
                 delay_data = calculate_typing_delays(
-                    message, response_chunks, default_bot
+                    message, response_chunks, _DEFAULT_BOT_CONFIG
                 )
 
-                delay_config = {
-                    "reading_time": delay_data["reading_time"],
-                    "min_reading_delay": delay_data["min_reading_delay"],
-                    "response_segments": delay_data["response_segments"],
-                }
+            delay_config = {
+                "reading_time": delay_data["reading_time"],
+                "min_reading_delay": delay_data["min_reading_delay"],
+                "response_segments": delay_data["response_segments"],
+            }
 
             return JsonResponse(
                 {
@@ -159,4 +120,4 @@ class ChatbotAPIView(View):
 
         except Exception as e:
             logger.error(f"❌ [ERROR] ChatbotAPIView Exception: {e}")
-            return JsonResponse({"error": str(e)}, status=500)
+            return JsonResponse({"error": "An unexpected error occurred."}, status=500)

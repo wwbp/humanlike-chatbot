@@ -10,6 +10,25 @@ nltk.download("punkt_tab")
 # Make sure you've run: python -m nltk.downloader punkt
 
 
+class _DEFAULT_BOT_CONFIG:
+    """Fallback delay parameters used when a Bot record cannot be found."""
+
+    humanlike_delay = True
+    reading_words_per_minute = 250.0
+    reading_jitter_min = 0.1
+    reading_jitter_max = 0.3
+    reading_thinking_min = 0.2
+    reading_thinking_max = 0.5
+    writing_words_per_minute = 200.0
+    writing_jitter_min = 0.05
+    writing_jitter_max = 0.15
+    writing_thinking_min = 0.1
+    writing_thinking_max = 0.3
+    intra_message_delay_min = 0.1
+    intra_message_delay_max = 0.3
+    min_reading_delay = 1.0
+
+
 def human_like_chunks(text: str) -> list[str]:
     sentences = sent_tokenize(text)
     chunks: list[str] = []

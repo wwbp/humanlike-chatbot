@@ -8,6 +8,9 @@ from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from kani import ChatMessage, ChatRole, Kani
+
+from server.engine import get_or_create_engine_from_model
 
 from ..models import Bot, Conversation, Utterance
 from .post_processing import (
@@ -65,10 +68,6 @@ async def run_followup_chat_round(
     Custom chat round for followup messages that doesn't save the followup request to database.
     Only saves the bot's response.
     """
-    from kani import ChatMessage, ChatRole, Kani
-
-    from server.engine import get_or_create_engine_from_model
-
     # Fetch bot object with personas and ai_model prefetched
     bot = await sync_to_async(
         Bot.objects.prefetch_related("personas", "ai_model__provider").get,

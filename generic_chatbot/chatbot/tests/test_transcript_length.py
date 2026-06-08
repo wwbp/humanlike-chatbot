@@ -407,7 +407,7 @@ class TestTranscriptLength:
 
     @pytest.mark.django_db
     @pytest.mark.asyncio
-    @patch("server.engine.get_or_create_engine_from_model")
+    @patch("chatbot.services.followup.get_or_create_engine_from_model")
     @patch("chatbot.services.runchat.moderate_message")
     @patch("chatbot.services.runchat.save_chat_to_db")
     async def test_followup_with_transcript_limit(
@@ -439,7 +439,7 @@ class TestTranscriptLength:
         mock_kani.full_round = mock_full_round
 
         # Mock Kani constructor
-        with patch("kani.Kani", return_value=mock_kani):
+        with patch("chatbot.services.followup.Kani", return_value=mock_kani):
             # Run followup chat round with bot that has limit of 5
             response = await run_followup_chat_round(
                 bot_name=self.bot_limit_5.name,

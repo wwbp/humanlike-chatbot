@@ -25,7 +25,6 @@ import uuid
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.test import Client, TestCase
 
 from chatbot.models import Bot, Conversation, Model, Utterance
@@ -51,18 +50,18 @@ class TestGetRealtimeSession(TestCase):
 
     def test_missing_conversation_id_returns_400(self):
         r = Client().get(SESSION_URL)
-        self.assertEqual(r.status_code, 400)
-        self.assertIn("error", r.json())
+        assert r.status_code == 400
+        assert "error" in r.json()
 
     def test_nonexistent_conversation_returns_404(self):
         r = Client().get(SESSION_URL, {"conversation_id": "does_not_exist"})
-        self.assertEqual(r.status_code, 404)
+        assert r.status_code == 404
 
     @patch.dict("os.environ", {}, clear=False)
     def test_missing_api_key_returns_503(self):
         with patch("chatbot.services.voicechat.os.getenv", return_value=None):
             r = Client().get(SESSION_URL, {"conversation_id": self.conv.conversation_id})
-        self.assertEqual(r.status_code, 503)
+        assert r.status_code == 503
 
     def test_success_proxies_openai_response(self):
         mock_resp = MagicMock()
@@ -73,8 +72,8 @@ class TestGetRealtimeSession(TestCase):
             patch("chatbot.services.voicechat.requests.post", return_value=mock_resp),
         ):
             r = Client().get(SESSION_URL, {"conversation_id": self.conv.conversation_id})
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json()["id"], "sess_123")
+        assert r.status_code == 200
+        assert r.json()["id"] == "sess_123"
 
     def test_openai_request_failure_returns_500(self):
         with (
@@ -82,7 +81,7 @@ class TestGetRealtimeSession(TestCase):
             patch("chatbot.services.voicechat.requests.post", side_effect=Exception("timeout")),
         ):
             r = Client().get(SESSION_URL, {"conversation_id": self.conv.conversation_id})
-        self.assertEqual(r.status_code, 500)
+        assert r.status_code == 500
 
 
 class TestUploadVoiceUtterance(TestCase):
@@ -107,13 +106,13 @@ class TestUploadVoiceUtterance(TestCase):
 
     def test_missing_conversation_id_returns_400(self):
         r = self._post({"transcript": "hello"})
-        self.assertEqual(r.status_code, 400)
-        self.assertIn("error", r.json())
+        assert r.status_code == 400
+        assert "error" in r.json()
 
     def test_no_transcript_no_audio_returns_400(self):
         r = self._post({"conversation_id": self.conv.conversation_id})
-        self.assertEqual(r.status_code, 400)
-        self.assertIn("error", r.json())
+        assert r.status_code == 400
+        assert "error" in r.json()
 
     def test_unsupported_audio_mime_returns_415(self):
         audio = BytesIO(b"fake audio data")
@@ -139,11 +138,11 @@ class TestUploadVoiceUtterance(TestCase):
             UPLOAD_URL,
             {"conversation_id": self.conv.conversation_id, "audio": bad_audio},
         )
-        self.assertEqual(r.status_code, 415)
+        assert r.status_code == 415
 
     def test_nonexistent_conversation_returns_404(self):
         r = self._post({"conversation_id": "no_such_conv", "transcript": "hi"})
-        self.assertEqual(r.status_code, 404)
+        assert r.status_code == 404
 
     def test_transcript_only_saves_participant_utterance(self):
         r = self._post(
@@ -153,12 +152,12 @@ class TestUploadVoiceUtterance(TestCase):
                 "participant_id": "p_test",
             }
         )
-        self.assertEqual(r.status_code, 200)
+        assert r.status_code == 200
         body = r.json()
-        self.assertIn("id", body)
+        assert "id" in body
         utt = Utterance.objects.get(pk=body["id"])
-        self.assertEqual(utt.text, "Hello there")
-        self.assertEqual(utt.speaker_id, "participant")
+        assert utt.text == "Hello there"
+        assert utt.speaker_id == "participant"
 
     def test_bot_name_sets_assistant_speaker(self):
         r = self._post(
@@ -168,10 +167,10 @@ class TestUploadVoiceUtterance(TestCase):
                 "bot_name": self.bot.name,
             }
         )
-        self.assertEqual(r.status_code, 200)
+        assert r.status_code == 200
         utt = Utterance.objects.get(pk=r.json()["id"])
-        self.assertEqual(utt.speaker_id, "assistant")
-        self.assertEqual(utt.bot_name, self.bot.name)
+        assert utt.speaker_id == "assistant"
+        assert utt.bot_name == self.bot.name
 
     def test_is_voice_flag_stored(self):
         r = self._post(
@@ -181,6 +180,6 @@ class TestUploadVoiceUtterance(TestCase):
                 "is_voice": "true",
             }
         )
-        self.assertEqual(r.status_code, 200)
+        assert r.status_code == 200
         utt = Utterance.objects.get(pk=r.json()["id"])
-        self.assertTrue(utt.is_voice)
+        assert utt.is_voice

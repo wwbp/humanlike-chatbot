@@ -43,13 +43,13 @@ class TestChatbotView:
     def setUp(self, bot_kwargs=None):
         Model.get_or_create_default_models()
         self.model = Model.objects.get(provider__name="OpenAI", model_id="gpt-4o-mini")
-        kwargs = dict(
-            name=f"bot_{uuid.uuid4().hex[:8]}",
-            prompt="You are a test assistant.",
-            ai_model=self.model,
-            chunk_messages=True,
-            humanlike_delay=True,
-        )
+        kwargs = {
+            "name": f"bot_{uuid.uuid4().hex[:8]}",
+            "prompt": "You are a test assistant.",
+            "ai_model": self.model,
+            "chunk_messages": True,
+            "humanlike_delay": True,
+        }
         if bot_kwargs:
             kwargs.update(bot_kwargs)
         self.bot = Bot.objects.create(**kwargs)

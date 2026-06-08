@@ -40,33 +40,33 @@ class TestGetPresignedUrl(TestCase):
 
     def test_unauthenticated_returns_403(self):
         r = Client().get(UPLOAD_URL, {"filename": "a.jpg", "content_type": "image/jpeg"})
-        self.assertEqual(r.status_code, 403)
+        assert r.status_code == 403
 
     # ── Input validation ───────────────────────────────────────────────────────
 
     def test_missing_filename_returns_400(self):
         r = self._get(self._staff_client(), {"content_type": "image/jpeg"})
-        self.assertEqual(r.status_code, 400)
-        self.assertIn("error", r.json())
+        assert r.status_code == 400
+        assert "error" in r.json()
 
     def test_missing_content_type_returns_400(self):
         r = self._get(self._staff_client(), {"filename": "photo.jpg"})
-        self.assertEqual(r.status_code, 400)
-        self.assertIn("error", r.json())
+        assert r.status_code == 400
+        assert "error" in r.json()
 
     def test_unsupported_content_type_returns_415(self):
         r = self._get(
             self._staff_client(),
             {"filename": "clip.mp4", "content_type": "video/mp4"},
         )
-        self.assertEqual(r.status_code, 415)
+        assert r.status_code == 415
 
     def test_filename_with_invalid_chars_returns_400(self):
         r = self._get(
             self._staff_client(),
             {"filename": "file<script>.jpg", "content_type": "image/jpeg"},
         )
-        self.assertEqual(r.status_code, 400)
+        assert r.status_code == 400
 
     # ── Happy path ─────────────────────────────────────────────────────────────
 
@@ -75,17 +75,17 @@ class TestGetPresignedUrl(TestCase):
         mock_s3.generate_presigned_url.return_value = "https://s3.example.com/presigned"
         with (
             patch("chatbot.services.upload.boto3.client", return_value=mock_s3),
-            patch("chatbot.services.upload.os.getenv", side_effect=lambda k, *a: "test-bucket" if k == "AWS_BUCKET_NAME" else "us-east-1"),
+            patch("chatbot.services.upload.os.getenv", side_effect=lambda k, *_: "test-bucket" if k == "AWS_BUCKET_NAME" else "us-east-1"),
             patch("django.conf.settings.BACKEND_ENVIRONMENT", "local"),
         ):
             r = self._get(
                 self._staff_client(),
                 {"filename": "avatar.jpg", "content_type": "image/jpeg"},
             )
-        self.assertEqual(r.status_code, 200)
+        assert r.status_code == 200
         body = r.json()
-        self.assertIn("s3_url", body)
-        self.assertIn("file_url", body)
+        assert "s3_url" in body
+        assert "file_url" in body
 
     def test_boto3_failure_returns_500(self):
         with (
@@ -96,4 +96,4 @@ class TestGetPresignedUrl(TestCase):
                 self._staff_client(),
                 {"filename": "avatar.jpg", "content_type": "image/jpeg"},
             )
-        self.assertEqual(r.status_code, 500)
+        assert r.status_code == 500

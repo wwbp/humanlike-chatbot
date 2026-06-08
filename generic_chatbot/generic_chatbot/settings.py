@@ -20,21 +20,29 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY", "!g8ik7!xk!9xyldg+r75$^@tdt+d")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable is not set")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = (
+    ["localhost", "127.0.0.1", "0.0.0.0"]
+    if DEBUG
+    else [
+        "dev.bot.wwbp.org",
+        "bot.wwbp.org",
+    ]
+)
 
 if DEBUG:
     REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
 
 if not DEBUG:
-    REDIS_URL = os.getenv(
-        "REDIS_URL",
-        "rediss://humanlikebotcache-5rqgxm.serverless.use1.cache.amazonaws.com:6379",
-    )
+    REDIS_URL = os.getenv("REDIS_URL")
+    if not REDIS_URL:
+        raise RuntimeError("REDIS_URL environment variable is not set")
 
 CACHES = {
     "default": {
@@ -92,7 +100,15 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://dev.bot.wwbp.org",
+    "https://bot.wwbp.org",
+]
+_frontend_url_cors = os.getenv("FRONTEND_URL")
+if _frontend_url_cors:
+    CORS_ALLOWED_ORIGINS.append(_frontend_url_cors)
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
@@ -247,9 +263,7 @@ STORAGES = {
     },
 }
 
-X_FRAME_OPTIONS = "ALLOWALL"
-# consider restricting in production
-CORS_ALLOW_ALL_ORIGINS = True
+X_FRAME_OPTIONS = "SAMEORIGIN"
 SESSION_COOKIE_SAMESITE = "None"
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SAMESITE = "None"

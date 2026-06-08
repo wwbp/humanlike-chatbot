@@ -124,8 +124,8 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     # Run in thread to avoid blocking
     blocked = await sync_to_async(moderate_message)(message, bot)
     if blocked:
-        # Prepare a warning response without further processing
-        warning_text = f"Your message was blocked by moderation due to: {blocked}"
+        # Prepare a generic warning — do NOT expose the category to the user
+        warning_text = "Your message could not be processed. Please keep conversations respectful and constructive."
         # Save both user message and moderation response
         await save_chat_to_db(
             conversation_id=conversation_id,

@@ -412,4 +412,4 @@ class FollowupAPIView(View):
             return JsonResponse({"error": "Invalid JSON in request body"}, status=400)
         except Exception as e:
             logger.error(f"FollowupAPIView Exception: {e}")
-            return JsonResponse({"error": str(e)}, status=500)
+            return JsonResponse({"error": "An unexpected error occurred."}, status=500)

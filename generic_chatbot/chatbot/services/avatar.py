@@ -16,10 +16,18 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from PIL import Image
 
+from django.http import JsonResponse
+
 from ..models import Avatar, Bot
 from .s3_helper import delete, download, get_presigned_url, get_random_image, upload
 
 logger = logging.getLogger(__name__)
+
+
+def _require_staff(request):
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return JsonResponse({"error": "Forbidden."}, status=403)
+    return None
 
 
 def make_square(image, fill_color=(255, 255, 255, 0)):
@@ -129,13 +137,20 @@ def generate_avatar(
 @method_decorator(csrf_exempt, name="dispatch")
 class AvatarAPIView(View):
     def get(self, request, *args, **kwargs):
+        forbidden = _require_staff(request)
+        if forbidden:
+            return forbidden
         try:
             avatars = Avatar.objects.values("bot")
             return JsonResponse({"avatars": list(avatars)}, status=200)
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+            logger.error(f"[ERROR] AvatarAPIView.get failed: {e}")
+            return JsonResponse({"error": "An unexpected error occurred."}, status=500)
 
     def post(self, request, *args, **kwargs):
+        forbidden = _require_staff(request)
+        if forbidden:
+            return forbidden
         logger.info(
             f"[DEBUG] Avatar upload request received. Method: {request.method}, Content-Type: {request.content_type}",
         )
@@ -179,7 +194,7 @@ class AvatarAPIView(View):
                 except Exception as e:
                     logger.exception(f"[ERROR] Avatar generation failed: {e}")
                     return JsonResponse(
-                        {"error": f"Avatar generation failed: {e!s}"},
+                        {"error": "Avatar generation failed."},
                         status=500,
                     )
 
@@ -398,6 +413,9 @@ class AvatarDetailAPIView(View):
             return JsonResponse({"error": "Bot not found"}, status=404)
 
     def post(self, request, bot_name, *args, **kwargs):
+        forbidden = _require_staff(request)
+        if forbidden:
+            return forbidden
         try:
             bot = Bot.objects.get(pk=int(bot_name))
             avatar = Avatar.objects.get(bot=bot, bot_conversation=None)
@@ -532,17 +550,22 @@ class AvatarDetailAPIView(View):
             return JsonResponse({"error": "Invalid JSON payload."}, status=400)
         except Exception as e:
             logger.exception(f"[ERROR] AvatarDetailAPIView.post failed: {e}")
-            return JsonResponse({"error": str(e)}, status=500)
+            return JsonResponse({"error": "An unexpected error occurred."}, status=500)
 
     def delete(self, request, bot_name, *args, **kwargs):
+        forbidden = _require_staff(request)
+        if forbidden:
+            return forbidden
         try:
-            avatars = Avatar.objects.filter(bot=Bot.objects.filter(pk=int(bot_name)))
+            bot = Bot.objects.get(pk=int(bot_name))
+            avatars = Avatar.objects.filter(bot=bot)
             for avatar in avatars:
-                if avatar.image_path:
-                    delete("avatar", avatar.image_path)
+                if avatar.chatbot_avatar:
+                    delete("avatar", avatar.chatbot_avatar)
             avatars.delete()
-            return JsonResponse({"message": "Bot deleted successfully."}, status=204)
+            return JsonResponse({"message": "Avatars deleted successfully."}, status=204)
         except Bot.DoesNotExist:
             return JsonResponse({"error": "Bot not found"}, status=404)
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+            logger.error(f"[ERROR] AvatarDetailAPIView.delete failed: {e}")
+            return JsonResponse({"error": "An unexpected error occurred."}, status=500)

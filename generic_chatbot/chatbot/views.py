@@ -159,4 +159,4 @@ class ChatbotAPIView(View):
 
         except Exception as e:
             logger.error(f"❌ [ERROR] ChatbotAPIView Exception: {e}")
-            return JsonResponse({"error": str(e)}, status=500)
+            return JsonResponse({"error": "An unexpected error occurred."}, status=500)

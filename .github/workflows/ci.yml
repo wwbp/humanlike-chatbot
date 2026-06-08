@@ -83,14 +83,12 @@ jobs:
           DJANGO_SETTINGS_MODULE: generic_chatbot.settings
           DEBUG: "True"
           SECRET_KEY: "ci-secret-key-for-testing-only-not-for-production-use"
-          DATABASE_ENGINE: django.db.backends.mysql
           DATABASE_NAME: chatbot_db
           DATABASE_USER: ci_user
           DATABASE_PASSWORD: ci_password
           DATABASE_HOST: 127.0.0.1
           DATABASE_PORT: "3306"
           REDIS_URL: redis://127.0.0.1:6379
-          ALLOWED_HOSTS: localhost,127.0.0.1
         run: cd api && pipenv run pytest --create-db
 
   frontend-lint:

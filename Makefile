@@ -1,50 +1,49 @@
 COMPOSE = docker compose -f .devcontainer/docker-compose.yml
+BACKEND = docker exec humanlike-chatbot-backend-1
 
-start:
-	@if $(COMPOSE) ps | grep -q "Up"; then \
-		echo "Containers are already running"; \
-	else \
-		$(COMPOSE) up --build -d; \
-	fi
+define require_up
+	@$(COMPOSE) ps | grep -q "Up" || (echo "Services not running — run 'make up' first" && exit 1)
+endef
 
-stop:
+.PHONY: up down reset migrate shell test test-api test-web coverage lint
+
+# ── Dev lifecycle ──────────────────────────────────────────────────────────────
+
+up:
+	@$(COMPOSE) ps | grep -q "Up" && echo "Already running" || $(COMPOSE) up --build -d
+
+down:
 	$(COMPOSE) down
 
-stop-clean:
+reset:
 	$(COMPOSE) down -v
 
-test:
-	@if $(COMPOSE) ps | grep -q "Up"; then \
-		docker exec humanlike-chatbot-backend-1 bash -c "cd /app && DJANGO_SETTINGS_MODULE=generic_chatbot.settings pytest"; \
-	else \
-		echo "Containers are not running. Please run 'make start' first."; \
-	fi
-
-test-coverage:
-	@if $(COMPOSE) ps | grep -q "Up"; then \
-		docker exec humanlike-chatbot-backend-1 bash -c "cd /app && DJANGO_SETTINGS_MODULE=generic_chatbot.settings pytest --cov=chatbot --cov-report=term-missing --cov-report=html:htmlcov"; \
-	else \
-		echo "Containers are not running. Please run 'make start' first."; \
-	fi
-
 migrate:
-	@if $(COMPOSE) ps | grep -q "Up"; then \
-		docker exec humanlike-chatbot-backend-1 bash -c "cd /app && python manage.py migrate"; \
-	else \
-		echo "Containers are not running. Please run 'make start' first."; \
-	fi
+	$(call require_up)
+	$(BACKEND) python manage.py migrate
 
 shell:
-	@if $(COMPOSE) ps | grep -q "Up"; then \
-		docker exec -it humanlike-chatbot-backend-1 bash -c "cd /app && python manage.py shell"; \
-	else \
-		echo "Containers are not running. Please run 'make start' first."; \
-	fi
+	$(call require_up)
+	docker exec -it humanlike-chatbot-backend-1 python manage.py shell
+
+# ── Tests ──────────────────────────────────────────────────────────────────────
+
+test: test-api test-web
+
+test-api:
+	$(call require_up)
+	$(BACKEND) bash -c "DJANGO_SETTINGS_MODULE=generic_chatbot.settings pytest"
+
+test-web:
+	cd web && npm test -- --run
+
+coverage:
+	$(call require_up)
+	$(BACKEND) bash -c "DJANGO_SETTINGS_MODULE=generic_chatbot.settings pytest --cov=chatbot --cov-report=term-missing --cov-report=html:htmlcov"
+
+# ── Quality ────────────────────────────────────────────────────────────────────
 
 lint:
-	@if $(COMPOSE) ps | grep -q "Up"; then \
-		docker exec humanlike-chatbot-backend-1 bash -c "cd /app && ./lint.sh"; \
-	else \
-		echo "Containers are not running. Please run 'make start' first."; \
-	fi
-	@cd web && npm run lint:fix && npm run format
+	$(call require_up)
+	$(BACKEND) bash -c "./lint.sh"
+	cd web && npm run lint:fix && npm run format

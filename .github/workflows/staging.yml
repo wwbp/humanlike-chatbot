@@ -78,7 +78,7 @@ jobs:
 
       - name: Deploy Django to Elastic Beanstalk
         run: |
-          cd generic_chatbot
+          cd api
           eb init -p docker ${{ secrets.AWS_BACKEND_APPLICATION_NAME }} --region us-east-1
           eb use ${{ secrets.AWS_BACKEND_ENVIRONMENT_NAME }}
           eb deploy --timeout 30

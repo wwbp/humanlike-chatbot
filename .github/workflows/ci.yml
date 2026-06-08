@@ -22,13 +22,13 @@ jobs:
         run: pip install ruff isort
 
       - name: Ruff lint
-        run: cd generic_chatbot && ruff check .
+        run: cd api && ruff check .
 
       - name: Ruff format
-        run: cd generic_chatbot && ruff format --check .
+        run: cd api && ruff format --check .
 
       - name: isort
-        run: cd generic_chatbot && isort . --profile black --check --diff
+        run: cd api && isort . --profile black --check --diff
 
   backend-test:
     name: Backend test
@@ -71,7 +71,7 @@ jobs:
         run: pip install pipenv
 
       - name: Install dependencies
-        run: cd generic_chatbot && pipenv install --dev
+        run: cd api && pipenv install --dev
 
       - name: Grant test DB privileges
         run: |
@@ -91,7 +91,7 @@ jobs:
           DATABASE_PORT: "3306"
           REDIS_URL: redis://127.0.0.1:6379
           ALLOWED_HOSTS: localhost,127.0.0.1
-        run: cd generic_chatbot && pipenv run pytest --create-db
+        run: cd api && pipenv run pytest --create-db
 
   frontend-lint:
     name: Frontend lint

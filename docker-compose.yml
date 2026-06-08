@@ -28,14 +28,14 @@ services:
 
   backend:
     build:
-      context: ./generic_chatbot
+      context: ./api
       dockerfile: Dockerfile
       target: development
       args:
         ENVIRONMENT: development
         PYTHON_VERSION: 3.12
     volumes:
-      - ./generic_chatbot:/app
+      - ./api:/app
     ports:
       - "8000:8000"
     env_file:

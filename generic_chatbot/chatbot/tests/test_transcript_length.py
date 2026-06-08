@@ -154,7 +154,7 @@ class TestTranscriptLength:
         # Mock Kani constructor
         with patch("chatbot.services.runchat.Kani", return_value=mock_kani):
             # Run chat round
-            response = await run_chat_round(
+            response, _ = await run_chat_round(
                 bot_name=self.bot_no_limit.name,
                 conversation_id=self.conversation.conversation_id,
                 participant_id="test_participant",
@@ -203,7 +203,7 @@ class TestTranscriptLength:
         # Mock Kani constructor
         with patch("chatbot.services.runchat.Kani", return_value=mock_kani):
             # Run chat round with bot that has limit of 5
-            response = await run_chat_round(
+            response, _ = await run_chat_round(
                 bot_name=self.bot_limit_5.name,
                 conversation_id=self.conversation.conversation_id,
                 participant_id="test_participant",
@@ -250,7 +250,7 @@ class TestTranscriptLength:
         # Mock Kani constructor
         with patch("chatbot.services.runchat.Kani", return_value=mock_kani):
             # Run chat round with bot that has limit of 10 (more than existing)
-            response = await run_chat_round(
+            response, _ = await run_chat_round(
                 bot_name=self.bot_limit_10.name,
                 conversation_id=self.conversation.conversation_id,
                 participant_id="test_participant",
@@ -297,7 +297,7 @@ class TestTranscriptLength:
         # Mock Kani constructor
         with patch("chatbot.services.runchat.Kani", return_value=mock_kani):
             # Run chat round with bot that has limit of 5
-            response = await run_chat_round(
+            response, _ = await run_chat_round(
                 bot_name=self.bot_limit_5.name,
                 conversation_id=self.conversation.conversation_id,
                 participant_id="test_participant",
@@ -341,7 +341,7 @@ class TestTranscriptLength:
         # Mock Kani constructor
         with patch("chatbot.services.runchat.Kani", return_value=mock_kani):
             # Run chat round with empty conversation
-            response = await run_chat_round(
+            response, _ = await run_chat_round(
                 bot_name=self.bot_limit_5.name,
                 conversation_id=self.conversation.conversation_id,
                 participant_id="test_participant",
@@ -394,7 +394,7 @@ class TestTranscriptLength:
         # Mock Kani constructor
         with patch("chatbot.services.runchat.Kani", return_value=mock_kani):
             # Run chat round with bot that has limit of 5
-            response = await run_chat_round(
+            response, _ = await run_chat_round(
                 bot_name=self.bot_limit_5.name,
                 conversation_id=self.conversation.conversation_id,
                 participant_id="test_participant",

@@ -1,74 +1,70 @@
-# ChatLab (Humanlike Chatbot)
+# Humanlike Chatbot
 
-ChatLab is a dockerized research chat lab for running configurable, LLM-backed chat experiments. It includes a Django API/admin, a React chat UI, MariaDB, Redis, and Sphinx docs. Secrets and service credentials live in `.env`, while LLM provider selection and bot personas are managed through the Django admin UI.
+A research platform for running configurable, LLM-backed chat experiments. Researchers configure bots and personas through a Django admin UI; participants interact via an embeddable React chat UI.
 
-## Quick start (local)
+## Stack
 
-Prereqs: Docker Engine, Docker Compose, Git.
-
-1. Copy the env file and set values (at minimum: `SECRET_KEY` and your API keys):
-
-   ```bash
-   cp sample.env .env
-   ```
-
-   Create the required init SQL file (MariaDB expects a file, not a directory):
-
-   ```bash
-   touch init.sql
-   ```
-
-2. Build and start services:
-
-   ```bash
-   make start
-   # or: docker compose up --build
-   ```
-
-3. Create an admin user (one-time):
-
-   ```bash
-   docker exec -it humanlike-chatbot-backend-1 bash
-   python manage.py createsuperuser
-   ```
-
-4. Open:
-   - Chat UI: <http://localhost:3000>
-   - Admin/API: <http://localhost:8000/api/admin/>
-   - Docs: <http://localhost:8001>
-
-## Configuration
-
-- `.env` holds secrets and service credentials (see `sample.env`).
-- LLM provider selection and bot personas are configured in the Django admin UI.
+| Layer | Tech |
+|-------|------|
+| API | Django 5 + Django REST Framework |
+| Frontend | React 18 + Vite |
+| Database | MariaDB |
+| Cache | Redis |
+| LLM | AWS Bedrock, OpenAI, Anthropic (configurable per bot) |
+| Deploy | AWS Elastic Beanstalk (API) + S3/CloudFront (frontend) |
 
 ## Repo layout
 
-- `generic_chatbot/` - Django backend + LLM integration
-- `generic_chatbot_frontend/` - React chat UI
-- `chatlab/docs/` - Sphinx docs
-- `docker-compose.yml` - local dev stack
+```
+api/        Django backend — models, views, LLM engines, admin
+web/        React frontend — chat UI
+infra/      Terraform (separate test environment, not production)
+```
+
+## Local setup
+
+**Prerequisites:** Docker, Docker Compose, Make
+
+```bash
+cp api/.env.example api/.env    # fill in SECRET_KEY and at least one LLM API key
+cp web/.env.example web/.env    # set VITE_API_URL if needed
+make start                      # builds and starts all services
+```
+
+First run only — create an admin user:
+```bash
+docker exec -it humanlike-chatbot-backend-1 python manage.py createsuperuser
+```
+
+| Service | URL |
+|---------|-----|
+| Chat UI | http://localhost:3000 |
+| Admin / API | http://localhost:8000/api/admin/ |
 
 ## Common commands
 
-- `make start` - build and run all services
-- `make stop` - stop services
-- `make stop-clean` - stop and remove volumes
-- `make test` - run backend tests (containers must be running)
-- `make lint` - run backend + frontend lint/format
+```bash
+make start          # build and start all services
+make stop           # stop services
+make stop-clean     # stop and remove volumes (wipes DB)
+make test           # run backend tests (containers must be running)
+make test-coverage  # backend tests with coverage report
+make migrate        # run Django migrations
+make shell          # Django shell
+make lint           # ruff + isort + eslint + prettier
+```
 
-## Docs
+## Configuration
 
-Sphinx docs live in `chatlab/docs` and are served by the `docs` service on port 8001 when running `make start`.
+All secrets and service URLs live in `.env` (see `sample.env`). Bot prompts, personas, LLM model selection, and moderation settings are managed in the Django admin UI at `/api/admin/`.
 
-## Deprecated / external integration endpoints
+## Deployment
 
-- `POST /api/update_keystrokes/` — Qualtrics-only integration point for logging keystrokes from an embedded survey. Not called by the React frontend. Planned for removal once all Qualtrics studies using it are retired.
+Push to a branch to trigger GitHub Actions:
 
-## Deployment & CI/CD
+| Branch | Target |
+|--------|--------|
+| `staging` | Staging environment (`dev.bot.wwbp.org`) |
+| `main` | Production (`bot.wwbp.org`) |
 
-- Local dev uses Docker Compose (`docker-compose.yml`).
-- AWS production path: Elastic Beanstalk (backend), RDS, ElastiCache/Redis, S3 + CloudFront (frontend). See `chatlab/docs/deployment/aws-deployment.rst`.
-- GitHub Actions deploy on push:
-  - `staging` branch -> staging AWS (`.github/workflows/staging.yml`)
-  - `main` branch -> production AWS (`.github/workflows/production.yml`)
+Both deploy the frontend to S3/CloudFront and the backend to Elastic Beanstalk. CI (lint + tests) must pass before deploy.

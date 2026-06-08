@@ -1,5 +1,6 @@
 # Environment files
-.env
+api/.env
+web/.env
 
 # Python
 __pycache__/
@@ -19,8 +20,8 @@ staticfiles/
 # OS files
 .DS_Store
 
-# Additional
-init.sql
+# Dev container
+.devcontainer/init.sql
 
 # cache
 .pytest_cache
@@ -30,13 +31,13 @@ init.sql
 Pipfile.lock
 
 # Terraform — never commit secrets or local state to git
-terraform/.terraform/
-terraform/.terraform.lock.hcl
-terraform/terraform.tfvars
-terraform/backend.hcl
-terraform/*.tfstate
-terraform/*.tfstate.backup
-terraform/bootstrap/.terraform/
-terraform/bootstrap/.terraform.lock.hcl
-terraform/bootstrap/*.tfstate
-terraform/bootstrap/*.tfstate.backup
+infra/terraform/.terraform/
+infra/terraform/.terraform.lock.hcl
+infra/terraform/terraform.tfvars
+infra/terraform/backend.hcl
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.backup
+infra/terraform/bootstrap/.terraform/
+infra/terraform/bootstrap/.terraform.lock.hcl
+infra/terraform/bootstrap/*.tfstate
+infra/terraform/bootstrap/*.tfstate.backup

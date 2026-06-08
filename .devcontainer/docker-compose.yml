@@ -1,3 +1,5 @@
+name: humanlike-chatbot
+
 services:
   redis:
     image: redis:7-alpine
@@ -11,7 +13,7 @@ services:
     image: mariadb:11.4
     container_name: db
     env_file:
-      - .env
+      - ../api/.env
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
     ports:
@@ -28,18 +30,18 @@ services:
 
   backend:
     build:
-      context: ./generic_chatbot
+      context: ../api
       dockerfile: Dockerfile
       target: development
       args:
         ENVIRONMENT: development
         PYTHON_VERSION: 3.12
     volumes:
-      - ./generic_chatbot:/app
+      - ../api:/app
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - ../api/.env
     environment:
       DATABASE_ENGINE: django.db.backends.mysql
       PYTHONBUFFERED: 1
@@ -48,7 +50,7 @@ services:
 
   frontend:
     build:
-      context: ./generic_chatbot_frontend
+      context: ../web
       dockerfile: Dockerfile.local
     container_name: react_app
     stdin_open: true
@@ -56,32 +58,14 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./generic_chatbot_frontend:/app
+      - ../web:/app
       - /app/node_modules
     env_file:
-      - .env
+      - ../web/.env
     working_dir: /app
     command: npm start
     depends_on:
       - backend
-
-  # sphinx docs using chatlab/docs
-  docs:
-    image: sphinxdoc/sphinx:latest
-    container_name: docs
-    volumes:
-      - ./chatlab/docs:/docs
-    working_dir: /docs
-    # Install requirements, build the HTML, then serve the built site on container port 8000
-    # Host port 8001 is mapped to container port 8000 below
-    command: >
-      /bin/sh -c "
-      pip install -r requirements.txt &&
-      make html &&
-      python -m http.server 8000 -d _build/html
-      "
-    ports:
-      - "8001:8000"
 
 volumes:
   mariadb-data:

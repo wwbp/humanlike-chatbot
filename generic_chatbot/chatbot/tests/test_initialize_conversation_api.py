@@ -9,19 +9,25 @@ Coverage:
   - bot_config included in response for both new and existing paths
   - Persona randomly assigned on new conversation
 """
+
 import json
 import uuid
 
 import pytest
 from django.test import Client
 
-from chatbot.models import Bot, Conversation, Persona, Utterance
+from chatbot.models import Conversation, Persona, Utterance
 
 URL = "/api/initialize_conversation/"
 
 
 def post_init(client, bot_name, conversation_id, **extra):
-    payload = {"bot_name": bot_name, "conversation_id": conversation_id, "participant_id": "p_test", **extra}
+    payload = {
+        "bot_name": bot_name,
+        "conversation_id": conversation_id,
+        "participant_id": "p_test",
+        **extra,
+    }
     return client.post(URL, data=json.dumps(payload), content_type="application/json")
 
 
@@ -119,7 +125,9 @@ def test_new_conversation_initial_utterance_in_response_messages(client, make_bo
 
 
 @pytest.mark.django_db
-def test_new_conversation_assigns_persona_when_available(client, make_bot, openai_model):
+def test_new_conversation_assigns_persona_when_available(
+    client, make_bot, openai_model
+):
     bot = make_bot()
     persona = Persona.objects.create(
         name=f"p_{uuid.uuid4().hex[:6]}", instructions="Be friendly."
@@ -193,7 +201,9 @@ def test_new_conversation_response_includes_bot_config(client, make_bot):
     r = post_init(client, bot.name, cid)
     assert r.status_code == 200
     data = r.json()
-    assert "bot_config" in data, "bot_config missing from initialize_conversation response"
+    assert "bot_config" in data, (
+        "bot_config missing from initialize_conversation response"
+    )
     cfg = data["bot_config"]
     assert cfg["follow_up_on_idle"] is True
     assert cfg["idle_time_minutes"] == 5
@@ -245,4 +255,6 @@ def test_bot_config_reflects_live_bot_values_not_snapshot(client, make_bot):
 
     r = post_init(client, bot.name, cid)  # resume
     cfg = r.json()["bot_config"]
-    assert cfg["follow_up_on_idle"] is True  # must reflect current bot, not old snapshot
+    assert (
+        cfg["follow_up_on_idle"] is True
+    )  # must reflect current bot, not old snapshot

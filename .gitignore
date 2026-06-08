@@ -26,6 +26,7 @@ staticfiles/
 # cache
 .pytest_cache
 .ruff_cache
+web/.vite/
 
 # Pipenv lockfiles
 Pipfile.lock

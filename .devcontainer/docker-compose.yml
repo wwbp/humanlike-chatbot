@@ -1,3 +1,5 @@
+name: humanlike-chatbot
+
 services:
   redis:
     image: redis:7-alpine

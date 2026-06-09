@@ -57,13 +57,57 @@ Each request held a database connection open during the entire ~1-second AI wait
 
 ---
 
+## Road to 5,000 Users
+
+### How many server requests does that actually require?
+
+The load test ran at the most aggressive realistic pace: one message every 5 seconds per user. That maps 1,000 users → 200 messages/second, which we've confirmed works. At real study pacing, users take longer between messages.
+
+**Estimated real-user messaging interval** (based on typical chatbot study behavior):
+
+| Component | Estimate |
+|-----------|----------|
+| AI response arrives | ~1.5 s |
+| User reads response (~75 words at 200 wpm) | ~22 s |
+| User thinks and types reply | ~20 s |
+| **Mean interval between messages** | **~45 s** |
+| **Std deviation** | **~20 s** |
+
+The relationship is: **RPS = Users ÷ mean interval**
+
+| Avg seconds between messages | Users our current 200 RPS supports | 5,000 users needs |
+|------------------------------|-----------------------------------|--------------------|
+| 5 s — load test (worst case) | 1,000 | 1,000 RPS — 5× more infra |
+| 15 s — fast-paced study | 3,000 | 333 RPS — scaling needed |
+| **30 s — realistic lower bound** | **6,000** | **167 RPS — ✅ current infra covers it** |
+| 60 s — typical conversational pace | 12,000 | 83 RPS — ✅ well within capacity |
+
+### What the standard deviation tells us about burst risk
+
+With 5,000 users each independently deciding when to send their next message, the total request rate fluctuates around the mean. By the law of large numbers, the fluctuation is small relative to the total:
+
+- **Mean RPS** at 5,000 users (45 s interval): **111 RPS**
+- **Std deviation**: √(5,000 ÷ 45) ≈ **±11 RPS**
+- **99.7% of the time**, load stays between 78–144 RPS — well under the 200 RPS ceiling
+
+The infrastructure has ~56 RPS of headroom above the 99.7th-percentile burst. Overload is extremely unlikely unless study design requires very short message intervals (< 15 s).
+
+### Scaling plan if needed
+
+| Trigger | Action |
+|---------|--------|
+| Message intervals < 30 s, 5,000 users | Add 2–3 more EC2 instances (auto-scaling already configured) |
+| Message intervals < 15 s, 5,000 users | Add EC2 instances + MySQL read replica for read-heavy queries |
+
+---
+
 ## Next Steps
 
 | | |
 |-|-|
 | ⬜ Apply config to production | Awaiting approval — unblocks current studies |
 | ⬜ Test with real AI calls | One setting change from mock mode; planned after production deploy |
-| ⬜ Scale to 5,000 users | Requires additional auto-scaling tiers and a database read replica |
+| ⬜ Confirm 5,000-user capacity | Run load test at realistic 30–45 s interval to validate extrapolation above |
 
 ---
 

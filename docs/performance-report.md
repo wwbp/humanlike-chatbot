@@ -77,9 +77,10 @@ This means the load test exercises our entire infrastructure — database, cachi
 | Smoke test (single user) | 1 | — | — | ~1,100 ms | 0% | ✅ Pass |
 | Warmup 10 RPS (pre-fix) | 50 | 10 msg/sec | 10.0 | 1,393 ms | ~11%³ | 🐛 Bug found |
 | 200 RPS attempt 1 (pre-fix) | 1,000 | 200 msg/sec | 184 | 1,341 ms | ~45%⁴ | 🐛 Bug found |
-| **200 RPS attempt 2** | **1,000** | **200 msg/sec** | **pending** | **pending** | **pending** | ⏳ Running |
+| 200 RPS attempt 2 (pre-fix) | 1,000 | 200 msg/sec | 196 | 819 ms | ~47%⁵ | 🐛 Bug found |
+| **200 RPS attempt 3** | **1,000** | **200 msg/sec** | **pending** | **pending** | **pending** | ⏳ Deploying fix |
 
-> ³ ⁴ Error rates in these runs reflect bugs in our code (described below), not fundamental capacity limits. Both bugs have been fixed and the next test run is expected to be clean.
+> ³ ⁴ ⁵ Error rates in these runs reflect bugs in our code (described below), not fundamental capacity limits. All three bugs have been fixed and the next test run is expected to be clean.
 
 ---
 
@@ -119,6 +120,21 @@ The fix: run the safety check in a separate worker thread, away from the databas
 
 ---
 
+### AWS phase: one more bug
+
+**Bug 5 — Too many simultaneous database connections at scale**  
+*(Fix: close the database connection before the AI call, reopen it after)*
+
+After fixing bugs 3 and 4, the system handled light load (under ~80 requests per second) perfectly. At 200 RPS, about 47% of requests failed immediately — roughly the same error as bug 3 ("Error fetching the bot from the database"), but for a different reason.
+
+The underlying issue is a subtlety in how Django 5.2 handles async: for each incoming request, it allocates a small private background thread to run all database operations. Crucially, that thread — and the MySQL database connection it holds — stays alive for the entire request, including the ~1 second the server spends waiting for the AI to respond.
+
+At 200 requests per second, with each request lasting about 1.1 seconds, the system holds about 220 database connections open simultaneously. But our RDS database instance (`db.t3.small`, 2 GB RAM) supports a maximum of ~166 connections. The 54 "overflow" connections are rejected outright, returning an immediate error.
+
+The fix: once all the database reads are done (fetching the bot, checking conversation history), explicitly release the connection before the AI call. The connection is reopened automatically when it is needed again after the AI responds (to write the new messages to the database). This reduces peak simultaneous connections from ~220 to ~10.
+
+---
+
 ## Infrastructure Changes Made
 
 | Change | What it does |
@@ -127,6 +143,7 @@ The fix: run the safety check in a separate worker thread, away from the databas
 | Uvicorn workers (4 per server) | Industry-standard async workers; scales with the number of CPUs |
 | `CONN_MAX_AGE=0` | Fresh database connection per request — prevents state corruption in async environments |
 | Safety check moved to separate thread | Frees the database thread for actual database work |
+| Release DB connection before AI call | Ensures the connection is not held during the 1-second AI wait — keeps peak connections under 10 instead of 220 |
 | Database connection limit raised | Local: 151 → 500; AWS: custom parameter group if needed |
 | Request timing logs | Every request logs how long it took, making performance regressions visible |
 | Mock mode (`MOCK_LLM=true`) | Load-tests the full infrastructure without AI API costs |
@@ -168,8 +185,8 @@ Tests were run with [Locust](https://locust.io), an open-source load testing too
 |------|--------|
 | ✅ Local tests 1 → 200 RPS | Complete |
 | ✅ Deploy to AWS staging with mock mode | Complete |
-| ✅ Fix async database bugs found on AWS | Complete (2 bugs fixed) |
-| ⏳ AWS 200 RPS clean test | **In progress — deploying fix now** |
+| ✅ Fix async database bugs found on AWS | Complete (3 bugs fixed) |
+| ⏳ AWS 200 RPS clean test | **Deploying fix for Bug 5 — re-testing next** |
 | ⬜ AWS test with real AI calls | Planned after clean load test passes |
 | ⬜ Document recommended production configuration | Planned |
 

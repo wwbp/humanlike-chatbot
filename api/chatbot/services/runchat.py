@@ -132,7 +132,9 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     # Run in thread to avoid blocking
     # thread_sensitive=False: moderate_message uses time.sleep (mock) or an HTTP
     # call (real). Neither touches the DB, so don't tie up the single DB-thread.
-    blocked = await sync_to_async(moderate_message, thread_sensitive=False)(message, bot)
+    blocked = await sync_to_async(moderate_message, thread_sensitive=False)(
+        message, bot
+    )
     if blocked:
         # Prepare a generic warning — do NOT expose the category to the user
         warning_text = "Your message could not be processed. Please keep conversations respectful and constructive."

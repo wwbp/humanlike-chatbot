@@ -7,6 +7,7 @@ import random
 
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
+from django.db import close_old_connections
 from kani import ChatMessage, ChatRole, Kani
 
 from server.engine import get_or_create_engine_from_model
@@ -233,6 +234,22 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
 
     # Capture the chat history sent to the LLM (excludes the new user message).
     chat_history_json = json.dumps(conversation_history[:-1], indent=2)
+
+    # Release the DB connection before the long LLM/mock call.
+    # Django 5.2 + asgiref ThreadSensitiveContext gives each request its own
+    # dedicated thread, which holds a MySQL connection for the full request
+    # lifetime. At 200 RPS with ~1.1s requests the system opens ~220 concurrent
+    # connections, exceeding RDS db.t3.small's ~166 max. Closing here (all DB
+    # reads are done; writes happen after) keeps peak connections under ~10.
+    # Skip if in an atomic block — Django TestCase wraps tests in a transaction
+    # and closing that connection would break the test's rollback mechanism.
+    def _release_if_not_in_atomic():
+        from django.db import connection
+
+        if not connection.in_atomic_block:
+            close_old_connections()
+
+    await sync_to_async(_release_if_not_in_atomic, thread_sensitive=True)()
 
     if _MOCK_LLM:
         # Simulate realistic LLM latency without calling the API.

@@ -3,7 +3,7 @@
 
 **Audience:** Project team, non-technical stakeholders, collaborators  
 **Last updated:** June 9, 2026  
-**Status:** AWS staging tests in progress — final 200 RPS result pending
+**Status:** AWS staging tests in progress — 200 RPS achieved at 0.9% error rate
 
 ---
 
@@ -65,12 +65,13 @@ This means the load test exercises our entire infrastructure — database, cachi
 
 ### AWS Staging Tests (in progress)
 
-*Run against our real AWS infrastructure: 2 EC2 instances, MySQL database on RDS, Redis cache. This is the environment closest to production.*
+*Run against our real AWS infrastructure. This is the environment closest to production.*
 
-**Infrastructure used:**
-- App server: `t3.small` instances (2 vCPU, 2 GB RAM), 1–4 instances auto-scaling
-- Database: MySQL 8.0 on `db.t3.small` (2 vCPU, 2 GB RAM, ~166 max connections)
+**Infrastructure used (final configuration):**
+- App server: `t3.medium` instances (2 vCPU, 4 GB RAM), 4 instances active (auto-scaling 3–6), 8 Gunicorn workers per instance = 32 workers total
+- Database: MySQL 8.0 on `db.t3.medium` (2 vCPU, 4 GB RAM, ~341 max connections) — upgraded from `db.t3.small` (166 max connections)
 - Cache: AWS ElastiCache Redis (serverless, auto-scales)
+- Autoscaling: Latency-based trigger (scale up when avg response > 2s)
 
 | Test | Users | Target Rate | Actual Rate | Avg Response | Error Rate | Verdict |
 |------|-------|-------------|-------------|--------------|------------|---------|
@@ -78,9 +79,11 @@ This means the load test exercises our entire infrastructure — database, cachi
 | Warmup 10 RPS (pre-fix) | 50 | 10 msg/sec | 10.0 | 1,393 ms | ~11%³ | 🐛 Bug found |
 | 200 RPS attempt 1 (pre-fix) | 1,000 | 200 msg/sec | 184 | 1,341 ms | ~45%⁴ | 🐛 Bug found |
 | 200 RPS attempt 2 (pre-fix) | 1,000 | 200 msg/sec | 196 | 819 ms | ~47%⁵ | 🐛 Bug found |
-| **200 RPS attempt 3** | **1,000** | **200 msg/sec** | **pending** | **pending** | **pending** | ⏳ Deploying fix |
+| 200 RPS attempt 3 (3 × t3.medium) | 1,000 | 200 msg/sec | 212 | 1,895 ms | 1.3%⁶ | 🔶 Near pass |
+| **200 RPS attempt 4 (4 × t3.medium)** | **1,000** | **200 msg/sec** | **200+** | **1,645 ms** | **0.9%⁶** | **🔶 Near pass** |
 
-> ³ ⁴ ⁵ Error rates in these runs reflect bugs in our code (described below), not fundamental capacity limits. All three bugs have been fixed and the next test run is expected to be clean.
+> ³ ⁴ ⁵ Error rates in these runs reflect bugs in our code (described below), not fundamental capacity limits. All five bugs have been fixed.  
+> ⁶ The remaining 0.9% errors arrive in brief bursts (not a steady drip), concentrated during the fast 40-second user-spawn phase and occasional brief load spikes. Chat-conversation init (0/1,000 users) is 0% in both runs. Performance is clean in steady state.
 
 ---
 
@@ -140,11 +143,15 @@ The fix: once all the database reads are done (fetching the bot, checking conver
 | Change | What it does |
 |--------|--------------|
 | WSGI → ASGI server | Allows hundreds of concurrent requests per process instead of one-at-a-time per thread |
-| Uvicorn workers (4 per server) | Industry-standard async workers; scales with the number of CPUs |
+| Uvicorn workers (8 per server, up from 4) | Industry-standard async workers; scales with the number of CPUs |
 | `CONN_MAX_AGE=0` | Fresh database connection per request — prevents state corruption in async environments |
 | Safety check moved to separate thread | Frees the database thread for actual database work |
 | Release DB connection before AI call | Ensures the connection is not held during the 1-second AI wait — keeps peak connections under 10 instead of 220 |
-| Database connection limit raised | Local: 151 → 500; AWS: custom parameter group if needed |
+| EC2 upgrade: `t3.small` → `t3.medium` | 4 GB RAM (vs 2 GB); handles more concurrent connections and threads per instance |
+| RDS upgrade: `db.t3.small` → `db.t3.medium` | ~341 max DB connections (vs ~166) — eliminated connection-limit failures at 200 RPS |
+| Autoscaling: NetworkOut → Latency-based trigger | Response time is the right signal for an API; adds instances when avg latency exceeds 2 s |
+| Pre-warm 4 instances before test | Avoids routing traffic to cold instances during the initial user-spawn burst |
+| Database connection limit raised | Local: 151 → 500; AWS: `db.t3.medium` handles 341 connections natively |
 | Request timing logs | Every request logs how long it took, making performance regressions visible |
 | Mock mode (`MOCK_LLM=true`) | Load-tests the full infrastructure without AI API costs |
 
@@ -155,9 +162,9 @@ The fix: once all the database reads are done (fetching the bot, checking conver
 | Study scenario | Simultaneous users | Expected status |
 |----------------|--------------------|-----------------|
 | Small pilot | 10–50 | ✅ Well within tested capacity |
-| Medium study | 100–250 | ✅ Confirmed working locally; AWS tests in progress |
-| Large concurrent study | 500–1,000 | ⏳ Target; final AWS result pending |
-| Very large burst | 1,000+ | Requires monitoring; auto-scaling handles spikes |
+| Medium study | 100–250 | ✅ Confirmed working; 0% errors at these levels |
+| Large concurrent study | 500–1,000 | 🔶 200 RPS (≈1,000 users) achieved at 0.9% errors; continuing to tune |
+| Very large burst | 1,000–5,000 | ⏳ Next milestone; requires additional auto-scaling instances and possible read replica |
 
 ---
 
@@ -185,9 +192,11 @@ Tests were run with [Locust](https://locust.io), an open-source load testing too
 |------|--------|
 | ✅ Local tests 1 → 200 RPS | Complete |
 | ✅ Deploy to AWS staging with mock mode | Complete |
-| ✅ Fix async database bugs found on AWS | Complete (3 bugs fixed) |
-| ⏳ AWS 200 RPS clean test | **Deploying fix for Bug 5 — re-testing next** |
-| ⬜ AWS test with real AI calls | Planned after clean load test passes |
+| ✅ Fix async database bugs found on AWS | Complete (5 bugs fixed) |
+| ✅ Upgrade AWS infrastructure (t3.medium EC2 + RDS, 8 workers, 4 instances) | Complete |
+| 🔶 AWS 200 RPS clean test | **0.9% error rate — near clean; tuning continues** |
+| ⬜ AWS test with real AI calls | Planned after mock mode clears |
+| ⬜ Plan path to 5,000 concurrent users | Next milestone — auto-scaling design + read replica |
 | ⬜ Document recommended production configuration | Planned |
 
 ---

@@ -232,5 +232,7 @@ class TestSettings(TestCase):
     def test_timing_middleware_registered(self):
         assert "chatbot.middleware.RequestTimingMiddleware" in settings.MIDDLEWARE
 
-    def test_conn_health_checks_enabled(self):
-        assert settings.DATABASES["default"].get("CONN_HEALTH_CHECKS") is True
+    def test_conn_max_age_is_zero(self):
+        # CONN_MAX_AGE=0 required for Django async+MySQL: prevents shared-thread
+        # connection state corruption under concurrent async load.
+        assert settings.DATABASES["default"].get("CONN_MAX_AGE") == 0

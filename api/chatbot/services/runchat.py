@@ -154,12 +154,12 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
 
     # Retrieve history from cache
     cache_key = f"conversation_cache_{conversation_id}"
-    conversation_history = cache.get(cache_key, [])
+    conversation_history = await cache.aget(cache_key, [])
 
     # If cache is empty, try to load from database
     if not conversation_history:
         try:
-            conversation = await sync_to_async(Conversation.objects.get)(
+            conversation = await Conversation.objects.aget(
                 conversation_id=conversation_id,
             )
             utterances = await sync_to_async(list)(
@@ -174,7 +174,7 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
                 conversation_history.append({"role": role, "content": utterance.text})
 
             # Populate cache
-            cache.set(cache_key, conversation_history, timeout=3600)
+            await cache.aset(cache_key, conversation_history, timeout=3600)
             logger.info(
                 f"Loaded {len(conversation_history)} messages from database for conversation {conversation_id}",
             )
@@ -257,7 +257,7 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
 
     # Append bot response
     conversation_history.append({"role": "assistant", "content": response_text})
-    cache.set(cache_key, conversation_history, timeout=3600)
+    await cache.aset(cache_key, conversation_history, timeout=3600)
 
     # Save to DB (but not followup requests)
     if not message.startswith("[FOLLOW-UP REQUEST]"):

@@ -179,6 +179,7 @@ class TestChatbotView:
         try:
             client = AsyncClient()
             with (
+                patch("chatbot.services.runchat._MOCK_LLM", False),
                 patch(
                     "chatbot.services.runchat.get_or_create_engine_from_model",
                     return_value=MagicMock(),
@@ -252,6 +253,7 @@ class TestChatbotView:
         try:
             client = AsyncClient()
             with (
+                patch("chatbot.services.runchat._MOCK_LLM", False),
                 patch(
                     "chatbot.services.runchat.get_or_create_engine_from_model",
                     return_value=MagicMock(),

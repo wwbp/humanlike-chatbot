@@ -1,6 +1,15 @@
+import math
+import os
+import random
+import time
+
 from django.conf import settings
 from openai import OpenAI
 from openai._compat import model_dump
+
+# When MOCK_LLM=true, skip all external API calls and simulate latency locally.
+_MOCK_LLM = os.getenv("MOCK_LLM", "false").lower() == "true"
+_MOCK_MOD_P50_MS = int(os.getenv("MOCK_MODERATION_P50_MS", "220"))
 
 
 def is_moderation_enabled():
@@ -25,6 +34,11 @@ def moderate_message(message: str, bot=None) -> str:
     Returns:
         A string with the category if blocked, or an empty string if acceptable.
     """
+    if _MOCK_LLM:
+        # Simulate realistic moderation latency (lognormal around p50).
+        time.sleep(random.lognormvariate(math.log(_MOCK_MOD_P50_MS), 0.4) / 1000)
+        return ""
+
     # Skip moderation when no API key is configured (e.g. CI or local dev without key)
     if not getattr(settings, "OPENAI_API_KEY", None):
         return ""

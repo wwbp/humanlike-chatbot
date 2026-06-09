@@ -3,7 +3,7 @@ import logging
 import random
 from datetime import datetime
 
-from asgiref.sync import async_to_sync
+from asgiref.sync import sync_to_async
 from django.core.cache import cache
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
@@ -47,12 +47,12 @@ def _bot_public_config(bot):
     }
 
 
-def randomly_select_persona(bot):
+async def randomly_select_persona(bot):
     """
     Randomly select one persona from the bot's assigned personas.
     Returns None if no personas are assigned.
     """
-    assigned_personas = list(bot.personas.all())
+    assigned_personas = await sync_to_async(list)(bot.personas.all())
     if assigned_personas:
         selected_persona = random.choice(assigned_personas)
         logger.info(
@@ -64,39 +64,31 @@ def randomly_select_persona(bot):
         return None
 
 
-def load_conversation_history(conversation_id):
+async def load_conversation_history(conversation_id):
     """
     Load conversation history from database and populate cache.
     Returns the conversation history as a list of messages.
     """
     try:
-        conversation = Conversation.objects.get(conversation_id=conversation_id)
-        utterances = Utterance.objects.filter(conversation=conversation).order_by(
-            "created_time",
-        )
-
-        # Build conversation history for cache
+        conversation = await Conversation.objects.aget(conversation_id=conversation_id)
         conversation_history = []
         messages = []
 
-        for utterance in utterances:
+        async for utterance in Utterance.objects.filter(
+            conversation=conversation
+        ).order_by("created_time"):
             role = "user" if utterance.speaker_id == "user" else "assistant"
             content = utterance.text
-
-            # Add to cache format
             conversation_history.append({"role": role, "content": content})
-
-            # Add to frontend format
             messages.append(
                 {
                     "sender": "You" if role == "user" else "AI Chatbot",
                     "content": content,
-                },
+                }
             )
 
-        # Populate cache
         cache_key = f"conversation_cache_{conversation_id}"
-        cache.set(cache_key, conversation_history, timeout=3600)
+        await cache.aset(cache_key, conversation_history, timeout=3600)
 
         logger.debug(
             f"Loaded {len(messages)} messages for conversation {conversation_id}",
@@ -113,7 +105,7 @@ def load_conversation_history(conversation_id):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class InitializeConversationAPIView(View):
-    def post(self, request, *args, **kwargs):
+    async def post(self, request, *args, **kwargs):
         try:
             logger.debug("Entering InitializeConversationAPIView.post()")
 
@@ -143,7 +135,7 @@ class InitializeConversationAPIView(View):
                 )
 
             try:
-                bot = Bot.objects.get(name=bot_name)
+                bot = await Bot.objects.aget(name=bot_name)
                 logger.debug("Found bot: %s", bot_name)
             except Bot.DoesNotExist:
                 return JsonResponse(
@@ -158,7 +150,7 @@ class InitializeConversationAPIView(View):
                 )
 
             # Check if conversation already exists
-            existing_conversation, existing_messages = load_conversation_history(
+            existing_conversation, existing_messages = await load_conversation_history(
                 conversation_id,
             )
 
@@ -180,20 +172,22 @@ class InitializeConversationAPIView(View):
                 )
 
             # Randomly select a persona for this conversation
-            selected_persona = randomly_select_persona(bot)
-            # json string of bot object
+            selected_persona = await randomly_select_persona(bot)
+
             from django.core.serializers.json import DjangoJSONEncoder
             from django.forms.models import model_to_dict
 
-            bot_config_data = model_to_dict(bot, exclude=["personas"])
-            bot_config_data["personas"] = list(
-                bot.personas.values("id", "name"),
+            bot_config_data = await sync_to_async(model_to_dict)(
+                bot, exclude=["personas"]
+            )
+            bot_config_data["personas"] = await sync_to_async(list)(
+                bot.personas.values("id", "name")
             )
             bot_config = json.dumps(bot_config_data, cls=DjangoJSONEncoder)
 
             # Create new conversation
             try:
-                Conversation.objects.create(
+                await Conversation.objects.acreate(
                     conversation_id=conversation_id,
                     bot_name=bot.name,
                     bot_config=bot_config,
@@ -217,11 +211,11 @@ class InitializeConversationAPIView(View):
                     status=500,
                 )
 
-            # ✅ Save bot's initial utterance as an assistant message
+            # Save bot's initial utterance as an assistant message
             initial_messages = []
             if bot.initial_utterance and bot.initial_utterance.strip():
                 try:
-                    async_to_sync(save_chat_to_db)(
+                    await save_chat_to_db(
                         conversation_id=conversation_id,
                         speaker_id="assistant",
                         text=bot.initial_utterance.strip(),
@@ -229,8 +223,6 @@ class InitializeConversationAPIView(View):
                         participant_id=None,
                     )
                     logger.debug("Initial bot message saved to DB.")
-
-                    # Add to initial messages for frontend
                     initial_messages.append(
                         {
                             "sender": "AI Chatbot",

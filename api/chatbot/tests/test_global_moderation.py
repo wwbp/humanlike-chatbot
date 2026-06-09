@@ -49,6 +49,7 @@ class TestGlobalModeration(TestCase):
         mock_openai_instance.moderations.create.assert_not_called()  # API should not be called
 
     @override_settings(OPENAI_API_KEY="test-key")
+    @patch("chatbot.services.moderation._MOCK_LLM", False)
     @patch("chatbot.services.moderation.OpenAI")
     def test_moderation_enabled_calls_api(self, mock_openai):
         """Test that when global moderation is enabled, OpenAI API is called."""
@@ -95,6 +96,7 @@ class TestGlobalModeration(TestCase):
         assert not is_moderation_enabled()
 
     @override_settings(OPENAI_API_KEY="test-key")
+    @patch("chatbot.services.moderation._MOCK_LLM", False)
     @patch("chatbot.services.moderation.OpenAI")
     def test_moderation_enabled_with_violation_blocks_message(self, mock_openai):
         """Test that when moderation is enabled and violation detected, message is blocked."""

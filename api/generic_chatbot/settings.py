@@ -88,6 +88,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
+    "chatbot.middleware.RequestTimingMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -177,6 +178,12 @@ DATABASES = {
         "PASSWORD": os.getenv("DATABASE_PASSWORD"),
         "HOST": os.getenv("DATABASE_HOST"),
         "PORT": os.getenv("DATABASE_PORT"),
+        # Reuse DB connections per thread for up to 60 s.
+        # Safe in Django 5.x ASGI: sync_to_async uses thread_sensitive=True by
+        # default, so each coroutine's ORM calls pin to one thread and its connection.
+        # Monitor DB max_connections if you scale uvicorn workers significantly.
+        "CONN_MAX_AGE": int(os.getenv("CONN_MAX_AGE", "60")),
+        "CONN_HEALTH_CHECKS": True,
     },
 }
 

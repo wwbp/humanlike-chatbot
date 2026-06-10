@@ -70,8 +70,11 @@ EXPOSE 8000 80
 RUN chmod +x /app/entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
 
-# Command to run the application with nginx
-CMD ["sh", "-c", "nginx -t && service nginx start && gunicorn generic_chatbot.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 300"]
+# Command to run the application with nginx.
+# Uses ASGI + uvicorn workers so async views (chatbot, followup) run in a real
+# event loop — not wrapped in sync_to_async threads one-per-worker.
+# GUNICORN_WORKERS defaults to 4; set in EB env vars to 2×vCPU for prod.
+CMD ["sh", "-c", "nginx -t && service nginx start && gunicorn generic_chatbot.asgi:application --bind 0.0.0.0:8000 --worker-class uvicorn.workers.UvicornWorker --workers ${GUNICORN_WORKERS:-4} --timeout 120"]
 
 # Default to production stage
 FROM production

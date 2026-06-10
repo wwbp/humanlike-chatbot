@@ -1,8 +1,13 @@
+import asyncio
 import json
 import logging
+import math
+import os
+import random
 
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
+from django.db import close_old_connections
 from kani import ChatMessage, ChatRole, Kani
 
 from server.engine import get_or_create_engine_from_model
@@ -10,11 +15,12 @@ from server.engine import get_or_create_engine_from_model
 from ..models import Bot, Conversation, Utterance
 from .moderation import moderate_message
 
-# Get logger for this module
 logger = logging.getLogger(__name__)
 
-# Dictionary to store engine instances
 engine_instances = {}
+
+_MOCK_LLM = os.getenv("MOCK_LLM", "false").lower() == "true"
+_MOCK_LLM_P50_MS = int(os.getenv("MOCK_LLM_P50_MS", "900"))
 
 
 def generate_system_prompt(bot, selected_persona=None):
@@ -125,7 +131,11 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
 
     # Moderate incoming message
     # Run in thread to avoid blocking
-    blocked = await sync_to_async(moderate_message)(message, bot)
+    # thread_sensitive=False: moderate_message uses time.sleep (mock) or an HTTP
+    # call (real). Neither touches the DB, so don't tie up the single DB-thread.
+    blocked = await sync_to_async(moderate_message, thread_sensitive=False)(
+        message, bot
+    )
     if blocked:
         # Prepare a generic warning — do NOT expose the category to the user
         warning_text = "Your message could not be processed. Please keep conversations respectful and constructive."
@@ -149,12 +159,12 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
 
     # Retrieve history from cache
     cache_key = f"conversation_cache_{conversation_id}"
-    conversation_history = cache.get(cache_key, [])
+    conversation_history = await cache.aget(cache_key, [])
 
     # If cache is empty, try to load from database
     if not conversation_history:
         try:
-            conversation = await sync_to_async(Conversation.objects.get)(
+            conversation = await Conversation.objects.aget(
                 conversation_id=conversation_id,
             )
             utterances = await sync_to_async(list)(
@@ -169,7 +179,7 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
                 conversation_history.append({"role": role, "content": utterance.text})
 
             # Populate cache
-            cache.set(cache_key, conversation_history, timeout=3600)
+            await cache.aset(cache_key, conversation_history, timeout=3600)
             logger.info(
                 f"Loaded {len(conversation_history)} messages from database for conversation {conversation_id}",
             )
@@ -222,32 +232,53 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     )
     logger.info(f"   Final prompt length: {len(system_prompt)} characters")
 
-    # Run Kani - ai_model is now required
-    engine = get_or_create_engine_from_model(bot.ai_model, engine_instances)
-    kani = Kani(engine, system_prompt=system_prompt, chat_history=formatted_history)
-
-    latest_user_message = formatted_history[-1].content
-    response_text = ""
-
-    async for msg in kani.full_round(query=latest_user_message):
-        if hasattr(msg, "text") and isinstance(msg.text, str):
-            response_text += msg.text + " "
-
-    response_text = response_text.strip()
-
-    # Capture the chat history that was actually used (before appending bot response)
-    # Store only the chat history sent to LLM (excluding the new user message)
+    # Capture the chat history sent to the LLM (excludes the new user message).
     chat_history_json = json.dumps(conversation_history[:-1], indent=2)
 
-    # Debug logging for Bedrock engine
-    if bot.ai_model.provider.name == "Bedrock":
-        logger.info(f"Bedrock engine response: '{response_text}'")
-        logger.info(f"System prompt length: {len(system_prompt)}")
-        logger.info(f"Chat history length: {len(chat_history_json)}")
+    # Release the DB connection before the long LLM/mock call.
+    # Django 5.2 + asgiref ThreadSensitiveContext gives each request its own
+    # dedicated thread, which holds a MySQL connection for the full request
+    # lifetime. At 200 RPS with ~1.1s requests the system opens ~220 concurrent
+    # connections, exceeding RDS db.t3.small's ~166 max. Closing here (all DB
+    # reads are done; writes happen after) keeps peak connections under ~10.
+    # Skip if in an atomic block — Django TestCase wraps tests in a transaction
+    # and closing that connection would break the test's rollback mechanism.
+    def _release_if_not_in_atomic():
+        from django.db import connection
+
+        if not connection.in_atomic_block:
+            close_old_connections()
+
+    await sync_to_async(_release_if_not_in_atomic, thread_sensitive=True)()
+
+    if _MOCK_LLM:
+        # Simulate realistic LLM latency without calling the API.
+        # Redis, DB reads/writes, and all other infrastructure are still exercised.
+        _delay = random.lognormvariate(math.log(_MOCK_LLM_P50_MS), 0.4) / 1000
+        await asyncio.sleep(_delay)
+        response_text = "This is a mock response for load testing."
+    else:
+        engine = get_or_create_engine_from_model(bot.ai_model, engine_instances)
+        kani = Kani(engine, system_prompt=system_prompt, chat_history=formatted_history)
+
+        latest_user_message = formatted_history[-1].content
+        response_text = ""
+
+        async for msg in kani.full_round(query=latest_user_message):
+            if hasattr(msg, "text") and isinstance(msg.text, str):
+                response_text += msg.text + " "
+
+        response_text = response_text.strip()
+
+        # Debug logging for Bedrock engine
+        if bot.ai_model.provider.name == "Bedrock":
+            logger.info(f"Bedrock engine response: '{response_text}'")
+            logger.info(f"System prompt length: {len(system_prompt)}")
+            logger.info(f"Chat history length: {len(chat_history_json)}")
 
     # Append bot response
     conversation_history.append({"role": "assistant", "content": response_text})
-    cache.set(cache_key, conversation_history, timeout=3600)
+    await cache.aset(cache_key, conversation_history, timeout=3600)
 
     # Save to DB (but not followup requests)
     if not message.startswith("[FOLLOW-UP REQUEST]"):
@@ -258,13 +289,6 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
             bot_name=None,
             participant_id=participant_id,
         )
-
-    # Debug logging for Bedrock engine save operation
-    if bot.ai_model.provider.name == "Bedrock":
-        logger.info("Saving Bedrock response to DB:")
-        logger.info(f"  - instruction_prompt: {len(system_prompt)} chars")
-        logger.info(f"  - chat_history_used: {len(chat_history_json)} chars")
-        logger.info(f"  - response_text: {len(response_text)} chars")
 
     await save_chat_to_db(
         conversation_id=conversation_id,

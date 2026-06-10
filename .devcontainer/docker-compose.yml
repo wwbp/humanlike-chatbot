@@ -12,6 +12,7 @@ services:
   db:
     image: mariadb:11.4
     container_name: db
+    command: --max-connections=500
     env_file:
       - ../api/.env
     environment:

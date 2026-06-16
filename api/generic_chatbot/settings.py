@@ -48,9 +48,28 @@ CACHES = {
         "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            # A transient Redis blip should degrade gracefully, not 500 the user.
+            # With IGNORE_EXCEPTIONS a failed read returns the default (the chat
+            # path then falls back to loading history from the DB), and a failed
+            # write is dropped instead of raising "Timeout writing to socket".
+            "IGNORE_EXCEPTIONS": True,
+            "SOCKET_CONNECT_TIMEOUT": 2,  # seconds to open the connection
+            "SOCKET_TIMEOUT": 2,  # seconds per read/write op
+            "CONNECTION_POOL_KWARGS": {
+                "retry_on_timeout": True,
+                # Redis sits nearly idle, yet writes were timing out — the
+                # signature of stale/half-open pooled TCP connections being
+                # reused. Keepalive + a periodic PING recycle dead connections
+                # before they hang a request.
+                "socket_keepalive": True,
+                "health_check_interval": 30,
+            },
         },
     },
 }
+
+# Still log the swallowed Redis errors so blips stay visible in the logs.
+DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
 
 # Append Elastic Beanstalk Load Balancer Health Check requests since the source host IP address keeps changing
 if not DEBUG:

@@ -19,6 +19,30 @@ logger = logging.getLogger(__name__)
 
 engine_instances = {}
 
+
+async def _recycle_db_connections():
+    """
+    Recycle stale/obsolete DB connections on the request's thread-sensitive thread.
+
+    With CONN_HEALTH_CHECKS=True this also drops connections the server already
+    closed, so the next ORM call opens a fresh one instead of raising
+    (2006, 'Server has gone away'). Used both before the long LLM call (to free the
+    connection) and right before the post-LLM writes (a connection idle across the
+    LLM round can be reaped by RDS).
+
+    Skip if in an atomic block — Django TestCase wraps tests in a transaction and
+    closing that connection would break the test's rollback mechanism.
+    """
+
+    def _recycle():
+        from django.db import connection
+
+        if not connection.in_atomic_block:
+            close_old_connections()
+
+    await sync_to_async(_recycle, thread_sensitive=True)()
+
+
 _MOCK_LLM = os.getenv("MOCK_LLM", "false").lower() == "true"
 _MOCK_LLM_P50_MS = int(os.getenv("MOCK_LLM_P50_MS", "900"))
 
@@ -123,6 +147,13 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
             "I'm sorry, but I can't process followup requests through the regular chat. Please use the appropriate followup mechanism.",
             None,
         )
+
+    # Validate the connection before the first read. Under the async stack a
+    # connection can persist across an idle gap and be reaped by RDS; reusing it
+    # here was the source of intermittent (2006, 'Server has gone away') 500s on
+    # the first query of a request after an idle period. Recycle so a stale socket
+    # is dropped and this read opens a fresh connection.
+    await _recycle_db_connections()
 
     # Fetch bot object with personas and ai_model prefetched
     bot = await sync_to_async(
@@ -241,15 +272,7 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     # lifetime. At 200 RPS with ~1.1s requests the system opens ~220 concurrent
     # connections, exceeding RDS db.t3.small's ~166 max. Closing here (all DB
     # reads are done; writes happen after) keeps peak connections under ~10.
-    # Skip if in an atomic block — Django TestCase wraps tests in a transaction
-    # and closing that connection would break the test's rollback mechanism.
-    def _release_if_not_in_atomic():
-        from django.db import connection
-
-        if not connection.in_atomic_block:
-            close_old_connections()
-
-    await sync_to_async(_release_if_not_in_atomic, thread_sensitive=True)()
+    await _recycle_db_connections()
 
     if _MOCK_LLM:
         # Simulate realistic LLM latency without calling the API.
@@ -279,6 +302,11 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     # Append bot response
     conversation_history.append({"role": "assistant", "content": response_text})
     await cache.aset(cache_key, conversation_history, timeout=3600)
+
+    # Recycle connections again before the writes: the connection released above
+    # was closed pre-LLM, but a connection opened lazily during the LLM round (or
+    # reused after it) can be reaped by RDS while idle, so validate before writing.
+    await _recycle_db_connections()
 
     # Save to DB (but not followup requests)
     if not message.startswith("[FOLLOW-UP REQUEST]"):

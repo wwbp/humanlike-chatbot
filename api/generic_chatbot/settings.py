@@ -204,7 +204,13 @@ DATABASES = {
         # async load (80%+ failures at ≥5 concurrent requests on staging).
         # Long-term: migrate to aiomysql/asyncmy or add ProxySQL for true async pooling.
         "CONN_MAX_AGE": int(os.getenv("CONN_MAX_AGE", "0")),
-        "CONN_HEALTH_CHECKS": False,
+        # CONN_HEALTH_CHECKS=True: PING a pooled connection and transparently
+        # reconnect if the server already closed it, instead of raising
+        # (2006, 'Server has gone away'). Under the ASGI/thread-sensitive stack a
+        # connection can linger across an idle gap and go stale; without the health
+        # check the first query on that dead socket 500s. Symptom mirrors the Redis
+        # stale-connection bug fixed in CACHES above, on the DB side.
+        "CONN_HEALTH_CHECKS": True,
     },
 }
 

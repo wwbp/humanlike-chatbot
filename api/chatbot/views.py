@@ -63,6 +63,9 @@ def test_upload(request):
 @method_decorator(csrf_exempt, name="dispatch")
 class ChatbotAPIView(View):
     async def post(self, request, *args, **kwargs):
+        # Hoisted above the try so they're available for error logging even if
+        # body parsing itself fails.
+        conversation_id = bot_name = participant_id = None
         try:
             data = json.loads(request.body)
             message = data.get("message", "").strip()
@@ -119,5 +122,16 @@ class ChatbotAPIView(View):
             )
 
         except Exception as e:
-            logger.error(f"❌ [ERROR] ChatbotAPIView Exception: {e}")
+            # logger.exception attaches the full traceback (exc_info) at ERROR
+            # level; we also surface the exception TYPE and request context so a
+            # 500 is diagnosable from one log line instead of a bare message.
+            logger.exception(
+                "❌ [ERROR] ChatbotAPIView %s: %s "
+                "[conversation_id=%s bot_name=%s participant_id=%s]",
+                type(e).__name__,
+                e,
+                conversation_id,
+                bot_name,
+                participant_id,
+            )
             return JsonResponse({"error": "An unexpected error occurred."}, status=500)

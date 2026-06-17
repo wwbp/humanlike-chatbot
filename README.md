@@ -59,7 +59,7 @@ Secrets and service config live in `api/.env` and `web/.env` — copy from the `
 | Variable | Purpose |
 |----------|---------|
 | `SECRET_KEY` | Django secret key (required) |
-| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | LLM provider keys (at least one required) |
+| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | LLM provider keys (OpenAI required for moderation) |
 | `DATABASE_*` / `MYSQL_*` | DB connection + MariaDB container config |
 | `DJANGO_SUPERUSER_*` | Admin credentials — created automatically on container start if set (locally: `make superuser`; on EB: set via env vars in EB console) |
 

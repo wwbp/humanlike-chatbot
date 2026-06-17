@@ -44,6 +44,11 @@ logger = logging.getLogger("locust.chatlab")
 
 # ── Configuration (override via env vars) ────────────────────────────────────
 
+# Host header override: when driving the ALB directly (bypassing CloudFront),
+# set this to the app's allowed host (e.g. dev.bot.wwbp.org). The raw ALB
+# hostname is rejected by Django ALLOWED_HOSTS with HTTP 400. Empty = no override.
+LOAD_TEST_HOST_HEADER = os.getenv("LOAD_TEST_HOST_HEADER", "")
+
 LOAD_TEST_BOT = os.getenv("LOAD_TEST_BOT_NAME", "")
 LOAD_TEST_STUDY = os.getenv("LOAD_TEST_STUDY", "load_test")
 LOAD_TEST_USER_GROUP = os.getenv("LOAD_TEST_USER_GROUP", "perf")
@@ -96,6 +101,9 @@ class ConversationUser(HttpUser):
         if not LOAD_TEST_BOT:
             logger.error("LOAD_TEST_BOT_NAME env var is not set — aborting user.")
             raise StopUser
+
+        if LOAD_TEST_HOST_HEADER:
+            self.client.headers["Host"] = LOAD_TEST_HOST_HEADER
 
         self.bot_name = LOAD_TEST_BOT
         self.participant_id = f"lt_{uuid.uuid4().hex[:12]}"

@@ -7,7 +7,7 @@ import random
 
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
-from django.db import close_old_connections
+from django.db import InterfaceError, OperationalError, close_old_connections
 from kani import ChatMessage, ChatRole, Kani
 
 from server.engine import get_or_create_engine_from_model
@@ -22,13 +22,14 @@ engine_instances = {}
 
 async def _recycle_db_connections():
     """
-    Recycle stale/obsolete DB connections on the request's thread-sensitive thread.
+    Release the request's DB connection on the thread-sensitive thread.
 
-    With CONN_HEALTH_CHECKS=True this also drops connections the server already
-    closed, so the next ORM call opens a fresh one instead of raising
-    (2006, 'Server has gone away'). Used both before the long LLM call (to free the
-    connection) and right before the post-LLM writes (a connection idle across the
-    LLM round can be reaped by RDS).
+    Primary purpose is connection-count control: closing before the long LLM
+    call frees the connection so peak concurrent connections stay low under load
+    (CONN_MAX_AGE=0, so the next ORM call reopens). It does NOT reliably protect
+    against stale connections — CONN_HEALTH_CHECKS is a no-op at CONN_MAX_AGE=0,
+    and a connection can still be reaped during the request; stale-connection
+    recovery is handled by _db_call()'s reconnect-and-retry instead.
 
     Skip if in an atomic block — Django TestCase wraps tests in a transaction and
     closing that connection would break the test's rollback mechanism.
@@ -41,6 +42,48 @@ async def _recycle_db_connections():
             close_old_connections()
 
     await sync_to_async(_recycle, thread_sensitive=True)()
+
+
+async def _db_call(fn, *args, **kwargs):
+    """
+    Run a synchronous ORM callable on the thread-sensitive DB thread, retrying
+    once if the pooled connection is stale.
+
+    Under the ASGI + sync_to_async(thread_sensitive=True) stack the per-request
+    MySQL connection lives on a worker thread, but Django's request_finished
+    teardown — which would honour CONN_MAX_AGE=0 and close it — runs on a
+    different thread. So the connection lingers on the worker thread, gets reaped
+    server-side during an idle gap, and raises on its next use:
+        (2006, 'Server has gone away')
+        (4031, '... disconnected by the server because of inactivity ...')
+        (2013, 'Lost connection to server during query')
+    CONN_HEALTH_CHECKS is a no-op at CONN_MAX_AGE=0 (Django only health-checks
+    persistent connections), which is why it never caught these. Here we catch
+    the dead connection, close it so the next call opens a fresh socket, and
+    retry once. This is also the only thing that covers 2013 (connection lost
+    mid-query) — no pre-use validation can.
+
+    The try/close/retry runs inside a single sync_to_async call so close() and
+    the retry execute on the same thread as the failed query. Retrying a write
+    (Utterance.create) risks a rare duplicate if the server committed before the
+    socket dropped, which is strictly preferable to a 500.
+    """
+
+    def _call():
+        from django.db import connection
+
+        try:
+            return fn(*args, **kwargs)
+        except (OperationalError, InterfaceError) as e:
+            logger.warning(
+                "Stale DB connection on %s (%s); reconnecting and retrying once",
+                getattr(fn, "__name__", fn),
+                e,
+            )
+            connection.close()
+            return fn(*args, **kwargs)
+
+    return await sync_to_async(_call, thread_sensitive=True)()
 
 
 _MOCK_LLM = os.getenv("MOCK_LLM", "false").lower() == "true"
@@ -95,8 +138,8 @@ async def save_chat_to_db(
     Save chat messages asynchronously to the Utterance table.
     """
     try:
-        conversation = await sync_to_async(Conversation.objects.get)(
-            conversation_id=conversation_id,
+        conversation = await _db_call(
+            Conversation.objects.get, conversation_id=conversation_id
         )
 
         # Debug logging for Bedrock engine save
@@ -111,7 +154,8 @@ async def save_chat_to_db(
                 f"  - chat_history_used: {len(chat_history_used) if chat_history_used else 'None'}"
             )
 
-        await sync_to_async(Utterance.objects.create)(
+        await _db_call(
+            Utterance.objects.create,
             conversation=conversation,
             speaker_id=speaker_id,
             bot_name=bot_name,
@@ -156,9 +200,10 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     await _recycle_db_connections()
 
     # Fetch bot object with personas and ai_model prefetched
-    bot = await sync_to_async(
+    bot = await _db_call(
         Bot.objects.prefetch_related("personas", "ai_model__provider").get,
-    )(name=bot_name)
+        name=bot_name,
+    )
 
     # Moderate incoming message
     # Run in thread to avoid blocking
@@ -195,10 +240,11 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     # If cache is empty, try to load from database
     if not conversation_history:
         try:
-            conversation = await Conversation.objects.aget(
-                conversation_id=conversation_id,
+            conversation = await _db_call(
+                Conversation.objects.get, conversation_id=conversation_id
             )
-            utterances = await sync_to_async(list)(
+            utterances = await _db_call(
+                list,
                 Utterance.objects.filter(conversation=conversation).order_by(
                     "created_time",
                 ),
@@ -247,9 +293,10 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     ]
 
     # Get the selected persona for this conversation
-    conversation = await sync_to_async(
+    conversation = await _db_call(
         Conversation.objects.select_related("selected_persona").get,
-    )(conversation_id=conversation_id)
+        conversation_id=conversation_id,
+    )
     selected_persona = conversation.selected_persona
 
     # Generate dynamic system prompt combining bot prompt with selected persona

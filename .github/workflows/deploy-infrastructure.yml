@@ -212,7 +212,37 @@ jobs:
           set_secret AWS_PROD_BACKEND_ENVIRONMENT_NAME  "$(terraform output -raw github_secret_AWS_PROD_BACKEND_ENVIRONMENT_NAME)"
           set_secret VITE_API_URL                       "$(terraform output -raw frontend_url)/api"
 
-      # ── 11. Summary ───────────────────────────────────────────────────────────
+      # ── 11. Rollback on failure ───────────────────────────────────────────────
+      # Runs only when a previous step failed. Destroys everything Terraform
+      # managed to create so no half-built resources are left running.
+      # The bootstrap S3 state bucket is NOT destroyed — it is managed by a
+      # separate config and will be reused on the next attempt.
+      - name: Rollback on failure
+        if: failure()
+        working-directory: infra/terraform
+        env:
+          TF_VAR_environment:                 production
+          TF_VAR_github_org:                  ${{ github.repository_owner }}
+          TF_VAR_github_repo:                 ${{ github.event.repository.name }}
+          TF_VAR_openai_api_key:              ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_anthropic_api_key:           ${{ secrets.ANTHROPIC_API_KEY }}
+          TF_VAR_db_password:                 ${{ secrets.DB_PASSWORD }}
+          TF_VAR_admin_panel_password:        ${{ secrets.ADMIN_PANEL_PASSWORD }}
+          TF_VAR_eb_instance_type:            ${{ inputs.eb_instance_type }}
+          TF_VAR_eb_max_instances:            ${{ inputs.eb_max_instances }}
+          TF_VAR_db_instance_class:           ${{ inputs.db_instance_class }}
+          TF_VAR_domain_name:                 ${{ secrets.DOMAIN_NAME }}
+          TF_VAR_create_github_oidc_provider: ${{ secrets.CREATE_GITHUB_OIDC_PROVIDER || 'true' }}
+        run: |
+          if [[ ! -d .terraform ]]; then
+            echo "Terraform was not initialised — nothing to roll back."
+            exit 0
+          fi
+          echo "Rolling back — destroying all resources created during this run..."
+          terraform destroy -auto-approve -input=false \
+            || echo "::warning::Destroy encountered errors. Some resources may need manual cleanup in the AWS console."
+
+      # ── 12. Summary ───────────────────────────────────────────────────────────
       - name: Write summary
         working-directory: infra/terraform
         run: |

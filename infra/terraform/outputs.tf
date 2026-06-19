@@ -101,3 +101,18 @@ output "eb_solution_stack" {
   description = "The exact Docker platform version EB is running. Useful to know if you need to check for platform updates."
   value       = data.aws_elastic_beanstalk_solution_stack.docker_al2023.name
 }
+
+output "cloudfront_domain_name" {
+  description = "The raw CloudFront domain name (e.g. d1abc123.cloudfront.net). Use this as the CNAME target when pointing a custom domain at the chatbot."
+  value       = aws_cloudfront_distribution.frontend.domain_name
+}
+
+output "acm_validation_cname_name" {
+  description = "The DNS record name to add at your registrar to validate the custom domain SSL certificate. Empty when no custom domain is configured."
+  value       = var.domain_name != "" ? tolist(aws_acm_certificate.custom_domain[0].domain_validation_options)[0].resource_record_name : ""
+}
+
+output "acm_validation_cname_value" {
+  description = "The DNS record value to add at your registrar to validate the custom domain SSL certificate. Empty when no custom domain is configured."
+  value       = var.domain_name != "" ? tolist(aws_acm_certificate.custom_domain[0].domain_validation_options)[0].resource_record_value : ""
+}

@@ -38,15 +38,17 @@ variable "environment" {
 # -----------------------------------------------------------------------
 
 variable "openai_api_key" {
-  description = "The OpenAI API key I inject into the Django application for chat and content moderation. Generate one at platform.openai.com."
+  description = "The OpenAI API key I inject into the Django application for chat and content moderation. Generate one at platform.openai.com. Leave empty if using Anthropic only."
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "anthropic_api_key" {
-  description = "The Anthropic API key I inject into the Django application for Claude-based chat models. Generate one at console.anthropic.com."
+  description = "The Anthropic API key I inject into the Django application for Claude-based chat models. Generate one at console.anthropic.com. Leave empty if using OpenAI only."
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "db_password" {
@@ -56,13 +58,10 @@ variable "db_password" {
 }
 
 variable "django_secret_key" {
-  description = "The cryptographic signing key Django uses for sessions and CSRF tokens. Must be at least 50 characters. Generate with: python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'"
+  description = "The cryptographic signing key Django uses for sessions and CSRF tokens. Leave empty to auto-generate a stable key (recommended — the key is stored in Terraform state and reused on every deploy)."
   type        = string
   sensitive   = true
-  validation {
-    condition     = length(var.django_secret_key) >= 50
-    error_message = "I require the Django secret key to be at least 50 characters to meet Django's minimum security requirement."
-  }
+  default     = ""
 }
 
 # -----------------------------------------------------------------------
@@ -91,10 +90,28 @@ variable "eb_instance_type" {
   default     = "t3.small"
 }
 
+variable "eb_max_instances" {
+  description = "The maximum number of EC2 instances the auto-scaling group can launch. Set to 1 for most studies. Increase if you expect hundreds of simultaneous conversations."
+  type        = number
+  default     = 1
+}
+
 variable "db_instance_class" {
-  description = "The RDS instance class for the MariaDB database. db.t3.micro is free-tier eligible and sufficient for staging. Consider db.t3.small or db.t3.medium for production."
+  description = "The RDS instance class for the MariaDB database. db.t3.micro is sufficient for most studies. Consider db.t3.small for larger deployments."
   type        = string
   default     = "db.t3.micro"
+}
+
+variable "admin_panel_password" {
+  description = "The password for the Django admin panel. You will use this to log in and configure your chatbot at /api/admin/. Choose something you will remember."
+  type        = string
+  sensitive   = true
+}
+
+variable "domain_name" {
+  description = "Optional custom domain to serve the chatbot from (e.g. chatbot.mylab.org). Leave empty to use the auto-assigned CloudFront URL (https://xxxx.cloudfront.net). If set, an SSL certificate will be created — you will need to add a DNS validation record at your registrar."
+  type        = string
+  default     = ""
 }
 
 variable "create_github_oidc_provider" {

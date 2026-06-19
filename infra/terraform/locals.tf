@@ -8,7 +8,7 @@
 
 locals {
   # Every AWS resource I create is prefixed with this value.
-  # Example: "humanlike-chatbot-staging"
+  # Example: "humanlike-chatbot-production"
   name_prefix = "${var.project_name}-${var.environment}"
 
   # These tags appear on every resource via the provider default_tags block
@@ -26,4 +26,9 @@ locals {
     "${var.aws_region}a",
     "${var.aws_region}b",
   ]
+
+  # Use the caller-supplied key if provided; otherwise use the auto-generated
+  # one from random_password.django_secret_key (stored in state, stable across
+  # re-deploys so active user sessions are never invalidated).
+  django_secret_key = var.django_secret_key != "" ? var.django_secret_key : random_password.django_secret_key.result
 }

@@ -37,7 +37,7 @@ jobs:
 
       - name: Build frontend
         env:
-          VITE_API_URL: https://dev.bot.wwbp.org/api
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: |
           cd web
           npm run build

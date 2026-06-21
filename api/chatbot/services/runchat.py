@@ -21,6 +21,15 @@ logger = logging.getLogger(__name__)
 engine_instances = {}
 
 
+class ConversationNotFound(Exception):
+    """
+    Raised when a chat round targets a conversation_id that has no row in the DB
+    (e.g. the client never called /api/initialize_conversation/, or it was
+    deleted). The view turns this into a 400 instead of a generic 500 — a retry
+    can't help, the conversation genuinely isn't there.
+    """
+
+
 async def _recycle_db_connections():
     """
     Release the request's DB connection on the thread-sensitive thread.
@@ -268,10 +277,15 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     ]
 
     # Get the selected persona for this conversation
-    conversation = await _db_call(
-        Conversation.objects.select_related("selected_persona").get,
-        conversation_id=conversation_id,
-    )
+    try:
+        conversation = await _db_call(
+            Conversation.objects.select_related("selected_persona").get,
+            conversation_id=conversation_id,
+        )
+    except Conversation.DoesNotExist:
+        # Distinct from a stale connection: the row isn't there, so surface a
+        # clean 400 rather than letting it fall through to a generic 500.
+        raise ConversationNotFound(conversation_id) from None
     selected_persona = conversation.selected_persona
 
     # Generate dynamic system prompt combining bot prompt with selected persona

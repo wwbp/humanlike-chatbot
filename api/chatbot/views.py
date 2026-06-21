@@ -11,7 +11,7 @@ from .services.post_processing import (
     calculate_typing_delays,
     human_like_chunks,
 )
-from .services.runchat import run_chat_round
+from .services.runchat import ConversationNotFound, run_chat_round
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +119,24 @@ class ChatbotAPIView(View):
                     "delay_config": delay_config,
                 },
                 status=200,
+            )
+
+        except ConversationNotFound:
+            # Missing conversation row is a client error (never initialized /
+            # deleted), not a server fault — return 400, not a generic 500.
+            logger.warning(
+                "ChatbotAPIView: conversation not found "
+                "[conversation_id=%s bot_name=%s participant_id=%s]",
+                conversation_id,
+                bot_name,
+                participant_id,
+            )
+            return JsonResponse(
+                {
+                    "error": "Conversation not found. "
+                    "Please initialize the conversation first."
+                },
+                status=400,
             )
 
         except Exception as e:

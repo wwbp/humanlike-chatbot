@@ -139,6 +139,34 @@ class TestChatbotView:
         finally:
             await sync_to_async(self.tearDown)()
 
+    @pytest.mark.django_db
+    @pytest.mark.asyncio
+    async def test_nonexistent_conversation_returns_400(self):
+        # A chat for a conversation_id with no DB row must return a clean 400
+        # (client never initialized it), not a generic 500.
+        await sync_to_async(self.setUp)()
+        try:
+            import json
+
+            client = AsyncClient()
+            with patch("chatbot.services.runchat.moderate_message", return_value=False):
+                r = await client.post(
+                    URL,
+                    data=json.dumps(
+                        {
+                            "message": "Hi",
+                            "bot_name": self.bot.name,
+                            "conversation_id": "does-not-exist-xyz",
+                            "participant_id": "p_test",
+                        }
+                    ),
+                    content_type="application/json",
+                )
+            assert r.status_code == 400
+            assert "not found" in r.json()["error"].lower()
+        finally:
+            await sync_to_async(self.tearDown)()
+
     # ── Happy path ────────────────────────────────────────────────────────────
 
     @pytest.mark.django_db

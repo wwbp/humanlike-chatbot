@@ -7,12 +7,13 @@ import random
 
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
-from django.db import InterfaceError, OperationalError, close_old_connections
+from django.db import close_old_connections
 from kani import ChatMessage, ChatRole, Kani
 
 from server.engine import get_or_create_engine_from_model
 
 from ..models import Bot, Conversation, Utterance
+from .db import db_retry
 from .moderation import moderate_message
 
 logger = logging.getLogger(__name__)
@@ -46,42 +47,16 @@ async def _recycle_db_connections():
 
 async def _db_call(fn, *args, **kwargs):
     """
-    Run a synchronous ORM callable on the thread-sensitive DB thread, retrying
-    once if the pooled connection is stale.
+    Await a request-path ORM op on the thread-sensitive DB thread, with
+    reconnect-and-retry on a stale connection.
 
-    Under the ASGI + sync_to_async(thread_sensitive=True) stack the per-request
-    MySQL connection lives on a worker thread, but Django's request_finished
-    teardown — which would honour CONN_MAX_AGE=0 and close it — runs on a
-    different thread. So the connection lingers on the worker thread, gets reaped
-    server-side during an idle gap, and raises on its next use:
-        (2006, 'Server has gone away')
-        (4031, '... disconnected by the server because of inactivity ...')
-        (2013, 'Lost connection to server during query')
-    CONN_HEALTH_CHECKS is a no-op at CONN_MAX_AGE=0 (Django only health-checks
-    persistent connections), which is why it never caught these. Here we catch
-    the dead connection, close it so the next call opens a fresh socket, and
-    retry once. This is also the only thing that covers 2013 (connection lost
-    mid-query) — no pre-use validation can.
-
-    The try/close/retry runs inside a single sync_to_async call so close() and
-    the retry execute on the same thread as the failed query. Retrying a write
-    (Utterance.create) risks a rare duplicate if the server committed before the
-    socket dropped, which is strictly preferable to a 500.
+    Thin async wrapper over db_retry() (see chatbot/services/db.py for the full
+    rationale). The whole try/close/retry runs inside one sync_to_async call so
+    close() and the retry execute on the same thread as the failed query.
     """
 
     def _call():
-        from django.db import connection
-
-        try:
-            return fn(*args, **kwargs)
-        except (OperationalError, InterfaceError) as e:
-            logger.warning(
-                "Stale DB connection on %s (%s); reconnecting and retrying once",
-                getattr(fn, "__name__", fn),
-                e,
-            )
-            connection.close()
-            return fn(*args, **kwargs)
+        return db_retry(fn, *args, **kwargs)
 
     return await sync_to_async(_call, thread_sensitive=True)()
 

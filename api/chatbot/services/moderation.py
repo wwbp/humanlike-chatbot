@@ -13,11 +13,17 @@ _MOCK_MOD_P50_MS = int(os.getenv("MOCK_MODERATION_P50_MS", "220"))
 
 
 def is_moderation_enabled():
-    """Check if global moderation is enabled."""
-    try:
-        from ..models import ModerationSettings
+    """Check if global moderation is enabled.
 
-        return ModerationSettings.objects.first().enabled
+    Runs on the thread_sensitive=False moderation thread, whose pooled DB
+    connection nothing else recycles — so route the query through db_retry to
+    survive a stale connection (was the source of recurring first-query 500s).
+    """
+    from ..models import ModerationSettings
+    from .db import db_retry
+
+    try:
+        return db_retry(ModerationSettings.objects.first).enabled
     except AttributeError:
         return True  # Default to enabled if no settings exist
 

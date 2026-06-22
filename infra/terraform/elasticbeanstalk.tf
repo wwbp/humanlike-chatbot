@@ -172,10 +172,8 @@ resource "aws_elastic_beanstalk_environment" "chatbot_api" {
   }
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "ALLOWED_HOSTS"
-    # Wildcard lets the EB health checker reach the app without knowing the
-    # exact hostname. Tighten this to your domain after DNS is configured.
-    value = "*"
+    name  = "ALLOWED_HOSTS"
+    value = aws_cloudfront_distribution.frontend.domain_name
   }
 
   # ----- Database ------------------------------------------------------------

@@ -153,7 +153,7 @@ jobs:
       # here so `terraform apply` updates them instead of failing with
       # "AlreadyExists". Each import is a no-op if the resource is already in
       # state or does not exist in AWS.
-      - name: Reconcile state — import any orphaned resources
+      - name: Reconcile state — clean up or import any orphaned resources
         working-directory: infra/terraform
         env:
           TF_VAR_environment:                 production
@@ -172,36 +172,111 @@ jobs:
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           P="humanlike-chatbot-production"
 
-          # Import a resource only if it exists in AWS but not in Terraform state.
+          # Import into state (safe for resources that are not VPC-scoped).
           try_import() {
             local addr="$1" id="$2"
-            if terraform state show "$addr" &>/dev/null; then
-              return 0
-            fi
+            terraform state show "$addr" &>/dev/null && return 0
             terraform import -input=false "$addr" "$id" 2>/dev/null \
               && echo "  imported: $addr" || true
           }
 
-          # RDS — always try to import the parameter group and subnet group (they
-          # outlive the instance and are cheap to check). For the instance itself,
-          # wait if it is still being deleted from a previous rollback.
-          try_import aws_db_parameter_group.mariadb "${P}-mariadb"
-          try_import aws_db_subnet_group.database   "${P}-database-subnet-group"
-          RDS_STATUS=$(aws rds describe-db-instances \
-            --db-instance-identifier "${P}-database" \
-            --query 'DBInstances[0].DBInstanceStatus' --output text 2>/dev/null \
-            || echo "not-found")
-          if [[ "$RDS_STATUS" == "deleting" ]]; then
-            echo "Previous RDS instance is still being deleted — waiting (up to 30 min)..."
-            aws rds wait db-instance-deleted --db-instance-identifier "${P}-database" || true
-          elif [[ "$RDS_STATUS" == "available" ]]; then
-            try_import aws_db_instance.main "${P}-database"
+          # ── VPC-scoped resources ────────────────────────────────────────────
+          # These resources reference subnets/security-groups that are tied to a
+          # specific VPC. They cannot be updated across VPCs, so if they exist
+          # from a previous run (not in current state) we DELETE them so Terraform
+          # can recreate them fresh inside the new VPC.
+
+          # RDS instance — must be removed before the subnet group can be deleted.
+          if ! terraform state show aws_db_instance.main &>/dev/null; then
+            RDS_STATUS=$(aws rds describe-db-instances \
+              --db-instance-identifier "${P}-database" \
+              --query 'DBInstances[0].DBInstanceStatus' --output text 2>/dev/null \
+              || echo "not-found")
+            if [[ "$RDS_STATUS" != "not-found" && -n "$RDS_STATUS" ]]; then
+              echo "Cleaning up orphaned RDS instance (status: $RDS_STATUS)..."
+              if [[ "$RDS_STATUS" != "deleting" ]]; then
+                # Disable deletion_protection in case a previous run left it on
+                aws rds modify-db-instance \
+                  --db-instance-identifier "${P}-database" \
+                  --no-deletion-protection --apply-immediately 2>/dev/null || true
+                aws rds wait db-instance-available \
+                  --db-instance-identifier "${P}-database" 2>/dev/null || true
+                aws rds delete-db-instance \
+                  --db-instance-identifier "${P}-database" \
+                  --skip-final-snapshot
+              fi
+              echo "  Waiting for RDS deletion (up to 30 min)..."
+              aws rds wait db-instance-deleted --db-instance-identifier "${P}-database"
+              echo "  Done."
+            fi
           fi
 
-          # ElastiCache
-          try_import aws_elasticache_serverless_cache.redis "${P}-redis"
+          # DB subnet group — tied to a VPC, delete if orphaned
+          if ! terraform state show aws_db_subnet_group.database &>/dev/null; then
+            if aws rds describe-db-subnet-groups \
+                --db-subnet-group-name "${P}-database-subnet-group" &>/dev/null 2>&1; then
+              echo "Cleaning up orphaned DB subnet group..."
+              aws rds delete-db-subnet-group \
+                --db-subnet-group-name "${P}-database-subnet-group" 2>/dev/null \
+                && echo "  Done." || echo "  Could not delete (may still be in use)."
+            fi
+          fi
 
-          # S3
+          # ElastiCache serverless — subnet IDs are immutable, delete if orphaned
+          if ! terraform state show aws_elasticache_serverless_cache.redis &>/dev/null; then
+            CACHE_STATUS=$(aws elasticache describe-serverless-caches \
+              --serverless-cache-name "${P}-redis" \
+              --query 'ServerlessCaches[0].Status' --output text 2>/dev/null \
+              || echo "not-found")
+            if [[ "$CACHE_STATUS" != "not-found" && -n "$CACHE_STATUS" ]]; then
+              echo "Cleaning up orphaned ElastiCache cache (status: $CACHE_STATUS)..."
+              [[ "$CACHE_STATUS" != "deleting" ]] && \
+                aws elasticache delete-serverless-cache \
+                  --serverless-cache-name "${P}-redis" 2>/dev/null || true
+              echo "  Waiting for cache deletion..."
+              for i in $(seq 1 40); do
+                S=$(aws elasticache describe-serverless-caches \
+                  --serverless-cache-name "${P}-redis" \
+                  --query 'ServerlessCaches[0].Status' --output text 2>/dev/null \
+                  || echo "not-found")
+                [[ "$S" == "not-found" || -z "$S" ]] && break
+                echo "    $S (${i}/40)"; sleep 15
+              done
+              echo "  Done."
+            fi
+          fi
+
+          # EB environment — VPC-scoped, terminate if orphaned
+          if ! terraform state show aws_elastic_beanstalk_environment.chatbot_api &>/dev/null; then
+            EB_STATUS=$(aws elasticbeanstalk describe-environments \
+              --application-name "${P}" --environment-names "${P}-env" \
+              --query 'Environments[?Status!=`Terminated`].Status | [0]' \
+              --output text 2>/dev/null || echo "")
+            if [[ -n "$EB_STATUS" && "$EB_STATUS" != "None" ]]; then
+              echo "Cleaning up orphaned EB environment (status: $EB_STATUS)..."
+              [[ "$EB_STATUS" != "Terminating" ]] && \
+                aws elasticbeanstalk terminate-environment \
+                  --environment-name "${P}-env" 2>/dev/null || true
+              echo "  Waiting for termination..."
+              for i in $(seq 1 40); do
+                S=$(aws elasticbeanstalk describe-environments \
+                  --application-name "${P}" --environment-names "${P}-env" \
+                  --query 'Environments[?Status!=`Terminated`].Status | [0]' \
+                  --output text 2>/dev/null || echo "")
+                [[ -z "$S" || "$S" == "None" ]] && break
+                echo "    $S (${i}/40)"; sleep 15
+              done
+              echo "  Done."
+            fi
+          fi
+
+          # ── Non-VPC-scoped resources: import into state ─────────────────────
+          # These resources have no VPC dependency and can be updated in place.
+
+          # DB parameter group (no VPC, just engine charset config)
+          try_import aws_db_parameter_group.mariadb "${P}-mariadb"
+
+          # S3 buckets (globally unique per account ID suffix)
           try_import aws_s3_bucket.frontend_assets  "${P}-frontend-${ACCOUNT_ID}"
           try_import aws_s3_bucket.application_data "${P}-data-${ACCOUNT_ID}"
 
@@ -211,34 +286,23 @@ jobs:
           try_import aws_iam_role.github_actions_deployment "${P}-github-actions"
           try_import aws_iam_instance_profile.eb_instance_profile "${P}-eb-instance-profile"
 
-          # GitHub OIDC provider — import if it already exists and we would try to
-          # create it (create_github_oidc_provider = true), preventing a duplicate error.
+          # GitHub OIDC provider (only if we would create it)
           if [[ "${TF_VAR_create_github_oidc_provider:-true}" == "true" ]]; then
             OIDC_ARN="arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com"
-            if aws iam get-open-id-connect-provider \
-                --open-id-connect-provider-arn "$OIDC_ARN" &>/dev/null; then
+            aws iam get-open-id-connect-provider \
+              --open-id-connect-provider-arn "$OIDC_ARN" &>/dev/null && \
               try_import "aws_iam_openid_connect_provider.github_actions[0]" "$OIDC_ARN"
-            fi
           fi
 
-          # Elastic Beanstalk application and environment
+          # EB application (no VPC dependency)
           try_import aws_elastic_beanstalk_application.chatbot_api "${P}"
-          EB_ENV_ID=$(aws elasticbeanstalk describe-environments \
-            --application-name "${P}" \
-            --environment-names "${P}-env" \
-            --query 'Environments[?Status!=`Terminated`].EnvironmentId | [0]' \
-            --output text 2>/dev/null || true)
-          if [[ -n "$EB_ENV_ID" && "$EB_ENV_ID" != "None" ]]; then
-            try_import aws_elastic_beanstalk_environment.chatbot_api "$EB_ENV_ID"
-          fi
 
-          # CloudFront OAC (ID is not the name; look it up first)
+          # CloudFront OAC (global, look up by name to get the ID)
           OAC_ID=$(aws cloudfront list-origin-access-controls \
             --query "OriginAccessControlList.Items[?Name=='${P}-frontend-oac'].Id | [0]" \
             --output text 2>/dev/null || true)
-          if [[ -n "$OAC_ID" && "$OAC_ID" != "None" ]]; then
+          [[ -n "$OAC_ID" && "$OAC_ID" != "None" ]] && \
             try_import aws_cloudfront_origin_access_control.frontend_assets "$OAC_ID"
-          fi
 
       # ── 8. Custom domain: create the ACM cert first so we can print the     ───
       #       DNS validation record before the full apply waits for it          ───

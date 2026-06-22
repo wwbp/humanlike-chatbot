@@ -31,7 +31,11 @@ ALLOWED_HOSTS = (
     else [
         "dev.bot.wwbp.org",
         "bot.wwbp.org",
-        *([os.getenv("FRONTEND_URL", "").split("://")[-1].rstrip("/")] if os.getenv("FRONTEND_URL") else []),
+        *(
+            [os.getenv("FRONTEND_URL", "").split("://")[-1].rstrip("/")]
+            if os.getenv("FRONTEND_URL")
+            else []
+        ),
     ]
 )
 

@@ -75,7 +75,18 @@ jobs:
           fi
 
           [[ $fail -eq 1 ]] && exit 1
-          echo "All required secrets are present."
+
+          # Validate the GH_PAT can actually authenticate before touching AWS
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $GH_PAT" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/secrets/public-key")
+          if [[ "$HTTP_STATUS" != "200" ]]; then
+            echo "::error::GH_PAT is invalid or does not have secrets:write access to ${{ github.repository }} (HTTP $HTTP_STATUS). Re-generate the token with repo scope and update the GH_PAT secret."
+            exit 1
+          fi
+
+          echo "All required secrets are present and valid."
 
       # ── 2. Checkout ───────────────────────────────────────────────────────────
       - name: Checkout

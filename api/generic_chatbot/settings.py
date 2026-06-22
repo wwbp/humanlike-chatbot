@@ -25,18 +25,15 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
+_allowed_hosts_env = os.getenv("ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = (
     ["localhost", "127.0.0.1", "0.0.0.0"]
     if DEBUG
-    else [
-        "dev.bot.wwbp.org",
-        "bot.wwbp.org",
-        *(
-            [os.getenv("FRONTEND_URL", "").split("://")[-1].rstrip("/")]
-            if os.getenv("FRONTEND_URL")
-            else []
-        ),
-    ]
+    else (
+        _allowed_hosts_env.split(",")
+        if _allowed_hosts_env
+        else ["dev.bot.wwbp.org", "bot.wwbp.org"]
+    )
 )
 
 if DEBUG:

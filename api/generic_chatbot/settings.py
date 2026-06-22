@@ -303,9 +303,9 @@ STORAGES = {
 }
 
 X_FRAME_OPTIONS = "SAMEORIGIN"
-SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = True
 # Trust CloudFront's X-Forwarded-Proto header so Django knows the connection
 # is HTTPS even though nginx speaks plain HTTP to gunicorn.

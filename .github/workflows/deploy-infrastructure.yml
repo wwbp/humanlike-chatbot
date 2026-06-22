@@ -181,33 +181,52 @@ jobs:
           }
 
           # ── VPC-scoped resources ────────────────────────────────────────────
-          # Key insight: if the VPC is not in Terraform state, apply will create a
-          # NEW VPC with new subnet IDs. Any existing VPC-scoped resource (subnet
-          # group, RDS instance, ElastiCache) from a previous run references the
-          # OLD VPC's subnets and CANNOT be updated across VPCs — attempting it
-          # causes "Subnets are not in the same VPC" errors.
+          # The DB subnet group, RDS instance, and ElastiCache are tied to a
+          # specific VPC via their subnet IDs. If the VPC they were created in
+          # is gone (destroyed by a previous rollback), Terraform will create a
+          # NEW VPC with new subnet IDs. Trying to update the old subnet group
+          # to use the new subnets fails with "Subnets are not in the same VPC".
           #
-          # Fix: when no VPC is in state, evict all VPC-scoped resources from state
-          # (in case a previous reconcile imported them) and delete them from AWS,
-          # so Terraform recreates everything fresh inside the new VPC.
+          # Fix: compare the existing subnet group's VPC with the VPC in state.
+          # If they diverge (or the VPC no longer exists in AWS), purge all
+          # VPC-scoped resources so Terraform can recreate them in the new VPC.
 
-          # Check whether the VPC recorded in Terraform state actually exists in AWS.
-          # If it does not (destroyed by a previous rollback but state not fully cleared),
-          # apply will create a NEW VPC with new subnet IDs. Any subnet group, RDS
-          # instance, or ElastiCache that references the old VPC's subnets will fail
-          # with "Subnets are not in the same VPC" — so we must purge them first.
-          VPC_ID=$(terraform state show aws_vpc.main 2>/dev/null \
-            | grep -E '^\s+id\s+=' | head -1 | awk '{print $NF}' | tr -d '"')
-          VPC_LIVE=false
-          if [[ -n "$VPC_ID" ]] && \
-              aws ec2 describe-vpcs --vpc-ids "$VPC_ID" &>/dev/null 2>&1; then
-            VPC_LIVE=true
+          echo "=== VPC-scoped resource check ==="
+
+          # VPC ID that Terraform currently tracks in state (empty = not in state)
+          TF_VPC=$(terraform show -json 2>/dev/null \
+            | jq -r '(.values.root_module.resources // [])[]
+                      | select(.address == "aws_vpc.main") | .values.id' \
+            2>/dev/null || echo "")
+          echo "  Terraform state VPC : ${TF_VPC:-(not in state)}"
+
+          # VPC that the existing subnet group lives in (empty = subnet group absent)
+          SG_VPC=$(aws rds describe-db-subnet-groups \
+            --db-subnet-group-name "${P}-database-subnet-group" \
+            --query 'DBSubnetGroups[0].VpcId' --output text 2>/dev/null || echo "")
+          [[ "$SG_VPC" == "None" ]] && SG_VPC=""
+          echo "  Subnet group VPC    : ${SG_VPC:-(no subnet group)}"
+
+          NEED_PURGE=false
+          if [[ -n "$SG_VPC" ]]; then
+            if [[ -z "$TF_VPC" ]]; then
+              echo "  Decision: no VPC in state → new VPC will be created → purge"
+              NEED_PURGE=true
+            elif ! aws ec2 describe-vpcs --vpc-ids "$TF_VPC" &>/dev/null 2>&1; then
+              echo "  Decision: VPC $TF_VPC in state but not found in AWS → purge"
+              NEED_PURGE=true
+            elif [[ "$SG_VPC" != "$TF_VPC" ]]; then
+              echo "  Decision: subnet group VPC ($SG_VPC) ≠ state VPC ($TF_VPC) → purge"
+              NEED_PURGE=true
+            else
+              echo "  Decision: subnet group VPC matches Terraform VPC → skip cleanup"
+            fi
+          else
+            echo "  Decision: no subnet group exists → skip cleanup"
           fi
 
-          if $VPC_LIVE; then
-            echo "VPC $VPC_ID exists in AWS — skipping VPC-scoped cleanup."
-          else
-            echo "VPC missing or not in state — purging VPC-scoped orphans..."
+          if $NEED_PURGE; then
+            echo "Purging VPC-scoped orphans from state and AWS..."
 
             # Evict from state (handles resources imported by a previous reconcile run)
             for r in aws_db_instance.main aws_db_subnet_group.database \

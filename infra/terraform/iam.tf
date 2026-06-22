@@ -252,9 +252,9 @@ resource "aws_iam_role_policy" "github_actions_deployment_permissions" {
         Action = [
           "s3:*",
           "cloudformation:*",
-          "ec2:Describe*",
+          "ec2:*",
           "autoscaling:*",
-          "elasticloadbalancing:Describe*",
+          "elasticloadbalancing:*",
           "cloudwatch:PutMetricData",
           "logs:CreateLogGroup",
           "logs:CreateLogStream",

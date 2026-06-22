@@ -289,9 +289,10 @@ jobs:
           # GitHub OIDC provider (only if we would create it)
           if [[ "${TF_VAR_create_github_oidc_provider:-true}" == "true" ]]; then
             OIDC_ARN="arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com"
-            aws iam get-open-id-connect-provider \
-              --open-id-connect-provider-arn "$OIDC_ARN" &>/dev/null && \
+            if aws iam get-open-id-connect-provider \
+                --open-id-connect-provider-arn "$OIDC_ARN" &>/dev/null; then
               try_import "aws_iam_openid_connect_provider.github_actions[0]" "$OIDC_ARN"
+            fi
           fi
 
           # EB application (no VPC dependency)
@@ -301,8 +302,9 @@ jobs:
           OAC_ID=$(aws cloudfront list-origin-access-controls \
             --query "OriginAccessControlList.Items[?Name=='${P}-frontend-oac'].Id | [0]" \
             --output text 2>/dev/null || true)
-          [[ -n "$OAC_ID" && "$OAC_ID" != "None" ]] && \
+          if [[ -n "$OAC_ID" && "$OAC_ID" != "None" ]]; then
             try_import aws_cloudfront_origin_access_control.frontend_assets "$OAC_ID"
+          fi
 
       # ── 8. Custom domain: create the ACM cert first so we can print the     ───
       #       DNS validation record before the full apply waits for it          ───

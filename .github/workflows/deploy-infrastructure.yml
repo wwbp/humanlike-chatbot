@@ -147,7 +147,100 @@ jobs:
             -reconfigure \
             -input=false
 
-      # ── 7. Custom domain: create the ACM cert first so we can print the     ───
+      # ── 7. Reconcile state ───────────────────────────────────────────────────
+      # If a previous run failed and the rollback was incomplete, AWS resources
+      # may exist that are not in the current Terraform state. We import them
+      # here so `terraform apply` updates them instead of failing with
+      # "AlreadyExists". Each import is a no-op if the resource is already in
+      # state or does not exist in AWS.
+      - name: Reconcile state — import any orphaned resources
+        working-directory: infra/terraform
+        env:
+          TF_VAR_environment:                 production
+          TF_VAR_github_org:                  ${{ github.repository_owner }}
+          TF_VAR_github_repo:                 ${{ github.event.repository.name }}
+          TF_VAR_openai_api_key:              ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_anthropic_api_key:           ${{ secrets.ANTHROPIC_API_KEY }}
+          TF_VAR_db_password:                 ${{ secrets.DB_PASSWORD }}
+          TF_VAR_admin_panel_password:        ${{ secrets.ADMIN_PANEL_PASSWORD }}
+          TF_VAR_eb_instance_type:            ${{ inputs.eb_instance_type }}
+          TF_VAR_eb_max_instances:            ${{ inputs.eb_max_instances }}
+          TF_VAR_db_instance_class:           ${{ inputs.db_instance_class }}
+          TF_VAR_domain_name:                 ${{ secrets.DOMAIN_NAME }}
+          TF_VAR_create_github_oidc_provider: ${{ secrets.CREATE_GITHUB_OIDC_PROVIDER || 'true' }}
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          P="humanlike-chatbot-production"
+
+          # Import a resource only if it exists in AWS but not in Terraform state.
+          try_import() {
+            local addr="$1" id="$2"
+            if terraform state show "$addr" &>/dev/null; then
+              return 0
+            fi
+            terraform import -input=false "$addr" "$id" 2>/dev/null \
+              && echo "  imported: $addr" || true
+          }
+
+          # RDS — always try to import the parameter group and subnet group (they
+          # outlive the instance and are cheap to check). For the instance itself,
+          # wait if it is still being deleted from a previous rollback.
+          try_import aws_db_parameter_group.mariadb "${P}-mariadb"
+          try_import aws_db_subnet_group.database   "${P}-database-subnet-group"
+          RDS_STATUS=$(aws rds describe-db-instances \
+            --db-instance-identifier "${P}-database" \
+            --query 'DBInstances[0].DBInstanceStatus' --output text 2>/dev/null \
+            || echo "not-found")
+          if [[ "$RDS_STATUS" == "deleting" ]]; then
+            echo "Previous RDS instance is still being deleted — waiting (up to 30 min)..."
+            aws rds wait db-instance-deleted --db-instance-identifier "${P}-database" || true
+          elif [[ "$RDS_STATUS" == "available" ]]; then
+            try_import aws_db_instance.main "${P}-database"
+          fi
+
+          # ElastiCache
+          try_import aws_elasticache_serverless_cache.redis "${P}-redis"
+
+          # S3
+          try_import aws_s3_bucket.frontend_assets  "${P}-frontend-${ACCOUNT_ID}"
+          try_import aws_s3_bucket.application_data "${P}-data-${ACCOUNT_ID}"
+
+          # IAM roles and instance profile
+          try_import aws_iam_role.eb_instance_role          "${P}-eb-instance-role"
+          try_import aws_iam_role.eb_service_role           "${P}-eb-service-role"
+          try_import aws_iam_role.github_actions_deployment "${P}-github-actions"
+          try_import aws_iam_instance_profile.eb_instance_profile "${P}-eb-instance-profile"
+
+          # GitHub OIDC provider — import if it already exists and we would try to
+          # create it (create_github_oidc_provider = true), preventing a duplicate error.
+          if [[ "${TF_VAR_create_github_oidc_provider:-true}" == "true" ]]; then
+            OIDC_ARN="arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com"
+            if aws iam get-open-id-connect-provider \
+                --open-id-connect-provider-arn "$OIDC_ARN" &>/dev/null; then
+              try_import "aws_iam_openid_connect_provider.github_actions[0]" "$OIDC_ARN"
+            fi
+          fi
+
+          # Elastic Beanstalk application and environment
+          try_import aws_elastic_beanstalk_application.chatbot_api "${P}"
+          EB_ENV_ID=$(aws elasticbeanstalk describe-environments \
+            --application-name "${P}" \
+            --environment-names "${P}-env" \
+            --query 'Environments[?Status!=`Terminated`].EnvironmentId | [0]' \
+            --output text 2>/dev/null || true)
+          if [[ -n "$EB_ENV_ID" && "$EB_ENV_ID" != "None" ]]; then
+            try_import aws_elastic_beanstalk_environment.chatbot_api "$EB_ENV_ID"
+          fi
+
+          # CloudFront OAC (ID is not the name; look it up first)
+          OAC_ID=$(aws cloudfront list-origin-access-controls \
+            --query "OriginAccessControlList.Items[?Name=='${P}-frontend-oac'].Id | [0]" \
+            --output text 2>/dev/null || true)
+          if [[ -n "$OAC_ID" && "$OAC_ID" != "None" ]]; then
+            try_import aws_cloudfront_origin_access_control.frontend_assets "$OAC_ID"
+          fi
+
+      # ── 8. Custom domain: create the ACM cert first so we can print the     ───
       #       DNS validation record before the full apply waits for it          ───
       - name: Create ACM certificate
         if: env.DOMAIN_NAME != ''
@@ -171,7 +264,7 @@ jobs:
             -auto-approve \
             -input=false
 
-      # ── 8. Print the DNS validation record to the summary so the researcher ───
+      # ── 9. Print the DNS validation record to the summary so the researcher ───
       #       can add it while the rest of the infrastructure is building       ───
       - name: Print DNS validation record
         if: env.DOMAIN_NAME != ''

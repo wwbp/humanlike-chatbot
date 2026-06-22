@@ -70,11 +70,10 @@ resource "aws_db_instance" "main" {
   publicly_accessible    = false
   parameter_group_name   = aws_db_parameter_group.mariadb.name
 
-  # Backups
-  # I keep 7 days of backups on production so I can restore to any point in
-  # the past week. Staging only keeps 1 day — enough to recover from a
-  # mistake during development without paying for extra storage.
-  backup_retention_period = var.environment == "production" ? 7 : 1
+  # Backups — disabled by default (0) so deployment works on any AWS account
+  # including free tier. To enable point-in-time recovery, set this to 7 or
+  # higher and re-run the deploy workflow.
+  backup_retention_period = 0
   backup_window           = "03:00-04:00"
   maintenance_window      = "Mon:04:00-Mon:05:00"
 

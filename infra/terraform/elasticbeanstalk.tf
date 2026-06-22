@@ -175,6 +175,11 @@ resource "aws_elastic_beanstalk_environment" "chatbot_api" {
     name  = "ALLOWED_HOSTS"
     value = aws_cloudfront_distribution.frontend.domain_name
   }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "FRONTEND_URL"
+    value     = "https://${aws_cloudfront_distribution.frontend.domain_name}"
+  }
 
   # ----- Database ------------------------------------------------------------
   setting {

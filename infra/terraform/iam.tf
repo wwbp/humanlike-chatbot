@@ -260,11 +260,9 @@ resource "aws_iam_role_policy" "github_actions_deployment_permissions" {
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents",
-          # eb init / eb deploy issue service-level List/Describe calls that
-          # require "*" as the resource (not scoped to a specific application).
-          "elasticbeanstalk:List*",
-          "elasticbeanstalk:Describe*",
-          "elasticbeanstalk:CheckDNSAvailability",
+          # eb CLI issues many service-level calls (ListPlatformBranches,
+          # CreateStorageLocation, etc.) that require "*" as the resource.
+          "elasticbeanstalk:*",
         ]
         Resource = "*"
       },

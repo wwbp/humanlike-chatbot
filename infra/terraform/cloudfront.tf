@@ -110,7 +110,7 @@ resource "aws_cloudfront_distribution" "frontend" {
     compress               = false
 
     cache_policy_id          = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # CachingDisabled
-    origin_request_policy_id = "b689b0a8-53d0-40ab-baf2-68738e2966ac" # AllViewerExceptHostHeader
+    origin_request_policy_id = "216adef6-5c7f-47e4-b989-5492eafa07d3" # AllViewer
   }
 
   # /static/admin/* — Django admin CSS/JS served by WhiteNoise on the EB instance.
@@ -125,7 +125,7 @@ resource "aws_cloudfront_distribution" "frontend" {
     compress               = true
 
     cache_policy_id          = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # CachingDisabled
-    origin_request_policy_id = "b689b0a8-53d0-40ab-baf2-68738e2966ac" # AllViewerExceptHostHeader
+    origin_request_policy_id = "216adef6-5c7f-47e4-b989-5492eafa07d3" # AllViewer
   }
 
   # /ws/* — Django Channels WebSocket. Same policy as API; CloudFront supports
@@ -139,7 +139,7 @@ resource "aws_cloudfront_distribution" "frontend" {
     compress               = false
 
     cache_policy_id          = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # CachingDisabled
-    origin_request_policy_id = "b689b0a8-53d0-40ab-baf2-68738e2966ac" # AllViewerExceptHostHeader
+    origin_request_policy_id = "216adef6-5c7f-47e4-b989-5492eafa07d3" # AllViewer
   }
 
   default_cache_behavior {

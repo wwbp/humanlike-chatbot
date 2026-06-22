@@ -181,21 +181,36 @@ jobs:
           }
 
           # ── VPC-scoped resources ────────────────────────────────────────────
-          # These resources reference subnets/security-groups that are tied to a
-          # specific VPC. They cannot be updated across VPCs, so if they exist
-          # from a previous run (not in current state) we DELETE them so Terraform
-          # can recreate them fresh inside the new VPC.
+          # Key insight: if the VPC is not in Terraform state, apply will create a
+          # NEW VPC with new subnet IDs. Any existing VPC-scoped resource (subnet
+          # group, RDS instance, ElastiCache) from a previous run references the
+          # OLD VPC's subnets and CANNOT be updated across VPCs — attempting it
+          # causes "Subnets are not in the same VPC" errors.
+          #
+          # Fix: when no VPC is in state, evict all VPC-scoped resources from state
+          # (in case a previous reconcile imported them) and delete them from AWS,
+          # so Terraform recreates everything fresh inside the new VPC.
 
-          # RDS instance — must be removed before the subnet group can be deleted.
-          if ! terraform state show aws_db_instance.main &>/dev/null; then
+          if terraform state show aws_vpc.main &>/dev/null; then
+            echo "VPC in state — VPC-scoped resources are consistent, skipping cleanup."
+          else
+            echo "No VPC in state — purging VPC-scoped orphans from state and AWS..."
+
+            # Evict from state (handles resources imported by a previous reconcile run)
+            for r in aws_db_instance.main aws_db_subnet_group.database \
+                     aws_elasticache_serverless_cache.redis \
+                     aws_elastic_beanstalk_environment.chatbot_api; do
+              terraform state rm "$r" 2>/dev/null && echo "  removed from state: $r" || true
+            done
+
+            # Delete RDS instance first (subnet group cannot be deleted while in use)
             RDS_STATUS=$(aws rds describe-db-instances \
               --db-instance-identifier "${P}-database" \
               --query 'DBInstances[0].DBInstanceStatus' --output text 2>/dev/null \
               || echo "not-found")
             if [[ "$RDS_STATUS" != "not-found" && -n "$RDS_STATUS" ]]; then
-              echo "Cleaning up orphaned RDS instance (status: $RDS_STATUS)..."
+              echo "  Deleting orphaned RDS instance ($RDS_STATUS)..."
               if [[ "$RDS_STATUS" != "deleting" ]]; then
-                # Disable deletion_protection in case a previous run left it on
                 aws rds modify-db-instance \
                   --db-instance-identifier "${P}-database" \
                   --no-deletion-protection --apply-immediately 2>/dev/null || true
@@ -207,33 +222,29 @@ jobs:
               fi
               echo "  Waiting for RDS deletion (up to 30 min)..."
               aws rds wait db-instance-deleted --db-instance-identifier "${P}-database"
-              echo "  Done."
+              echo "  RDS done."
             fi
-          fi
 
-          # DB subnet group — tied to a VPC, delete if orphaned
-          if ! terraform state show aws_db_subnet_group.database &>/dev/null; then
+            # Delete DB subnet group
             if aws rds describe-db-subnet-groups \
                 --db-subnet-group-name "${P}-database-subnet-group" &>/dev/null 2>&1; then
-              echo "Cleaning up orphaned DB subnet group..."
+              echo "  Deleting orphaned DB subnet group..."
               aws rds delete-db-subnet-group \
                 --db-subnet-group-name "${P}-database-subnet-group" 2>/dev/null \
-                && echo "  Done." || echo "  Could not delete (may still be in use)."
+                && echo "  Done." || echo "  Could not delete subnet group."
             fi
-          fi
 
-          # ElastiCache serverless — subnet IDs are immutable, delete if orphaned
-          if ! terraform state show aws_elasticache_serverless_cache.redis &>/dev/null; then
+            # Delete ElastiCache serverless cache
             CACHE_STATUS=$(aws elasticache describe-serverless-caches \
               --serverless-cache-name "${P}-redis" \
               --query 'ServerlessCaches[0].Status' --output text 2>/dev/null \
               || echo "not-found")
             if [[ "$CACHE_STATUS" != "not-found" && -n "$CACHE_STATUS" ]]; then
-              echo "Cleaning up orphaned ElastiCache cache (status: $CACHE_STATUS)..."
-              [[ "$CACHE_STATUS" != "deleting" ]] && \
+              echo "  Deleting orphaned ElastiCache ($CACHE_STATUS)..."
+              if [[ "$CACHE_STATUS" != "deleting" ]]; then
                 aws elasticache delete-serverless-cache \
                   --serverless-cache-name "${P}-redis" 2>/dev/null || true
-              echo "  Waiting for cache deletion..."
+              fi
               for i in $(seq 1 40); do
                 S=$(aws elasticache describe-serverless-caches \
                   --serverless-cache-name "${P}-redis" \
@@ -242,22 +253,20 @@ jobs:
                 [[ "$S" == "not-found" || -z "$S" ]] && break
                 echo "    $S (${i}/40)"; sleep 15
               done
-              echo "  Done."
+              echo "  ElastiCache done."
             fi
-          fi
 
-          # EB environment — VPC-scoped, terminate if orphaned
-          if ! terraform state show aws_elastic_beanstalk_environment.chatbot_api &>/dev/null; then
+            # Terminate EB environment
             EB_STATUS=$(aws elasticbeanstalk describe-environments \
               --application-name "${P}" --environment-names "${P}-env" \
               --query 'Environments[?Status!=`Terminated`].Status | [0]' \
               --output text 2>/dev/null || echo "")
             if [[ -n "$EB_STATUS" && "$EB_STATUS" != "None" ]]; then
-              echo "Cleaning up orphaned EB environment (status: $EB_STATUS)..."
-              [[ "$EB_STATUS" != "Terminating" ]] && \
+              echo "  Terminating orphaned EB environment ($EB_STATUS)..."
+              if [[ "$EB_STATUS" != "Terminating" ]]; then
                 aws elasticbeanstalk terminate-environment \
                   --environment-name "${P}-env" 2>/dev/null || true
-              echo "  Waiting for termination..."
+              fi
               for i in $(seq 1 40); do
                 S=$(aws elasticbeanstalk describe-environments \
                   --application-name "${P}" --environment-names "${P}-env" \
@@ -266,7 +275,7 @@ jobs:
                 [[ -z "$S" || "$S" == "None" ]] && break
                 echo "    $S (${i}/40)"; sleep 15
               done
-              echo "  Done."
+              echo "  EB done."
             fi
           fi
 

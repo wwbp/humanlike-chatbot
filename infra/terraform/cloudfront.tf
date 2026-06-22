@@ -162,16 +162,15 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 
   # SPA routing — React Router handles all navigation client-side.
-  # When a user visits /dashboard or refreshes on any route, S3 returns
-  # a 403 (no such object). I rewrite that to a 200 with index.html so
-  # React Router can parse the URL and render the right component.
-  custom_error_response {
-    error_code            = 403
-    response_code         = 200
-    response_page_path    = "/index.html"
-    error_caching_min_ttl = 10
-  }
-
+  # S3 returns 404 (NoSuchKey) when an OAC-signed request hits a path with
+  # no matching object (e.g. /dashboard, /settings). We rewrite that to a
+  # 200 with index.html so React Router can parse the URL and render the
+  # right component.
+  #
+  # We intentionally do NOT catch 403 here. With OAC, S3 returns 404 (not
+  # 403) for missing objects, so catching 403 globally is unnecessary and
+  # harmful — it would swallow real Django 403s (CSRF failures, permission
+  # denied, etc.) and replace them with a blank React page.
   custom_error_response {
     error_code            = 404
     response_code         = 200

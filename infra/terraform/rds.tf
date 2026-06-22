@@ -77,13 +77,8 @@ resource "aws_db_instance" "main" {
   backup_window           = "03:00-04:00"
   maintenance_window      = "Mon:04:00-Mon:05:00"
 
-  # Deletion behaviour
-  # On staging: skip the final snapshot so I can destroy and recreate freely.
-  # On production: take a final snapshot and block deletion until I explicitly
-  # disable deletion_protection — this prevents accidental data loss.
-  skip_final_snapshot       = var.environment != "production"
-  final_snapshot_identifier = var.environment == "production" ? "${local.name_prefix}-final-snapshot" : null
-  deletion_protection       = var.environment == "production"
+  skip_final_snapshot = true
+  deletion_protection = false
 
   tags = {
     Name = "${local.name_prefix}-database"

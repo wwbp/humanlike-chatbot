@@ -16,6 +16,7 @@ p50 = 220 ms, lognormal σ = 0.4) · driven by distributed Locust. Reported RPS 
 
 | Scenario | Simultaneous users | Config | Result |
 |----------|-------------------|--------|--------|
+| Starter (≤100 users) | 100 | 1 × t3.small + db.t3.small | 0% errors (20 RPS; see [Starter & right-sizing](#starter-config--instance-right-sizing)) |
 | Small pilot | 10–50 | production baseline | 0% errors |
 | Medium study | 100–250 | production baseline | 0% errors |
 | Large study | 500–1,000 | production baseline (4 × t3.medium) | 0.91% — production-ready |
@@ -78,6 +79,33 @@ The path to 5,000 users is gated by the DB, discovered in two steps:
 
 **Fix:** upgrade the DB by CPU — **db.m5.2xlarge** (8 vCPU, non-burstable). Configs C–F then ran clean
 with the app tier scaling linearly. Connections scale ~1.3 per request.
+
+### Starter config & instance right-sizing
+
+A minimal **1 × t3.small + db.t3.small** serves **100 users / 20 RPS at 0% errors** (app CPU ~28%, DB
+~14%, burst credits stable) — even the smallest box has ~2.5× headroom for a 100-user study.
+
+Pushing that single t3.small to saturation (instrumenting EC2 CPU + t3 burst credits, not just the DB):
+
+| Target RPS | Achieved | Errors | p50 | App CPU | Burst credits |
+|-----------|----------|--------|-----|---------|---------------|
+| 20 | 20.1 | 0% | ~1.4 s | ~28% | stable (~20.7) |
+| 50 | 49.9 | 0% | ~1.5 s | ~70% | stable |
+| 80 | 66.9 | ~12% | 7.8 s | **~100%** | draining |
+| 120 | 74.2 (plateau) | ~40% | 29 s | **~100%** | draining |
+
+**Clean ceiling ≈ 50 RPS per instance, CPU-bound on 2 vCPU** — identical to t3.medium. The two types
+differ only in RAM (2 vs 4 GiB), and RAM was never the limit, so **t3.medium is over-provisioned on
+memory for this workload; t3.small gives the same throughput cheaper.** Past ~50 RPS the t3.small pegs
+both vCPUs at 100% and starts draining burst credits (sustained overload would throttle it *below*
+50 RPS once credits exhaust); the small DB's 144-connection ceiling is a secondary casualty once
+app-CPU saturation balloons held connections.
+
+**Recommendation:** for more RPS *per instance* (and predictable sustained throughput), move off
+burstable 2-vCPU types to a **compute-optimized, non-burstable** instance (c6i/c7i — more vCPU, no
+credit throttling), rather than adding RAM. Horizontal scaling stays linear at ~50 RPS per 2-vCPU unit.
+*(All campaign numbers use burstable t3 over ≤8-min runs, so per-instance RPS is a burst figure; a
+non-burstable type removes that caveat.)*
 
 ### Method
 

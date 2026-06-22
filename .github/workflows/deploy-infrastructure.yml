@@ -76,15 +76,15 @@ jobs:
 
           [[ $fail -eq 1 ]] && exit 1
 
-          # Validate the GH_PAT can actually authenticate before touching AWS
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "Authorization: Bearer $GH_PAT" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/secrets/public-key")
-          if [[ "$HTTP_STATUS" != "200" ]]; then
-            echo "::error::GH_PAT is invalid or does not have secrets:write access to ${{ github.repository }} (HTTP $HTTP_STATUS). Re-generate the token with repo scope and update the GH_PAT secret."
+          # Validate GH_PAT has write access before touching AWS.
+          # We do this by writing and immediately deleting a test secret.
+          export GH_TOKEN="$GH_PAT"
+          if ! gh secret set __PREFLIGHT_TEST__ --body "ok" --repo "${{ github.repository }}" 2>/dev/null; then
+            echo "::error::GH_PAT cannot write repository secrets on ${{ github.repository }}."
+            echo "::error::Re-generate it as a classic token with the full 'repo' scope checked (not just public_repo)."
             exit 1
           fi
+          gh secret delete __PREFLIGHT_TEST__ --repo "${{ github.repository }}" 2>/dev/null || true
 
           echo "All required secrets are present and valid."
 
@@ -107,24 +107,33 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      # ── 5. Create the S3 state bucket once; on subsequent runs, reuse it ──────
+      # ── 5. Create the S3 state bucket (idempotent) ───────────────────────────
+      # Uses a deterministic name based on the AWS account ID — no random suffix,
+      # no secret needed to remember the name. Safe to run on every deploy.
       - name: Bootstrap Terraform state backend
         id: bootstrap
-        working-directory: infra/terraform/bootstrap
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          if [[ -n "${{ secrets.TF_STATE_BUCKET }}" ]]; then
-            echo "State bucket already provisioned — skipping bootstrap."
-            echo "bucket=${{ secrets.TF_STATE_BUCKET }}" >> "$GITHUB_OUTPUT"
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          BUCKET="humanlike-chatbot-tfstate-${ACCOUNT_ID}"
+
+          if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+            echo "State bucket already exists: $BUCKET"
           else
-            terraform init -reconfigure -input=false
-            terraform apply -auto-approve -input=false
-            BUCKET=$(terraform output -raw state_bucket_name)
-            echo "bucket=$BUCKET" >> "$GITHUB_OUTPUT"
-            gh secret set TF_STATE_BUCKET --body "$BUCKET" --repo "${{ github.repository }}"
+            aws s3api create-bucket --bucket "$BUCKET" --region us-east-1
+            aws s3api put-bucket-versioning --bucket "$BUCKET" \
+              --versioning-configuration Status=Enabled
+            aws s3api put-bucket-encryption --bucket "$BUCKET" \
+              --server-side-encryption-configuration \
+              '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"},"BucketKeyEnabled":true}]}'
+            aws s3api put-public-access-block --bucket "$BUCKET" \
+              --public-access-block-configuration \
+              "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
             echo "State bucket created: $BUCKET"
           fi
+
+          echo "bucket=$BUCKET" >> "$GITHUB_OUTPUT"
 
       # ── 6. Point Terraform at the remote state bucket ─────────────────────────
       - name: Initialise Terraform

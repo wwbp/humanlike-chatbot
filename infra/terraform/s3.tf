@@ -25,7 +25,7 @@
 # -----------------------------------------------------------------------------
 
 resource "aws_s3_bucket" "frontend_assets" {
-  bucket = "${local.name_prefix}-frontend"
+  bucket = "${local.name_prefix}-frontend-${data.aws_caller_identity.current.account_id}"
 
   tags = {
     Name    = "${local.name_prefix}-frontend"
@@ -59,7 +59,7 @@ resource "aws_s3_bucket_public_access_block" "frontend_assets" {
 # -----------------------------------------------------------------------------
 
 resource "aws_s3_bucket" "application_data" {
-  bucket = "${local.name_prefix}-data"
+  bucket = "${local.name_prefix}-data-${data.aws_caller_identity.current.account_id}"
 
   tags = {
     Name = "${local.name_prefix}-data"

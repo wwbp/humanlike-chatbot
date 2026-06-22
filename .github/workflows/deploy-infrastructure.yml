@@ -191,10 +191,23 @@ jobs:
           # (in case a previous reconcile imported them) and delete them from AWS,
           # so Terraform recreates everything fresh inside the new VPC.
 
-          if terraform state show aws_vpc.main &>/dev/null; then
-            echo "VPC in state — VPC-scoped resources are consistent, skipping cleanup."
+          # Check whether the VPC recorded in Terraform state actually exists in AWS.
+          # If it does not (destroyed by a previous rollback but state not fully cleared),
+          # apply will create a NEW VPC with new subnet IDs. Any subnet group, RDS
+          # instance, or ElastiCache that references the old VPC's subnets will fail
+          # with "Subnets are not in the same VPC" — so we must purge them first.
+          VPC_ID=$(terraform state show aws_vpc.main 2>/dev/null \
+            | grep -E '^\s+id\s+=' | head -1 | awk '{print $NF}' | tr -d '"')
+          VPC_LIVE=false
+          if [[ -n "$VPC_ID" ]] && \
+              aws ec2 describe-vpcs --vpc-ids "$VPC_ID" &>/dev/null 2>&1; then
+            VPC_LIVE=true
+          fi
+
+          if $VPC_LIVE; then
+            echo "VPC $VPC_ID exists in AWS — skipping VPC-scoped cleanup."
           else
-            echo "No VPC in state — purging VPC-scoped orphans from state and AWS..."
+            echo "VPC missing or not in state — purging VPC-scoped orphans..."
 
             # Evict from state (handles resources imported by a previous reconcile run)
             for r in aws_db_instance.main aws_db_subnet_group.database \

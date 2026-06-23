@@ -1,6 +1,9 @@
 name: Deploy Humanlike-Bot Client and Server to Production
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:

@@ -1,54 +1,38 @@
-Deployment Guide
-===============
+Deployment
+==========
 
-ChatLab can be deployed both locally for development and on AWS for production. The system
-consists of several services:
+The ChatLab deployment system automates the process of launching your chatbot
+infrastructure on AWS — including databases, caching, web servers, SSL, and
+content delivery networks — using Terraform and GitHub Actions.
 
-- A **frontend webview** for embedding into surveys  
-- A **backend API** for managing bots, participants, and data collection
-- A **documentation server** for easy access to guides and API references
-- **Database** and cache services for data persistence
+This section explains how to **deploy**, **manage**, and **reset** your ChatLab
+infrastructure in a safe and repeatable way. Whether you are setting up ChatLab
+for the first time or refreshing your existing environment, the workflows
+outlined here will handle all configuration and provisioning automatically.
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   for-researchers
-   running-locally
-   aws-deployment
-
-AWS Setup
----------
-
-1. Launch an EC2 instance (Ubuntu 22.04 LTS recommended).  
-2. Install Docker and Docker Compose:  
-   .. code-block:: bash
-
-      sudo apt update && sudo apt install docker.io docker-compose -y
-
-3. Clone your ChatLab repository and create a `.env` file with environment variables.
-
-   .. code-block:: bash
-
-      DJANGO_SECRET_KEY=your_secret
-      OPENAI_API_KEY=sk-...
-      ANTHROPIC_API_KEY=sk-ant-...
-      MYSQL_PASSWORD=your_db_password
-
-4. Start ChatLab:
-
-   .. code-block:: bash
-
-      make start
-
-Access Points
--------------
-
-- Frontend (chat webview): `https://<your-domain>:3000`
-- Admin panel / API: `https://<your-domain>:8000/api/admin`
-
-Security
+Overview
 --------
 
-Use HTTPS via AWS Load Balancer or Nginx reverse proxy.
-Restrict admin access to authorized users only.
+ChatLab's deployment process uses **infrastructure-as-code** to guarantee that
+every researcher can reproduce a working setup without needing deep cloud
+expertise. Once configured, deployment takes only a few clicks via GitHub.
+
+Typical setup flow:
+
+1. Use the :doc:`deploy` workflow to launch ChatLab on AWS.
+2. Manage or temporarily remove your infrastructure with :doc:`destroy`.
+3. Run :doc:`reset` only when you need a completely clean environment.
+
+Workflows
+---------
+
+.. toctree::
+   :maxdepth: 1
+
+   for-researchers
+   workflow-guide
+   deploy
+   destroy
+   reset
+   aws-deployment
+   technical-reference

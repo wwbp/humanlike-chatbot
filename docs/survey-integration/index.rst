@@ -5,8 +5,8 @@ Overview
 --------
 
 ChatLab integrates directly with major survey platforms like
-:doc:`Qualtrics </survey-integration/qualtrics>` and
-:doc:`REDCap </survey-integration/redcap>`,
+:doc:`Qualtrics </survey-integration/qualtrics>`, 
+:doc:`REDCap </survey-integration/redcap>`, and :doc:`LimeSurvey </survey-integration/limesurvey>`,
 allowing you to embed live language model chat sessions within survey instruments. Participants experience the
 chatbot as a seamless part of the survey, appearing as an inline question
 or form component through an embedded iframe.
@@ -39,6 +39,7 @@ platforms:
 
    qualtrics
    redcap
+   limesurvey
 
 
 Typical Workflow
@@ -72,7 +73,7 @@ The diagram below shows how ChatLab fits into the survey workflow:
         │
         ▼
    [Survey Platform]
-   (Qualtrics / REDCap)
+   (Qualtrics / REDCap /LimeSurvey)
         │  (iframe)
         ▼
        [ChatLab]

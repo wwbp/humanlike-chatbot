@@ -1,4 +1,5 @@
-# Deploying ChatLab to AWS: Researcher Guide
+Deploying ChatLab to AWS: Researcher Guide
+==========================================
 
 This guide walks you through deploying ChatLab to AWS so your participants can access the chatbot from any browser. No programming experience is required. The entire process takes about 30 minutes of your time (plus ~20 minutes of automated setup), and you only have to do it once.
 
@@ -6,9 +7,9 @@ This guide walks you through deploying ChatLab to AWS so your participants can a
 
 **What it costs:** roughly $30-80/month depending on traffic, billed directly to your AWS account. A typical single-study deployment stays toward the low end of that range.
 
----
 
-## Before you begin
+Before you begin
+----------------
 
 You will need to collect or create five things. Each section below tells you exactly where to get them.
 
@@ -25,13 +26,13 @@ You will need to collect or create five things. Each section below tells you exa
 
 ---
 
-## Step 1: Fork the repository
+Step 1: Fork the repository
+---------------------------
 
 Go to the ChatLab repository on GitHub and click **Fork** (top right). Accept the defaults and click **Create fork**. All subsequent steps happen inside your fork.
 
----
-
-## Step 2: Create an AWS account
+Step 2: Create an AWS account
+-----------------------------
 
 If you already have an AWS account, skip to Step 3.
 
@@ -42,9 +43,10 @@ If you already have an AWS account, skip to Step 3.
 
 > **University researchers:** Many institutions have AWS credits or a shared research computing account. Check with your IT department before creating a new account.
 
----
 
-## Step 3: Create AWS access keys
+
+Step 3: Create AWS access keys
+------------------------------
 
 This gives the deployment permission to create infrastructure on your behalf. You only need these keys during the initial setup — they can be deleted from AWS afterward.
 
@@ -62,9 +64,8 @@ This gives the deployment permission to create infrastructure on your behalf. Yo
 
 > **Security note:** These keys have full admin access to your AWS account. Once the deployment finishes successfully, you can delete the IAM user entirely — the running system uses a different, more limited credential that is created automatically during setup.
 
----
-
-## Step 4: Get an AI provider API key
+Step 4: Get an AI provider API key
+----------------------------------
 
 You need at least one of the following.
 
@@ -81,9 +82,8 @@ You need at least one of the following.
 
 You only need one. If you set both, the chatbot can use either model.
 
----
-
-## Step 5: Choose two passwords
+Step 5: Choose two passwords
+----------------------------
 
 These do not need to be retrieved from anywhere — you create them yourself.
 
@@ -95,9 +95,8 @@ Example: `Research2024db`
 The password you will use to log into the chatbot configuration panel. Choose something you will remember.
 Example: `MyStudyAdmin99`
 
----
-
-## Step 6: Create a GitHub Personal Access Token
+Step 6: Create a GitHub Personal Access Token
+-----------------------------
 
 This allows the deployment to automatically configure your repository after the infrastructure is created — you never have to copy-paste infrastructure details manually.
 
@@ -117,9 +116,8 @@ This allows the deployment to automatically configure your repository after the 
 
 > **Important:** The token expires. If you need to re-run the deployment workflow after the token expires, you will need to generate a new one and update the `GH_PAT` secret.
 
----
-
-## Step 7: Optional — Custom domain
+Step 7: Optional — Custom domain
+--------------------------------
 
 If you want the chatbot served at your own URL (e.g. `chatbot.mylab.org`) instead of the auto-assigned `https://xxxx.cloudfront.net`, you need a domain name. You can purchase one from any registrar (Namecheap, Google Domains, GoDaddy, etc.) for roughly $10-15/year.
 
@@ -127,9 +125,8 @@ If you are at a university, your IT department may be able to provide a subdomai
 
 If you skip this, the chatbot is fully functional — it just has a less memorable URL. You can always add a custom domain later by setting the `DOMAIN_NAME` secret and re-running the workflow.
 
----
-
-## Step 8: Add secrets to your GitHub repository
+Step 8: Add secrets to your GitHub repository
+---------------------------------------------
 
 Go to your fork on GitHub → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
 
@@ -146,9 +143,8 @@ Add each of the following secrets one at a time:
 | `GH_PAT` | From Step 6 | Yes |
 | `DOMAIN_NAME` | Your domain (e.g. `chatbot.mylab.org`) | No |
 
----
-
-## Step 9: Run the deployment
+Step 9: Run the deployment
+--------------------------
 
 1. Go to your fork → **Actions** tab
 2. Click **Deploy Infrastructure** in the left sidebar
@@ -164,9 +160,8 @@ The workflow takes approximately **20-25 minutes**. The database and cache take 
 
 **If you set a custom domain:** partway through, the workflow Summary will show a DNS record to add at your registrar. Add it while the workflow is still running. The workflow will wait up to 30 minutes for DNS to propagate.
 
----
-
-## Step 10: After deployment
+Step 10: After deployment
+-------------------------
 
 When the workflow finishes, click the **Summary** tab inside the completed run. You will see:
 

@@ -73,7 +73,7 @@ The diagram below shows how ChatLab fits into the survey workflow:
         │
         ▼
    [Survey Platform]
-   (Qualtrics / REDCap /LimeSurvey)
+   (Qualtrics / REDCap / LimeSurvey)
         │  (iframe)
         ▼
        [ChatLab]

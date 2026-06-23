@@ -126,6 +126,12 @@ CORS_ALLOWED_ORIGINS = [
     "https://dev.bot.wwbp.org",
     "https://bot.wwbp.org",
 ]
+# Allow any CloudFront distribution without creating a Terraform cycle.
+# CORS_ALLOWED_ORIGINS doesn't support wildcards, so we use the regex list.
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://[a-z0-9-]+\.cloudfront\.net$",
+]
+
 _frontend_url_env = os.getenv("FRONTEND_URL", "")
 _frontend_url_parsed = urlparse(_frontend_url_env)
 _frontend_url_valid = (
@@ -140,6 +146,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "https://dev.bot.wwbp.org",
     "https://bot.wwbp.org",
+    # Trust any CloudFront distribution. Django 4.0+ supports *.domain wildcards.
+    "https://*.cloudfront.net",
 ]
 if _frontend_url_valid:
     CSRF_TRUSTED_ORIGINS.append(_frontend_url_env)

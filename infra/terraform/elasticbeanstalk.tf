@@ -170,15 +170,22 @@ resource "aws_elastic_beanstalk_environment" "chatbot_api" {
     name      = "SECRET_KEY"
     value     = local.django_secret_key
   }
+  # ALLOWED_HOSTS: trust any *.cloudfront.net subdomain (leading dot = wildcard
+  # in Django). When a custom domain is provided, include it as well.
+  # We cannot reference aws_cloudfront_distribution.frontend.domain_name here
+  # because CloudFront already references this EB resource (its origin), which
+  # would create a Terraform dependency cycle.
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name  = "ALLOWED_HOSTS"
-    value = aws_cloudfront_distribution.frontend.domain_name
+    name      = "ALLOWED_HOSTS"
+    value     = var.domain_name != "" ? "${var.domain_name},.cloudfront.net" : ".cloudfront.net"
   }
+  # FRONTEND_URL is only set for custom-domain deployments; the CloudFront
+  # *.cloudfront.net case is handled statically in settings.py.
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "FRONTEND_URL"
-    value     = "https://${aws_cloudfront_distribution.frontend.domain_name}"
+    value     = var.domain_name != "" ? "https://${var.domain_name}" : ""
   }
 
   # ----- Database ------------------------------------------------------------

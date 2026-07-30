@@ -6,8 +6,8 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'ChatBotLab'
-copyright = '2026, Salvatore Giorgi'
+project = 'ChatbotLab'
+copyright = '2026, Salvatore Giorgi, Lyle H. Ungar'
 author = 'Salvatore Giorgi'
 
 # -- General configuration ---------------------------------------------------

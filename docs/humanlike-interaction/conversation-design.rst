@@ -1,7 +1,7 @@
 Conversation Design
 ===================
 
-ChatLab bots are driven by carefully designed prompts and initial messages.
+ChatbotLab bots are driven by carefully designed prompts and initial messages.
 
 Prompts
 -------

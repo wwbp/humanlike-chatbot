@@ -1,7 +1,7 @@
 AI Models
 =========
 
-ChatLab supports multiple large language model (LLM) providers. Each bot can
+ChatbotLab supports multiple large language model (LLM) providers. Each bot can
 be assigned to a specific model depending on your study needs.
 
 Available Providers
@@ -14,7 +14,7 @@ Available Providers
 Configuration
 -------------
 
-Set the provider and model in the ChatLab admin panel or environment file:
+Set the provider and model in the ChatbotLab admin panel or environment file:
 
 .. code-block:: bash
 

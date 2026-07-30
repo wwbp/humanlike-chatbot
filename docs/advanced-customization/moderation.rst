@@ -4,7 +4,7 @@ Content Moderation
 Overview
 --------
 
-ChatLab includes built-in **content moderation** features to detect and manage
+ChatbotLab includes built-in **content moderation** features to detect and manage
 inappropriate or harmful content generated during chat sessions. These tools
 help protect participants, maintain ethical compliance, and ensure data safety
 for research and analysis.
@@ -16,7 +16,7 @@ noncompliant content from being displayed or recorded.
 Moderation Levels
 -----------------
 
-ChatLab integrates with **model-based moderation APIs** (e.g., OpenAI's
+ChatbotLab integrates with **model-based moderation APIs** (e.g., OpenAI's
 Moderation API) to evaluate each message in real time.
 
 Each message receives:
@@ -28,7 +28,7 @@ Messages exceeding configured thresholds trigger blocking or replacement behavio
 Configuration
 -------------
 
-Moderation settings are managed in the ChatLab **Admin Panel** under each
+Moderation settings are managed in the ChatbotLab **Admin Panel** under each
 **Bot** configuration.
 
 Here, administrators can adjust moderation thresholds for individual
@@ -62,7 +62,7 @@ Behavior
 Fallback Responses
 ------------------
 
-When a message is blocked, ChatLab automatically replaces it with a neutral
+When a message is blocked, ChatbotLab automatically replaces it with a neutral
 response such as:
 
 > "I'm sorry, I can't discuss that topic."

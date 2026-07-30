@@ -1,7 +1,7 @@
 Exporting Data
 ==============
 
-ChatLab provides multiple ways to export conversation and participant data
+ChatbotLab provides multiple ways to export conversation and participant data
 for analysis.
 
 Admin Exports

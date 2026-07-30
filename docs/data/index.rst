@@ -1,7 +1,7 @@
 Data Collection and Export
 ==========================
 
-ChatLab records all conversation activity from embedded surveys, including
+ChatbotLab records all conversation activity from embedded surveys, including
 participant interactions, model outputs, and timing metadata. This data can
 be reviewed through the admin panel, exported for analysis, or queried
 directly using SQL tools.

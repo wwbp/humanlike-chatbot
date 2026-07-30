@@ -2,7 +2,7 @@ Viewing Data
 ============
 
 You can review all collected conversation and participant data from the
-**ChatLab Admin Panel** or by connecting to the database directly.
+**ChatbotLab Admin Panel** or by connecting to the database directly.
 
 Admin Panel
 -----------

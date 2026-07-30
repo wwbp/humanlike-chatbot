@@ -4,28 +4,28 @@ MTurk Integration
 Overview
 --------
 
-ChatLab can integrate directly with **Amazon Mechanical Turk (MTurk)** to link
+ChatbotLab can integrate directly with **Amazon Mechanical Turk (MTurk)** to link
 worker identifiers (Worker IDs, HIT IDs, Assignment IDs) with your survey and
 chat conversation data. This enables accurate data merging, auditing, and
 protection against data loss.
 
-MTurk metadata is stored automatically in ChatLab's backend when passed through
+MTurk metadata is stored automatically in ChatbotLab's backend when passed through
 survey URLs.
 
 Workflow Summary
 ----------------
 
-To use ChatLab through MTurk:
+To use ChatbotLab through MTurk:
 
 1. **Create an MTurk HIT (Human Intelligence Task).**
 2. **Set the External Question URL** to your survey (Qualtrics or REDCap)
-   that includes a ChatLab chatbot.
+   that includes a ChatbotLab chatbot.
 3. MTurk automatically appends identifying parameters to your survey URL:
 
    ``?assignmentId=${assignmentId}&workerId=${workerId}&hitId=${hitId}``
 
 4. In your survey, **save each parameter as embedded data**.
-5. Pass these values through your ChatLab integration code so they are stored
+5. Pass these values through your ChatbotLab integration code so they are stored
    in the backend database.
 
    .. code-block:: javascript
@@ -61,7 +61,7 @@ To capture and link MTurk identifiers in **Qualtrics**:
          hitId        → Value will be set from Panel or URL
 
 4. Save your Survey Flow.
-5. In the ChatLab question's JavaScript editor, reference the embedded fields:
+5. In the ChatbotLab question's JavaScript editor, reference the embedded fields:
 
    .. code-block:: javascript
 
@@ -82,13 +82,13 @@ Data Storage and Linking
 ------------------------
 
 Once participants complete the chatbot interaction, their MTurk identifiers
-are stored within the ChatLab database:
+are stored within the ChatbotLab database:
 
 - ``participant_id`` → stored in ``chatbot_conversation.participant_id``
 - ``mturk_assignment_id`` → stored in ``chatbot_conversation.survey_meta_data``
 - ``mturk_hit_id`` → stored in ``chatbot_conversation.survey_meta_data``
 
-These fields can be used to merge ChatLab logs with MTurk exports or survey data.
+These fields can be used to merge ChatbotLab logs with MTurk exports or survey data.
 
 Tracking and Payment Verification
 ---------------------------------
@@ -96,7 +96,7 @@ Tracking and Payment Verification
 - You can use the ``assignmentId`` or ``hitId`` values to verify completion
   and automate bonus payments through the MTurk API.
 - Completion codes can be displayed on your survey's final page or inside
-  the ChatLab chat after the final message.
+  the ChatbotLab chat after the final message.
 - These codes can also be included in ``survey_meta_data`` for verification.
 
 Best Practices
@@ -104,7 +104,7 @@ Best Practices
 
 - Test your HIT in **MTurk Sandbox** to ensure all parameters
   (`workerId`, `assignmentId`, `hitId`) are properly passed.
-- Confirm that conversation entries appear in ChatLab's **Admin Panel**
+- Confirm that conversation entries appear in ChatbotLab's **Admin Panel**
   with matching MTurk metadata.
 - Always use the same parameter names (`workerId`, `assignmentId`, `hitId`)
-  in both the survey and your ChatLab embed script.
+  in both the survey and your ChatbotLab embed script.

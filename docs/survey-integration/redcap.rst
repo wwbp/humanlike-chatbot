@@ -4,8 +4,8 @@ REDCap Integration
 Overview
 --------
 
-Use ChatLab to embed conversational tasks directly into your REDCap data
-collection instruments. Each REDCap form can display the ChatLab chat window
+Use ChatbotLab to embed conversational tasks directly into your REDCap data
+collection instruments. Each REDCap form can display the ChatbotLab chat window
 within a **Descriptive Text** field using an iframe.
 
 .. important::
@@ -21,16 +21,16 @@ Record ID
 ^^^^^^^^^
 
 REDCap automatically assigns each participant a unique ``record_id``.
-This is available as a built-in variable and can be passed to ChatLab
+This is available as a built-in variable and can be passed to ChatbotLab
 to identify conversations.
 
-In ChatLab, ``record_id`` serves the same purpose as Qualtrics's
+In ChatbotLab, ``record_id`` serves the same purpose as Qualtrics's
 ``ResponseID``.
 
 Bot Name
 ^^^^^^^^
 
-1. In the ChatLab admin panel, navigate to **CHATBOT → Bots**.
+1. In the ChatbotLab admin panel, navigate to **CHATBOT → Bots**.
 2. Find the bot you wish to embed.
 3. Copy its **Name** from the table.
 4. Replace ``<BOT-NAME>`` in the iframe URL below.
@@ -39,7 +39,7 @@ Study Name
 ^^^^^^^^^^
 
 Define a short descriptive name for your study, for example ``therapy_bot``.
-This will be stored in the ChatLab database under ``study_name`` for tracking.
+This will be stored in the ChatbotLab database under ``study_name`` for tracking.
 
 Participant ID (Optional)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -50,10 +50,10 @@ reference it in the iframe using a REDCap variable such as ``[participant_id]``.
 If you do not have a custom field, you can rely on ``[record-id]`` as the
 participant identifier.
 
-Embedding ChatLab
+Embedding ChatbotLab
 -----------------
 
-1. Deploy ChatLab on AWS following the :doc:`/deployment/index` guide.
+1. Deploy ChatbotLab on AWS following the :doc:`/deployment/index` guide.
 2. In your REDCap project, open the desired instrument in the **Online Designer**.
 3. Add a new **Descriptive Text** field.
 4. Click the **pencil icon** to edit the field.
@@ -87,17 +87,17 @@ Embedding ChatLab
 Passing Data
 ------------
 
-ChatLab automatically logs any metadata passed via URL parameters:
+ChatbotLab automatically logs any metadata passed via URL parameters:
 
 - ``participant_id`` — usually ``[record-id]`` or a custom ID field  
 - ``study_name`` — study descriptor  
-- ``bot_name`` — determines which ChatLab bot instance to use  
+- ``bot_name`` — determines which ChatbotLab bot instance to use  
 
 Data Linking
 ------------
 
 - Each conversation is stored with its associated REDCap record ID.
-- Conversations are linked in ChatLab’s database by ``participant_id`` and ``study_name``.
+- Conversations are linked in ChatbotLab’s database by ``participant_id`` and ``study_name``.
 - You can merge these logs with exported REDCap data using ``record_id``.
 
 Keystrokes (Optional)
@@ -133,7 +133,7 @@ you can insert an optional script field after the chat iframe.
      });
    </script>
 
-This mirrors the Qualtrics example and sends timing data to ChatLab for
+This mirrors the Qualtrics example and sends timing data to ChatbotLab for
 each participant.
 
 Validation
@@ -141,7 +141,7 @@ Validation
 
 1. Test the form in **Data Entry** or **Survey Mode**.
 2. Check your browser console for any loading or network errors.
-3. Verify that a new conversation record appears in ChatLab’s admin panel.
+3. Verify that a new conversation record appears in ChatbotLab’s admin panel.
 4. Confirm that keystroke and timing data (if enabled) are logged.
 
 Other Options

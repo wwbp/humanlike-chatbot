@@ -7,7 +7,7 @@ Overview
 The **R `text` package** provides a powerful suite of tools for semantic and
 linguistic analysis of conversational data. Researchers can use it to study
 patterns, topics, and relationships between participant responses collected
-through ChatLab.
+through ChatbotLab.
 
 The package is designed for use with tidyverse workflows and offers support
 for word embeddings, sentiment analysis, and clustering of textual data.

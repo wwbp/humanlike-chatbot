@@ -18,7 +18,7 @@ produces responses.
 Creating Personas
 -----------------
 
-You can create and manage personas directly from the **ChatLab Admin Panel**.
+You can create and manage personas directly from the **ChatbotLab Admin Panel**.
 
 1. Go to **Personas → Add Persona**.
 2. Provide the following fields:
@@ -61,14 +61,14 @@ To assign a persona:
 3. Click the right arrow (→) to add the persona to your bot.
 4. To remove one, select it from **Chosen Personas** and click the left arrow (←).
 
-If multiple personas are attached to a single bot, ChatLab randomly assigns
+If multiple personas are attached to a single bot, ChatbotLab randomly assigns
 one persona per participant session — ideal for experimental designs testing
 how personality affects engagement or trust.
 
 Managing Variability
 --------------------
 
-ChatLab allows you to maintain controlled variability across sessions by
+ChatbotLab allows you to maintain controlled variability across sessions by
 defining multiple personas for the same bot. This makes it easy to:
 
 - Compare conversational tone effects (e.g., empathetic vs. neutral).

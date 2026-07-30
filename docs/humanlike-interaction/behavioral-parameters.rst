@@ -1,7 +1,7 @@
 Behavioral Parameters
 =====================
 
-These settings control ChatLab's **humanlike timing and delivery style**.
+These settings control ChatbotLab's **humanlike timing and delivery style**.
 
 Delays
 ------

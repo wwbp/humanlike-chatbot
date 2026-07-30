@@ -4,7 +4,7 @@ LimeSurvey Integration
 Overview
 --------
 
-Use ChatLab to embed conversational tasks into your LimeSurvey survey pages.
+Use ChatbotLab to embed conversational tasks into your LimeSurvey survey pages.
 
 .. important::
 
@@ -14,6 +14,6 @@ Use ChatLab to embed conversational tasks into your LimeSurvey survey pages.
 Data Needed to Embed Bot
 ------------------------
 
-ChatLab Domain
+ChatbotLab Domain
 ^^^^^^^^^^^^^^
 

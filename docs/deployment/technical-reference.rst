@@ -1,7 +1,7 @@
-ChatLab AWS Deployment: Technical Reference
-===========================================
+Technical Reference
+===================
 
-This document covers the architecture, deployment mechanics, and known edge cases for the ChatLab AWS deployment. It is intended for engineers who need to understand, debug, or modify the deployment system.
+This document covers the architecture, deployment mechanics, and known edge cases for the ChatbotLab AWS deployment. It is intended for engineers who need to understand, debug, or modify the deployment system.
 
 
 Architecture overview

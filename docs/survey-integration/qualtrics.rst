@@ -4,7 +4,7 @@ Qualtrics Integration
 Overview
 --------
 
-Use ChatLab to embed conversational tasks into your Qualtrics survey pages.
+Use ChatbotLab to embed conversational tasks into your Qualtrics survey pages.
 
 .. important::
 
@@ -15,10 +15,10 @@ Use ChatLab to embed conversational tasks into your Qualtrics survey pages.
 Data Needed to Embed Bot
 ------------------------
 
-ChatLab Domain
+ChatbotLab Domain
 ^^^^^^^^^^^^^^
 
-You must deploy ChatLab (following the :doc:`/deployment/index` guide). You will then 
+You must deploy ChatbotLab (following the :doc:`/deployment/index` guide). You will then 
 have a domain name for your chatbot, which you put in place of ``<YOUR-CHATLAB-DOMAIN>`` below. 
 
 Survey ID
@@ -34,7 +34,7 @@ Survey ID
 Bot Name
 ^^^^^^^^
 
-1. Navigate to the ChatLab admin panel and login. 
+1. Navigate to the ChatbotLab admin panel and login. 
 2. On the left, under CHATBOT, click on `Bots`.
 3. You can use the search bar to find your bot.
 4. Copy the name under the NAME column.
@@ -48,12 +48,12 @@ participants answer survey questions.
 
 .. important::
 
-   This **must** exactly match the bot name in ChatLab's database. 
+   This **must** exactly match the bot name in ChatbotLab's database. 
 
 Study Name
 ^^^^^^^^^^
 
-This is a descriptive name for your study, which will be saved in ChatLab's. For example, 
+This is a descriptive name for your study, which will be saved in ChatbotLab's. For example, 
 if you study was related to a therapy bot, you could call the study ``therapy_bot``. We
 recommend keeping the name simple, yet descriptive, so that you can distinguish 
 between multiple studies. Replace ``<STUDY-NAME>`` with your name in the code below.
@@ -67,10 +67,10 @@ your embedded data, for example ``${e://Field/pid}`` if your embedded data field
 If you do not have this then you can set this value as the Response ID ``${e://Field/ResponseID}``,
 i.e., a unique identifier for each row in your survey data.
 
-Embedding ChatLab
+Embedding ChatbotLab
 -----------------
 
-1. Deploy ChatLab on AWS following the :doc:`/deployment/index` guide.
+1. Deploy ChatbotLab on AWS following the :doc:`/deployment/index` guide.
 2. In Qualtrics, add a **Text / Graphic** question.
 3. Open the JavaScript editor. This is typically on the left under Edit Question -> Question Behavior
 4. Add the following code in the editor under Edit Question JavaScript:
@@ -153,7 +153,7 @@ Embedding ChatLab
 Passing Data
 ------------
 
-You can send other data to ChatLab's backend database by adding additional variables and 
+You can send other data to ChatbotLab's backend database by adding additional variables and 
 appending them to ``botURL``.
 
    .. code-block:: javascript
@@ -162,7 +162,7 @@ appending them to ``botURL``.
          ...
          botURL += "?survey_question_response=" + encodeURIComponent(someSurveyQuestion);
 
-Note that the entirety of ``botURL`` is saved as a raw string in ChatLab's backend,
+Note that the entirety of ``botURL`` is saved as a raw string in ChatbotLab's backend,
 which allows you to send arbitrary amounts of data from your survey without modifying
 the database structure (i.e., you can parse variables from the raw string at a later date).
 
@@ -170,7 +170,7 @@ Data Linking
 ------------
 
 - Each conversation is stored with a ``conversation_id``.
-- The variable ``conversation_id`` (in ChatLab) can then be merged on the ``ResponseID`` variable in your Qualtrics data.
+- The variable ``conversation_id`` (in ChatbotLab) can then be merged on the ``ResponseID`` variable in your Qualtrics data.
 
 Keystrokes
 ----------
@@ -239,7 +239,7 @@ Validation
 
 1. Preview your Qualtrics survey.
 2. Open developer console (F12) → check for "Generated botURL" logs.
-3. Confirm the embedded ChatLab iframe loads successfully.
+3. Confirm the embedded ChatbotLab iframe loads successfully.
 
 Other Options
 -------------

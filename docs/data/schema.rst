@@ -1,14 +1,10 @@
 Database Schema
 ===============
 
-This document describes the database schema for ChatLab’s backend.
+This document describes the database schema for ChatbotLab's backend.
 The database is implemented in **MySQL** and stores information about
 bots, conversations, utterances, and keystrokes. Each table is prefixed
 with ``chatbot_`` and linked by foreign keys for data integrity.
-
-.. contents::
-   :local:
-   :depth: 2
 
 Bots Table
 ----------

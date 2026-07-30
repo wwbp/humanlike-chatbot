@@ -1,7 +1,7 @@
 LLM Integration
 ===============
 
-ChatLab supports multiple large language model (LLM) providers and APIs.  
+ChatbotLab supports multiple large language model (LLM) providers and APIs.  
 These settings determine which model powers your bot, how it's accessed, and
 how API credentials are stored securely in the system.
 
@@ -13,7 +13,6 @@ Topics Covered
 
 - **Choosing an LLM Provider:** GPT-4o, Claude Opus, Llama 3, and more  
 - **Setting API Keys:** Securely manage keys for each provider  
-- **Performance and Cost Considerations:** Model size and speed trade-offs  
 
 .. toctree::
    :maxdepth: 1

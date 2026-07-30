@@ -1,7 +1,7 @@
-Deploying ChatLab to AWS: Researcher Guide
-==========================================
+Deplopyment Guide for Researchers
+=================================
 
-This guide walks you through deploying ChatLab to AWS so your participants can access the chatbot from any browser. No programming experience is required. The entire process takes about 30 minutes of your time (plus ~20 minutes of automated setup), and you only have to do it once.
+This guide walks you through deploying ChatbotLab to AWS so your participants can access the chatbot from any browser. No programming experience is required. The entire process takes about 30 minutes of your time (plus ~20 minutes of automated setup), and you only have to do it once.
 
 **What you get:** a private, fully functional chatbot system at a URL you can share with study participants, with an admin panel where you configure the chatbot's personality, system prompt, and behavior.
 
@@ -49,7 +49,7 @@ You will need to collect or create five things. Each section below tells you exa
 Step 1: Fork the repository
 ---------------------------
 
-Go to the ChatLab repository on GitHub and click **Fork** (top right). Accept the defaults and click **Create fork**. All subsequent steps happen inside your fork.
+Go to the ChatbotLab repository on GitHub and click **Fork** (top right). Accept the defaults and click **Create fork**. All subsequent steps happen inside your fork.
 
 Step 2: Create an AWS account
 -----------------------------

@@ -1,17 +1,17 @@
-Accessing ChatLab Data via SQL GUIs
+Accessing ChatbotLab Data via SQL GUIs
 ===================================
 
-For teams preferring graphical interfaces, ChatLab's MySQL database can be
+For teams preferring graphical interfaces, ChatbotLab's MySQL database can be
 accessed through popular SQL clients. This allows browsing, querying, and
 exporting conversation data without writing SQL manually.
 
 Supported Applications
 ----------------------
 
-You can connect to ChatLab's database using:
+You can connect to ChatbotLab's database using:
 
 - **Sequel Ace (macOS)**
-- **Sequel Pro (legacy, macOS)**
+- **Sequel Pro (macOS)**
 - **HeidiSQL (Windows)**
 - **MySQL Workbench (cross-platform)**
 
@@ -32,7 +32,7 @@ Example (Sequel Ace)
 1. Open Sequel Ace → *New Connection*
 2. Choose *Standard Connection*
 3. Fill in:
-   - Name: `ChatLab`
+   - Name: `ChatbotLab`
    - Host: `<your-db-endpoint>`
    - User: `chatlab_admin`
    - Password: `<your_password>`

@@ -27,35 +27,6 @@ Workflow Summary
 4. **Recruit participants** through Prolific or MTurk
 5. **Collect and export conversation data** for analysis
 
-One-Click Deployment
---------------------
-
-ChatbotLab deploys to your **own AWS account** through an automated GitHub Actions
-workflow. You do not set up a server, configure a database, or write any code.
-After you fork the repository and provide a small set of credentials (your AWS keys,
-an LLM provider key, and two passwords you choose), a single workflow provisions the
-entire system and returns two URLs: one for the chatbot and one for the admin panel.
-Because it runs on your own account, your data stays under your control.
-
-See :doc:`deployment/index` for step-by-step instructions.
-
-Human-Like Interaction
-----------------------
-
-ChatbotLab can make a conversation resemble messaging with another person, rather
-than a standard question-and-answer chatbot. These features are optional and are
-configured in the admin panel:
-
-- **Typing delays:** the bot pauses to "read" and "type," at configurable reading and writing speeds, instead of replying instantly
-- **Message chunking:** long replies are split into several short messages sent in sequence, like texting
-- **Personas:** the bot can adopt a defined identity, or select one at random from a set, varying its presentation across conversations
-
-These features let the bot serve as a realistic conversational partner, which is
-useful for studies of human-AI interaction and for designs where the bot stands in
-for a person.
-
-See :doc:`humanlike-interaction/index` for details.
-
 Key Features
 ------------
 

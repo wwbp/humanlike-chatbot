@@ -40,12 +40,14 @@ Key Features
 
 .. toctree::
    :maxdepth: 2
+   :hidden:
    :caption: Deploying ChatbotLab
 
    deployment/index
 
 .. toctree::
    :maxdepth: 2
+   :hidden:
    :caption: Using ChatbotLab
 
    survey-integration/index
@@ -54,6 +56,7 @@ Key Features
 
 .. toctree::
    :maxdepth: 2
+   :hidden:
    :caption: Bot Configuration
 
    llm-integration/index
@@ -62,6 +65,7 @@ Key Features
 
 .. toctree::
    :maxdepth: 2
+   :hidden:
    :caption: Conversation Analysis
 
    analysis/index

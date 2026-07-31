@@ -1,7 +1,216 @@
 DLATK
 =====
 
-Use **DLATK** (Differential Language Analysis ToolKit) to explore linguistic,
-psychological, and behavioral patterns in conversation data. You’ll learn how
-to preprocess text logs, extract features, and run correlations or regressions
-with participant variables.
+Overview
+--------
+
+**DLATK** (Differential Language Analysis ToolKit) is a Python toolkit for
+correlating language with outcome variables. Differential Language Analysis
+(DLA) is its signature method. DLA extracts language features, such as
+n-grams, from a corpus, then correlates the frequency of each feature with
+an outcome variable across participants.
+
+We apply DLA to the same synthetic ChatbotLab corpus used in the other
+tutorials in this section: 19 person-to-AI conversations, each "person"
+tagged with a PHQ-9 depression score. We correlate single-word frequencies
+with PHQ-9.
+
+Data Format
+-----------
+
+DLATK reads from a SQL database. It expects two tables: a message table
+(``message_id``, ``user_id``, ``message``) and an outcome table (``user_id``,
+outcome columns). DLATK defaults to MySQL, but it also supports SQLite, so no
+database server is required.
+
+We build a SQLite database at ``conversation_data/dlatk/dlatk.db`` from the
+flattened export already used by the :doc:`text` tutorial:
+``conversation_data/text/msgs.csv`` and ``conversation_data/text/outcomes.csv``.
+
+Setup
+-----
+
+.. code-block:: bash
+
+   pip install dlatk
+
+Loading the Data
+-----------------
+
+DLATK's default column names are ``message_id``, ``user_id``, and
+``message`` for the message table, which already match ``msgs.csv``. Load
+both CSVs into a SQLite database:
+
+.. code-block:: python
+
+   import csv
+   import sqlite3
+
+   conn = sqlite3.connect("conversation_data/dlatk/dlatk.db")
+   cur = conn.cursor()
+
+   cur.execute("CREATE TABLE msgs (message_id TEXT, user_id TEXT, timestamp INTEGER, message TEXT)")
+   with open("conversation_data/text/msgs.csv") as f:
+       rows = [(r["message_id"], r["user_id"], int(r["timestamp"]), r["message"]) for r in csv.DictReader(f)]
+   cur.executemany("INSERT INTO msgs VALUES (?, ?, ?, ?)", rows)
+
+   cur.execute("CREATE TABLE outcomes (user_id TEXT, age INTEGER, gender TEXT, persona TEXT, phq9 INTEGER)")
+   with open("conversation_data/text/outcomes.csv") as f:
+       rows = [(r["user_id"], int(r["age"]), r["gender"], r["persona"], int(r["phq9"])) for r in csv.DictReader(f)]
+   cur.executemany("INSERT INTO outcomes VALUES (?, ?, ?, ?, ?)", rows)
+
+   conn.commit()
+
+Extracting Unigram Features
+------------------------------
+
+DLATK extracts n-gram features with ``--add_ngrams``. We extract unigrams
+only, with ``-n 1``. DLATK's default is 1- to 3-grams, but with only 19
+participants, most 2- and 3-grams occur too rarely to correlate with
+anything. Unigrams give more participants a non-zero count per word, which
+matters more than usual on a corpus this small:
+
+.. code-block:: bash
+
+   dlatkInterface.py --db_engine sqlite -d conversation_data/dlatk/dlatk \
+     -t msgs -c user_id \
+     --add_ngrams -n 1
+
+This creates the feature table ``feat$1gram$msgs$user_id`` inside
+``dlatk.db``.
+
+Filtering Rare Features
+-------------------------
+
+Drop words used by too few participants, since a word only one person uses
+cannot be a reliable correlate of anything:
+
+.. code-block:: bash
+
+   dlatkInterface.py --db_engine sqlite -d conversation_data/dlatk/dlatk \
+     -t msgs -c user_id \
+     -f 'feat$1gram$msgs$user_id' --feat_occ_filter --set_p_occ 0.05
+
+This keeps 243 distinct unigrams, each used by at least 5% of participants.
+
+Running Differential Language Analysis
+-----------------------------------------
+
+Correlate each of the 243 unigrams with PHQ-9:
+
+.. code-block:: bash
+
+   dlatkInterface.py --db_engine sqlite -d conversation_data/dlatk/dlatk \
+     -t msgs -c user_id \
+     -f 'feat$1gram$msgs$user_id$0_05' \
+     --outcome_table outcomes --outcomes phq9 \
+     --group_freq_thresh 50 \
+     --correlate --csv --rmatrix --sort --no_correction \
+     --output_name conversation_data/dlatk/dla_phq9
+
+By default, DLATK corrects p-values for the number of features tested. With
+243 features and 19 participants, that correction leaves nothing
+significant. ``--no_correction`` turns it off, so the p-values below are
+uncorrected. Treat them as exploratory, the same way we treat the z-scores
+and SDP scores in the other two tutorials.
+
+Results
+-------
+
+Words significantly correlated with **higher** PHQ-9, uncorrected p < .05:
+
+.. list-table::
+   :header-rows: 1
+
+   * - word
+     - r
+     - p
+     - freq
+   * - that
+     - 0.674
+     - .0016
+     - 51
+   * - weeks
+     - 0.586
+     - .0083
+     - 7
+   * - just
+     - 0.583
+     - .0088
+     - 98
+   * - he
+     - 0.513
+     - .0247
+     - 13
+   * - maybe
+     - 0.499
+     - .0295
+     - 42
+   * - feels
+     - 0.497
+     - .0303
+     - 17
+   * - it
+     - 0.464
+     - .0453
+     - 140
+   * - make
+     - 0.461
+     - .0467
+     - 6
+
+Words significantly correlated with **lower** PHQ-9:
+
+.. list-table::
+   :header-rows: 1
+
+   * - word
+     - r
+     - p
+     - freq
+   * - one
+     - -0.589
+     - .0080
+     - 17
+   * - it'd
+     - -0.568
+     - .0111
+     - 4
+   * - phone's
+     - -0.550
+     - .0147
+     - 3
+   * - gonna
+     - -0.540
+     - .0171
+     - 20
+   * - itself
+     - -0.519
+     - .0228
+     - 4
+   * - meaning
+     - -0.510
+     - .0256
+     - 5
+   * - actually
+     - -0.503
+     - .0281
+     - 37
+
+``just`` and ``feels`` correlate with higher PHQ-9 here, the same direction
+found by ConvoKit's Fighting Words and the R text package's Supervised
+Dimension Projection on this corpus. Three different methods point to the
+same words.
+
+With only 19 participants and no p-value correction, this is a
+demonstration of the workflow, not a finding. Re-run this pipeline on a
+properly powered study export, and drop ``--no_correction``.
+
+Generalizing
+------------
+
+Swap ``phq9`` for any other column in ``outcomes.csv``, such as age, or a
+REDCap or Qualtrics field passed through at
+:doc:`../survey-integration/index`. DLATK also extracts features beyond raw
+n-grams, including LIWC categories, LDA topics, and transformer embeddings,
+any of which can replace the unigram feature table in the correlation step.

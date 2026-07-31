@@ -23,9 +23,14 @@ DLATK reads from a SQL database. It expects two tables: a message table
 outcome columns). DLATK defaults to MySQL, but it also supports SQLite, so no
 database server is required.
 
-We build a SQLite database at ``conversation_data/dlatk/dlatk.db`` from the
-flattened export already used by the :doc:`text` tutorial:
-``conversation_data/text/msgs.csv`` and ``conversation_data/text/outcomes.csv``.
+ChatbotLab exports conversation data in this shape already, as a SQLite
+database with a ``msgs`` table and an ``outcomes`` table. We use that export
+directly, at ``conversation_data/dlatk/dlatk.db``.
+
+The message table can hold many rows per participant, one per message.
+DLATK aggregates across whichever column is passed to ``-c`` (its alias is
+``-g``) when it extracts features and runs correlations. Messages do not
+need to be combined into one row per participant first.
 
 Setup
 -----
@@ -33,33 +38,6 @@ Setup
 .. code-block:: bash
 
    pip install dlatk
-
-Loading the Data
------------------
-
-DLATK's default column names are ``message_id``, ``user_id``, and
-``message`` for the message table, which already match ``msgs.csv``. Load
-both CSVs into a SQLite database:
-
-.. code-block:: python
-
-   import csv
-   import sqlite3
-
-   conn = sqlite3.connect("conversation_data/dlatk/dlatk.db")
-   cur = conn.cursor()
-
-   cur.execute("CREATE TABLE msgs (message_id TEXT, user_id TEXT, timestamp INTEGER, message TEXT)")
-   with open("conversation_data/text/msgs.csv") as f:
-       rows = [(r["message_id"], r["user_id"], int(r["timestamp"]), r["message"]) for r in csv.DictReader(f)]
-   cur.executemany("INSERT INTO msgs VALUES (?, ?, ?, ?)", rows)
-
-   cur.execute("CREATE TABLE outcomes (user_id TEXT, age INTEGER, gender TEXT, persona TEXT, phq9 INTEGER)")
-   with open("conversation_data/text/outcomes.csv") as f:
-       rows = [(r["user_id"], int(r["age"]), r["gender"], r["persona"], int(r["phq9"])) for r in csv.DictReader(f)]
-   cur.executemany("INSERT INTO outcomes VALUES (?, ?, ?, ?, ?)", rows)
-
-   conn.commit()
 
 Extracting Unigram Features
 ------------------------------

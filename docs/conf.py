@@ -36,7 +36,7 @@ autosummary_generate = True
 html_theme = "furo"
 html_static_path = ["_static"]
 
-html_baseurl = "https://sjgiorgi.github.io/chatlab/"
+html_baseurl = "https://wwbp.github.io/chatbotlab/"
 
 html_theme_options = {
     "sidebar_hide_name": False,

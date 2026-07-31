@@ -4,8 +4,8 @@ Personas
 Overview
 --------
 
-**Personas** define *who* your bot is — shaping its tone, attitude, and
-communication style. They allow you to control the *personality* behind
+**Personas** define *who* your bot is. A persona shapes its tone, attitude,
+and communication style. Personas let you control the *personality* behind
 each chatbot, creating consistent and human-like conversational behavior
 tailored to your research goals.
 
@@ -62,8 +62,8 @@ To assign a persona:
 4. To remove one, select it from **Chosen Personas** and click the left arrow (←).
 
 If multiple personas are attached to a single bot, ChatbotLab randomly assigns
-one persona per participant session — ideal for experimental designs testing
-how personality affects engagement or trust.
+one persona per participant session. This suits experimental designs that
+test how personality affects engagement or trust.
 
 Managing Variability
 --------------------

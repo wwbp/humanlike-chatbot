@@ -18,4 +18,4 @@ Initial Messages
 
 - Define the bot's first message to participants.
 - Set up a natural start for conversation.
-- Avoid overly robotic phrasing; participants should feel like they're speaking with a person.
+- Avoid overly robotic phrasing. Participants should feel like they are speaking with a person.

@@ -20,8 +20,8 @@ ChatbotLab integrates with **model-based moderation APIs** (e.g., OpenAI's
 Moderation API) to evaluate each message in real time.
 
 Each message receives:
-- **Category scores** — quantitative risk levels (e.g., sexual, violent, hate, harassment)
-- **Confidence thresholds** — numerical indicators (0.0-1.0) representing model certainty
+- **Category scores:** quantitative risk levels (e.g., sexual, violent, hate, harassment)
+- **Confidence thresholds:** numerical indicators (0.0-1.0) representing model certainty
 
 Messages exceeding configured thresholds trigger blocking or replacement behavior.
 

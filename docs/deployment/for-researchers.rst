@@ -58,7 +58,7 @@ If you already have an AWS account, skip to Step 3.
 
 1. Go to `aws.amazon.com <https://aws.amazon.com>`_ and click **Create an AWS Account**
 2. Enter your email, choose an account name, and follow the prompts
-3. You will need a credit card — AWS charges only for what you use
+3. You will need a credit card. AWS charges only for what you use
 4. Complete phone verification and choose the **Basic support plan** (free)
 
 .. note::
@@ -69,7 +69,7 @@ If you already have an AWS account, skip to Step 3.
 Step 3: Create AWS access keys
 -------------------------------
 
-This gives the deployment permission to create infrastructure on your behalf. You only need these keys during the initial setup — they can be deleted from AWS afterward.
+This gives the deployment permission to create infrastructure on your behalf. You only need these keys during the initial setup. You can delete them from AWS afterward.
 
 1. Log into the `AWS Console <https://console.aws.amazon.com>`_
 2. Search for **IAM** in the top search bar and click it
@@ -79,14 +79,14 @@ This gives the deployment permission to create infrastructure on your behalf. Yo
 6. Click on the user you just created, go to the **Security credentials** tab
 7. Scroll to **Access keys** → **Create access key**
 8. Select **Other**, click **Next**, then **Create access key**
-9. Copy both values now — **you will not be able to see the secret again:**
+9. Copy both values now. **You will not be able to see the secret again:**
 
    - **Access Key ID** → ``AWS_ACCESS_KEY_ID``
    - **Secret Access Key** → ``AWS_SECRET_ACCESS_KEY``
 
 .. note::
 
-   **Security note:** These keys have full admin access to your AWS account. Once the deployment finishes successfully, you can delete the IAM user entirely — the running system uses a different, more limited credential that is created automatically during setup.
+   **Security note:** These keys have full admin access to your AWS account. Once the deployment finishes successfully, you can delete the IAM user entirely. The running system uses a different, more limited credential, created automatically during setup.
 
 Step 4: Get an AI provider API key
 ------------------------------------
@@ -100,7 +100,7 @@ You need at least one of the following.
 3. Give it a name, click **Create secret key**
 4. Copy the key → ``OPENAI_API_KEY``
 
-**Anthropic (Claude models) — optional:**
+**Anthropic (Claude models), optional:**
 
 1. Go to `console.anthropic.com <https://console.anthropic.com>`_ and sign in or create an account
 2. Click **API Keys** in the left sidebar → **Create Key**
@@ -111,7 +111,7 @@ You only need one. If you set both, the chatbot can use either model.
 Step 5: Choose two passwords
 -----------------------------
 
-These do not need to be retrieved from anywhere — you create them yourself.
+These do not need to be retrieved from anywhere. You create them yourself.
 
 **Database password (``DB_PASSWORD``):**
 A password for the internal database. You will rarely need to type this. Rules: letters and numbers only (no special characters), at least 8 characters.
@@ -124,7 +124,7 @@ Example: ``MyStudyAdmin99``
 Step 6: Create a GitHub Personal Access Token
 ----------------------------------------------
 
-This allows the deployment to automatically configure your repository after the infrastructure is created — you never have to copy-paste infrastructure details manually.
+This lets the deployment automatically configure your repository after the infrastructure is created. You never have to copy and paste infrastructure details manually.
 
 1. On GitHub, click your profile picture (top right) → **Settings**
 2. Scroll to the bottom of the left sidebar → **Developer settings**
@@ -135,27 +135,27 @@ This allows the deployment to automatically configure your repository after the 
 7. Under **Permissions → Repository permissions**:
 
    - Find **Secrets** and set it to **Read and write**
-   - (Actions and Metadata are already Read by default — leave them)
+   - (Actions and Metadata are already Read by default. Leave them.)
 
 8. Click **Generate token**
 9. Copy the token → ``GH_PAT``
 
 .. note::
 
-   **Alternative:** If you prefer a simpler setup, generate a **Classic token** instead (Personal access tokens → Tokens (classic)) and check just the ``repo`` scope — one checkbox covers everything.
+   **Alternative:** If you prefer a simpler setup, generate a **Classic token** instead (Personal access tokens → Tokens (classic)) and check just the ``repo`` scope. One checkbox covers everything.
 
 .. important::
 
    The token expires. If you need to re-run the deployment workflow after the token expires, you will need to generate a new one and update the ``GH_PAT`` secret.
 
-Step 7: Optional — Custom domain
+Step 7: Custom Domain (Optional)
 ----------------------------------
 
 If you want the chatbot served at your own URL (e.g. ``chatbot.mylab.org``) instead of the auto-assigned ``https://xxxx.cloudfront.net``, you need a domain name. You can purchase one from any registrar (Namecheap, Google Domains, GoDaddy, etc.) for roughly $10-15/year.
 
 If you are at a university, your IT department may be able to provide a subdomain under your institution's domain.
 
-If you skip this, the chatbot is fully functional — it just has a less memorable URL. You can always add a custom domain later by setting the ``DOMAIN_NAME`` secret and re-running the workflow.
+If you skip this, the chatbot is fully functional. It just has a less memorable URL. You can always add a custom domain later by setting the ``DOMAIN_NAME`` secret and re-running the workflow.
 
 Step 8: Add secrets to your GitHub repository
 ----------------------------------------------
@@ -202,16 +202,16 @@ Step 9: Run the deployment
 1. Go to your fork → **Actions** tab
 2. Click **Deploy Infrastructure** in the left sidebar
 3. Click **Run workflow** (top right of the workflow list)
-4. A small form appears — leave all fields at their defaults unless you have a reason to change them:
+4. A small form appears. Leave all fields at their defaults unless you have a reason to change them:
 
-   - **App server instance type:** ``t3.small`` — handles ~50 simultaneous conversations. Upgrade to ``t3.medium`` for larger studies.
-   - **Maximum number of app server instances:** ``1`` — increase for studies with hundreds of simultaneous participants.
-   - **Database instance class:** ``db.t3.micro`` — sufficient for most studies.
+   - **App server instance type:** ``t3.small``. Handles ~50 simultaneous conversations. Upgrade to ``t3.medium`` for larger studies.
+   - **Maximum number of app server instances:** ``1``. Increase for studies with hundreds of simultaneous participants.
+   - **Database instance class:** ``db.t3.micro``. Sufficient for most studies.
 
 5. Click the green **Run workflow** button
 6. Click into the running workflow to watch progress
 
-The workflow takes approximately **20-25 minutes**. The database and cache take the longest to provision. Once infrastructure is ready, the application deploys automatically — you do not need to click anything else.
+The workflow takes approximately **20-25 minutes**. The database and cache take the longest to provision. Once infrastructure is ready, the application deploys automatically. You do not need to click anything else.
 
 **If you set a custom domain:** partway through, the workflow Summary will show a DNS record to add at your registrar. Add it while the workflow is still running. The workflow will wait up to 30 minutes for DNS to propagate.
 
@@ -241,9 +241,9 @@ Ongoing use
    * - Task
      - How
    * - Change the system prompt or persona
-     - Log into the admin panel — no redeployment needed
+     - Log into the admin panel. No redeployment needed.
    * - Deploy updated app code
-     - Push to the ``main`` branch — deploys automatically
+     - Push to the ``main`` branch. Deploys automatically.
    * - Scale up for a large study
      - Re-run **Deploy Infrastructure** with a larger instance type or more max instances
    * - Rotate an API key
@@ -272,11 +272,11 @@ Troubleshooting
 **The workflow failed partway through.**
 The workflow automatically rolls back and destroys any partially-created resources. Fix the issue (usually a missing or incorrect secret) and re-run the workflow from scratch.
 
-**I can't log into the admin panel.**
+**The admin panel will not log in.**
 Make sure you are going to ``/api/admin/`` (not just ``/admin/``). The username is ``admin`` and the password is the value you set as ``ADMIN_PANEL_PASSWORD``.
 
 **The chatbot URL shows an error after deployment.**
 Application startup takes 5-10 minutes after infrastructure provisioning. Wait a few minutes and refresh. If the error persists, check the **Deploy Humanlike-Bot Client and Server to Production** workflow in the Actions tab.
 
-**My GH_PAT expired and the workflow failed.**
+**The GH_PAT token expired and the workflow failed.**
 Generate a new fine-grained token (Step 6), update the ``GH_PAT`` secret in GitHub Settings, and re-run the workflow.

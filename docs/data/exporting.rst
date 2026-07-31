@@ -10,9 +10,9 @@ Admin Exports
 From the admin interface, select a model, study, or participant range and
 choose:
 
-- **CSV Export** — Tabular data suitable for R, Python, or Excel  
-- **JSON Export** — Structured data for downstream scripts  
-- **ZIP Archive** — Full session data including logs
+- **CSV Export:** Tabular data suitable for R, Python, or Excel
+- **JSON Export:** Structured data for downstream scripts
+- **ZIP Archive:** Full session data including logs
 - **Programmatic Export:** Use Django ORM or custom scripts to export data from
   the backend.
 

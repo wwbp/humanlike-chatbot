@@ -1,4 +1,4 @@
-ChatbotLab — Embedding Human-AI Conversations in Research Studies
+ChatbotLab: Embedding Human-AI Conversations in Research Studies
 =================================================================
 
 *An open-source backend for integrating LLM-driven chat experiences into surveys and crowdsourced studies*
@@ -6,17 +6,17 @@ ChatbotLab — Embedding Human-AI Conversations in Research Studies
 Overview
 --------
 
-**ChatbotLab** allows researchers to embed large language model (LLM) conversations
-directly inside survey platforms such as **Qualtrics**, **REDCap**, and **LimeSurvey**, which can
-then be deployed via **Prolific** or **MTurk** for participant recruitment.
+**ChatbotLab** lets researchers embed large language model (LLM) conversations
+directly inside survey platforms such as **Qualtrics**, **REDCap**, and **LimeSurvey**.
+Researchers can then recruit participants through **Prolific** or **MTurk**.
 
-Participants never access ChatbotLab directly. Instead, ChatbotLab runs on AWS and
-serves a secure web interface that is loaded **within surveys**.
-All conversations and metadata are stored automatically for later analysis.
+Participants never access ChatbotLab directly. ChatbotLab runs on AWS and
+serves a secure web interface, loaded **within the survey**. ChatbotLab
+stores all conversations and metadata automatically for later analysis.
 
-ChatbotLab is designed to run **without programming**. Deployment is a single
-automated step, and every part of a study (the model, the prompt, the bot's
-behavior) is configured through a web-based admin panel.
+ChatbotLab requires **no programming**. Deployment is a single automated
+step. Every part of a study, including the model, the prompt, and the bot's
+behavior, is configured through a web-based admin panel.
 
 Workflow Summary
 ----------------
@@ -30,13 +30,13 @@ Workflow Summary
 Key Features
 ------------
 
-- **One-click deployment:** automated, containerized hosting on your own AWS account — no server setup or coding
+- **One-click deployment:** automated, containerized hosting on your own AWS account. No server setup or coding is required.
 - **Survey integration:** embed bots inside Qualtrics, REDCap, or LimeSurvey
 - **Crowdsourcing integration:** manage participants via Prolific or MTurk
 - **Bot configuration:** define prompts, personas, models, and delays through a web admin panel
 - **Human-like interaction:** typing delays, message chunking, personas, and idle follow-ups
 - **Data collection:** automatically capture conversation and survey metadata, linked per participant
-- **Analysis tools:** export to ConvoKit, DLATK, or R's ``text`` for linguistic research
+- **Analysis tools:** export to ConvoKit, DLATK, or R's ``text`` package for linguistic research
 
 .. toctree::
    :maxdepth: 2

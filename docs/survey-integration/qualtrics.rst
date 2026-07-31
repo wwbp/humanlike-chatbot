@@ -16,16 +16,17 @@ Data Needed to Embed Bot
 ------------------------
 
 ChatbotLab Domain
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 
-You must deploy ChatbotLab (following the :doc:`/deployment/index` guide). You will then 
-have a domain name for your chatbot, which you put in place of ``<YOUR-CHATLAB-DOMAIN>`` below. 
+Deploy ChatbotLab first, following the :doc:`/deployment/index` guide. You
+will then have a domain name for your chatbot. Use it in place of
+``<YOUR-CHATLAB-DOMAIN>`` below.
 
 Survey ID
 ^^^^^^^^^
 
 1. Navigate to your survey.
-2. Click on Distirbutions.
+2. Click on Distributions.
 3. Click on **Anonymous link**. If needed you can generate one.
 4. Copy the survey ID from the link. It typically starts with ``SV_`` (for example, ``SV_cBaJiOettfQqZRY``).
 5. Replace ``<SURVEY-ID>`` with your survey ID in the code below.
@@ -68,7 +69,7 @@ If you do not have this then you can set this value as the Response ID ``${e://F
 i.e., a unique identifier for each row in your survey data.
 
 Embedding ChatbotLab
------------------
+---------------------
 
 1. Deploy ChatbotLab on AWS following the :doc:`/deployment/index` guide.
 2. In Qualtrics, add a **Text / Graphic** question.
@@ -142,10 +143,10 @@ Embedding ChatbotLab
 
 5. Replace the placeholders:
 
-   - ``<BOT-NAME>`` — your bot's name
-   - ``<STUDY-NAME>`` — your chosen study label
-   - ``<SURVEY-ID>`` - your unique Qualtrics survey indentifier
-   - ``<YOUR-CHATLAB-DOMAIN>`` - 
+   - ``<BOT-NAME>``: your bot's name
+   - ``<STUDY-NAME>``: your chosen study label
+   - ``<SURVEY-ID>``: your unique Qualtrics survey identifier
+   - ``<YOUR-CHATLAB-DOMAIN>``: your ChatbotLab domain, from deployment
    - ``<PARTICIPANT-ID>`` (optional)
 6. You may also want to add instructions on the task to your **Text / Graphic** question.
 7. Save and preview the form to verify that the chat window loads correctly.

@@ -4,8 +4,8 @@ Advanced Customization
 Overview
 --------
 
-Advanced customization features in ChatbotLab let you move beyond basic model
-configuration — allowing you to **shape the identity, behavior, and ethical
+Advanced customization features in ChatbotLab move beyond basic model
+configuration, letting you **shape the identity, behavior, and ethical
 boundaries** of your bots. These settings define not just *what* your bots
 say, but *how* they express themselves and interact with participants.
 

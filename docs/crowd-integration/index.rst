@@ -4,10 +4,10 @@ Crowdworking Integration
 Overview
 --------
 
-ChatbotLab supports seamless deployment of surveys and chat-based experiments
-through major crowdworking platforms such as :doc:`Prolific </crowd-integration/prolific>` and
-:doc:`Amazon Mechanical Turk (MTurk) </crowd-integration/mturk>`. 
-These integrations allow you to collect naturalistic conversational data 
+ChatbotLab deploys surveys and chat-based experiments through major
+crowdworking platforms such as :doc:`Prolific </crowd-integration/prolific>` and
+:doc:`Amazon Mechanical Turk (MTurk) </crowd-integration/mturk>`.
+These integrations let you collect naturalistic conversational data
 from online participants at scale.
 
 Participants interact with an embedded ChatbotLab bot within your survey

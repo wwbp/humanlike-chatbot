@@ -4,10 +4,10 @@ Prolific Integration
 Overview
 --------
 
-ChatbotLab integrates seamlessly with **Prolific** to link crowdworker identifiers
-with your survey and conversation data. This ensures every participant's chat
-is tied to their Prolific record, allowing clean dataset merging and serving as
-a reliable backup.
+ChatbotLab integrates with **Prolific** to link crowdworker identifiers
+with your survey and conversation data. This ties every participant's chat
+to their Prolific record, so datasets merge cleanly and the record serves as
+a backup.
 
 Prolific metadata (participant ID, study ID, and session ID) is stored in
 ChatbotLab's backend database alongside the corresponding survey data.

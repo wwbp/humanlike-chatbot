@@ -1,5 +1,5 @@
 Accessing ChatbotLab Data via SQL GUIs
-===================================
+=======================================
 
 For teams preferring graphical interfaces, ChatbotLab's MySQL database can be
 accessed through popular SQL clients. This allows browsing, querying, and

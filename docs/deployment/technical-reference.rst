@@ -34,7 +34,7 @@ Architecture overview
 - ``/static/admin/*`` → Elastic Beanstalk (Django admin CSS/JS via WhiteNoise)
 - Everything else → S3 (React SPA, cached aggressively)
 
-**SPA routing:** CloudFront maps S3 404s (returned for unknown paths like ``/dashboard``) to HTTP 200 with ``index.html``, so React Router handles all client-side navigation. 403s are intentionally **not** caught — they represent real Django errors (CSRF failures, permission denied) and should surface to the client.
+**SPA routing:** CloudFront maps S3 404s (returned for unknown paths like ``/dashboard``) to HTTP 200 with ``index.html``, so React Router handles all client-side navigation. 403s are intentionally **not** caught. They represent real Django errors (CSRF failures, permission denied) and should surface to the client.
 
 
 AWS resources provisioned
@@ -87,7 +87,7 @@ All resources are provisioned by Terraform in ``infra/terraform/``. The name pre
      - OIDC trust, scoped to specific repo
    * - GitHub OIDC provider
      - ``aws_iam_openid_connect_provider``
-     - One per AWS account — see gotcha below
+     - One per AWS account. See gotcha below.
    * - Terraform state bucket
      - (created by workflow script)
      - ``humanlike-chatbot-tfstate-{ACCOUNT_ID}``, versioned, AES-256 encrypted
@@ -101,17 +101,17 @@ Deployment workflows
 
 Runs ``terraform apply`` against the remote S3 state backend. Steps:
 
-1. **Check required secrets** — validates presence and GH_PAT write access before touching AWS
-2. **Bootstrap state bucket** — creates ``humanlike-chatbot-tfstate-{ACCOUNT_ID}`` if absent (idempotent)
-3. **Terraform init** — points to the remote state bucket
-4. **Reconcile orphaned resources** — handles partial failures from previous runs; VPC-scoped resources (RDS, ElastiCache, EB environment) are purged if the VPC ID changed; non-VPC resources are imported
-5. **ACM certificate** (custom domain only) — targeted apply so the validation CNAME can be printed before the full apply blocks waiting for DNS
-6. **Print DNS validation record** (custom domain only) — written to the workflow Summary
-7. **``terraform apply``** — full infrastructure apply
-8. **Write deployment secrets** — uses ``GH_PAT`` to write all downstream secrets (``AWS_ROLE_NAME``, ``AWS_S3_PROD_BUCKET_NAME_FRONTEND``, etc.) directly into the GitHub repo via ``gh secret set``
-9. **Trigger application deployment** — calls ``gh workflow run production.yml`` so the app deploys without a second manual click
-10. **Rollback on failure** — if any step fails, ``terraform destroy`` cleans up all created resources
-11. **Summary** — writes the chatbot URL and admin panel URL to the workflow Summary
+1. **Check required secrets**. Validates presence and GH_PAT write access before touching AWS.
+2. **Bootstrap state bucket**. Creates ``humanlike-chatbot-tfstate-{ACCOUNT_ID}`` if absent (idempotent).
+3. **Terraform init**. Points to the remote state bucket.
+4. **Reconcile orphaned resources**. Handles partial failures from previous runs. VPC-scoped resources (RDS, ElastiCache, EB environment) are purged if the VPC ID changed. Non-VPC resources are imported.
+5. **ACM certificate** (custom domain only). Targeted apply, so the validation CNAME can be printed before the full apply blocks waiting for DNS.
+6. **Print DNS validation record** (custom domain only). Written to the workflow Summary.
+7. **``terraform apply``**. Full infrastructure apply.
+8. **Write deployment secrets**. Uses ``GH_PAT`` to write all downstream secrets (``AWS_ROLE_NAME``, ``AWS_S3_PROD_BUCKET_NAME_FRONTEND``, etc.) directly into the GitHub repo via ``gh secret set``.
+9. **Trigger application deployment**. Calls ``gh workflow run production.yml``, so the app deploys without a second manual click.
+10. **Rollback on failure**. If any step fails, ``terraform destroy`` cleans up all created resources.
+11. **Summary**. Writes the chatbot URL and admin panel URL to the workflow Summary.
 
 ``production.yml`` (triggers on push to ``main`` or ``workflow_dispatch``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -124,7 +124,7 @@ Runs ``terraform apply`` against the remote S3 state backend. Steps:
 GitHub OIDC (passwordless CI/CD)
 ---------------------------------
 
-After infrastructure is provisioned, GitHub Actions assumes an IAM role via OIDC — no long-lived keys are stored in secrets for ongoing deployments.
+After infrastructure is provisioned, GitHub Actions assumes an IAM role via OIDC. No long-lived keys are stored in secrets for ongoing deployments.
 
 The trust policy on the GitHub Actions IAM role restricts assumption to:
 
@@ -167,7 +167,7 @@ Security configuration
      - Django 4.0+ wildcard; avoids Terraform cycle between EB and CloudFront
    * - ``CORS_ALLOWED_ORIGIN_REGEXES``
      - ``^https://[a-z0-9-]+\.cloudfront\.net$``
-     - ``CORS_ALLOWED_ORIGINS`` doesn't support wildcards; regex list does
+     - ``CORS_ALLOWED_ORIGINS`` does not support wildcards. The regex list does.
    * - ``SESSION_COOKIE_SAMESITE``
      - ``Lax``
      - Prevents CSRF via cross-site requests while still working with top-level navigation
@@ -209,7 +209,7 @@ Known gotchas
 2. CloudFront ``custom_error_response`` blocks are global
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-CloudFront error response mappings apply to **all origins** — both S3 and EB. The original configuration had a ``403 → 200 index.html`` mapping intended for S3 SPA routing. This silently intercepted Django's real 403 responses (CSRF failures, permission denied) and served the React app instead, causing the admin login to appear as a blank white page with no error.
+CloudFront error response mappings apply to **all origins**, both S3 and EB. The original configuration had a ``403 → 200 index.html`` mapping intended for S3 SPA routing. This silently intercepted Django's real 403 responses (CSRF failures, permission denied) and served the React app instead. The admin login appeared as a blank white page with no error.
 
 S3 with OAC returns **404** (not 403) for missing objects (``NoSuchKey``). The 403 mapping is therefore both unnecessary and harmful. The current configuration only catches 404 (for SPA routing) and lets all 403s pass through to the client.
 
@@ -218,7 +218,7 @@ S3 with OAC returns **404** (not 403) for missing objects (``NoSuchKey``). The 4
 3. Terraform dependency cycle between EB and CloudFront
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-CloudFront references ``aws_elastic_beanstalk_environment.chatbot_api.cname`` (its origin). EB cannot reference ``aws_cloudfront_distribution.frontend.domain_name`` in return — doing so creates a cycle that Terraform cannot resolve.
+CloudFront references ``aws_elastic_beanstalk_environment.chatbot_api.cname`` (its origin). EB cannot reference ``aws_cloudfront_distribution.frontend.domain_name`` in return. Doing so creates a cycle that Terraform cannot resolve.
 
 **Workaround in use:** ``ALLOWED_HOSTS`` uses ``.cloudfront.net`` (leading dot = Django subdomain wildcard) so it matches any CloudFront domain without referencing the specific distribution. ``FRONTEND_URL`` is only set when ``var.domain_name`` is provided (a static string), not derived from the CloudFront resource. ``CSRF_TRUSTED_ORIGINS`` includes ``https://*.cloudfront.net`` statically in ``settings.py``.
 
@@ -275,7 +275,7 @@ On the first deploy with a custom domain:
 1. **Run 1:** Terraform creates the ACM certificate and prints the DNS validation CNAME to the workflow Summary. The researcher adds the CNAME at their registrar. Terraform waits up to 30 minutes for DNS to propagate. If propagation completes in time, the rest of the infrastructure is provisioned in the same run. If not, the workflow times out.
 2. **Run 2 (if needed):** Re-run Deploy Infrastructure. DNS is already propagated, so Terraform validates the certificate immediately and continues.
 
-On subsequent re-runs with the same custom domain, the certificate already exists and is validated — no DNS action is required.
+On subsequent re-runs with the same custom domain, the certificate already exists and is validated. No DNS action is required.
 
 10. CloudFront serves US/Canada/Europe only by default
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -288,6 +288,6 @@ The Terraform configuration uses ``PriceClass_100``, which distributes content f
 Re-running the infrastructure workflow
 ---------------------------------------
 
-The workflow is safe to re-run at any time. Terraform is idempotent — it compares the desired state (in ``.tf`` files) against the current state (in S3) and only changes what is different. Re-running to change instance sizes, rotate secrets, or add a custom domain is the intended use pattern.
+The workflow is safe to re-run at any time. Terraform is idempotent. It compares the desired state (in ``.tf`` files) against the current state (in S3) and only changes what is different. Re-running to change instance sizes, rotate secrets, or add a custom domain is the intended use pattern.
 
 The reconcile step handles partial failures automatically. You do not need to manually clean up AWS resources before re-running.

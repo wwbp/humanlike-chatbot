@@ -51,7 +51,7 @@ If you do not have a custom field, you can rely on ``[record-id]`` as the
 participant identifier.
 
 Embedding ChatbotLab
------------------
+---------------------
 
 1. Deploy ChatbotLab on AWS following the :doc:`/deployment/index` guide.
 2. In your REDCap project, open the desired instrument in the **Online Designer**.
@@ -76,11 +76,11 @@ Embedding ChatbotLab
 
 6. Replace the placeholders:
 
-   - ``<BOT-NAME>`` — your bot's name
-   - ``<STUDY-NAME>`` — your chosen study label
-   - ``<SURVEY-ID>`` - your unique REDCap survey indentifier
-   - ``<YOUR-CHATLAB-DOMAIN>`` - 
-   - ``<PARTICIPANT-ID>`` (optional) - unique identifier for participants
+   - ``<BOT-NAME>``: your bot's name
+   - ``<STUDY-NAME>``: your chosen study label
+   - ``<SURVEY-ID>``: your unique REDCap survey identifier
+   - ``<YOUR-CHATLAB-DOMAIN>``: your ChatbotLab domain, from deployment
+   - ``<PARTICIPANT-ID>`` (optional): unique identifier for participants
 
 7. Save and preview the form to verify that the chat window loads correctly.
 
@@ -89,9 +89,9 @@ Passing Data
 
 ChatbotLab automatically logs any metadata passed via URL parameters:
 
-- ``participant_id`` — usually ``[record-id]`` or a custom ID field  
-- ``study_name`` — study descriptor  
-- ``bot_name`` — determines which ChatbotLab bot instance to use  
+- ``participant_id``: usually ``[record-id]`` or a custom ID field
+- ``study_name``: study descriptor
+- ``bot_name``: determines which ChatbotLab bot instance to use
 
 Data Linking
 ------------

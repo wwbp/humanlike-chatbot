@@ -9,9 +9,11 @@ language that most distinguishes participants by a survey variable — here,
 PHQ-9 depression-severity score.
 
 The example below runs end-to-end on the synthetic corpus shipped in
-``conversation_data/`` (19 synthetic person↔AI conversations, each "person"
-speaker tagged with ``age``, ``gender``, ``persona``, and ``phq9``). Swap in an
-export from your own study to reproduce the same workflow.
+``conversation_data/convokit/`` (19 synthetic person↔AI conversations, each
+"person" speaker tagged with ``age``, ``gender``, ``persona``, and ``phq9``).
+Swap in an export from your own study to reproduce the same workflow. A
+flattened version of this same corpus, exported in DLATK format, is used in
+the :doc:`text` tutorial.
 
 Setup
 -----
@@ -32,7 +34,7 @@ at the export directory:
 
    from convokit import Corpus, FightingWords
 
-   corpus = Corpus(filename="conversation_data")
+   corpus = Corpus(filename="conversation_data/convokit")
    corpus.print_summary_stats()
 
 .. code-block:: text

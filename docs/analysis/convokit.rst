@@ -1,19 +1,21 @@
 ConvoKit
 ========
 
-Analyze conversational structure and interactional dynamics using **ConvoKit**,
-a Python toolkit for computational analysis of conversations built by Cornell's
-Convokit team. This tutorial loads a ChatbotLab conversation export straight
-into ConvoKit and uses ConvoKit's **Fighting Words** module to find the
-language that most distinguishes participants by a survey variable — here,
-PHQ-9 depression-severity score.
+Overview
+--------
 
-The example below runs end-to-end on the synthetic corpus shipped in
-``conversation_data/convokit/`` (19 synthetic person↔AI conversations, each
-"person" speaker tagged with ``age``, ``gender``, ``persona``, and ``phq9``).
-Swap in an export from your own study to reproduce the same workflow. A
-flattened version of this same corpus, exported in DLATK format, is used in
-the :doc:`text` tutorial.
+**ConvoKit** is a Python toolkit for computational analysis of conversations,
+built by Cornell's Conversational Analysis Toolkit team. This tutorial loads
+a ChatbotLab conversation export into ConvoKit and applies the **Fighting
+Words** module. Fighting Words finds the words that most distinguish two
+groups of text. Here, we use it to compare participants with higher and
+lower PHQ-9 depression scores.
+
+The example runs on the synthetic corpus in ``conversation_data/convokit/``.
+This corpus contains 19 synthetic person-to-AI conversations. Each "person"
+speaker is tagged with ``age``, ``gender``, ``persona``, and ``phq9``. Swap
+in an export from your own study to reproduce the same workflow. A flattened
+version of this same corpus is used in the :doc:`text` tutorial.
 
 Setup
 -----
@@ -22,13 +24,13 @@ Setup
 
    pip install convokit
 
-Loading a ChatbotLab Export
-----------------------------
+Loading the Data
+-----------------
 
-ChatbotLab's conversation exports are already written in ConvoKit's native
-corpus format (``index.json``, ``utterances.jsonl``, ``speakers.json``,
-``conversations.json``), so no conversion step is needed — point ``Corpus``
-at the export directory:
+ChatbotLab exports conversations in ConvoKit's native corpus format:
+``index.json``, ``utterances.jsonl``, ``speakers.json``, and
+``conversations.json``. No conversion is needed. Point ``Corpus`` at the
+export directory:
 
 .. code-block:: python
 
@@ -60,8 +62,8 @@ conversation:
 Grouping Speakers by PHQ-9
 ---------------------------
 
-Split the "person" speakers into a higher- and lower-symptom group using a
-median split on PHQ-9, then tag every utterance with its speaker's group:
+We split the "person" speakers into two groups using a median split on
+PHQ-9. We then tag every utterance with its speaker's group:
 
 .. code-block:: python
 
@@ -78,17 +80,17 @@ median split on PHQ-9, then tag every utterance with its speaker's group:
    for utt in corpus.iter_utterances():
        utt.meta["symptom_group"] = group(corpus.get_speaker(utt.speaker.id))
 
-On this corpus the median PHQ-9 is **12**, giving 10 higher-symptom speakers
-(PHQ-9 ≥ 12) and 9 lower-symptom speakers (PHQ-9 < 12), covering 762 "person"
-utterances (assistant turns are excluded — the comparison is about how
-participants talk, not the bot).
+The median PHQ-9 in this corpus is 12. This gives 10 higher-symptom speakers
+(PHQ-9 at or above 12) and 9 lower-symptom speakers (PHQ-9 below 12),
+covering 762 "person" utterances. We exclude assistant turns, since the
+comparison is about how participants talk, not the bot.
 
 Running Fighting Words
 -----------------------
 
 `Fighting Words <https://convokit.cornell.edu/documentation/fightingwords.html>`_
 uses a Dirichlet-multinomial model to find the n-grams that most distinguish
-two groups of text, correcting for the noise that plain frequency counts
+two groups of text. It corrects for the noise that plain frequency counts
 produce on small samples:
 
 .. code-block:: python
@@ -104,13 +106,14 @@ produce on small samples:
        corpus, plot=True, class1_name="higher_symptom", class2_name="lower_symptom"
    )
 
-``result`` is a DataFrame of every n-gram with a z-score: positive values are
-characteristic of ``higher_symptom`` speech, negative values of
-``lower_symptom`` speech. Passing ``plot=True`` additionally renders
-ConvoKit's built-in fighting-words scatter plot — weighted log-odds ratio
-(z-score) on the y-axis against how often each n-gram occurs, on a log-scaled
-x-axis. Marker size scales with the z-score's magnitude, color marks the
-class, and the most significant n-grams for each side are labeled.
+``result`` is a DataFrame of every n-gram with a z-score. Positive values
+are characteristic of ``higher_symptom`` speech. Negative values are
+characteristic of ``lower_symptom`` speech. Setting ``plot=True`` also
+renders ConvoKit's built-in scatter plot. The plot shows the weighted
+log-odds ratio (z-score) on the y-axis against how often each n-gram occurs,
+on a log-scaled x-axis. Marker size scales with the size of the z-score.
+Color marks the class. The most significant n-grams on each side are
+labeled.
 
 .. image:: /_static/convokit_fighting_words.png
    :alt: Scatter plot of weighted log-odds ratio vs. word frequency, showing n-grams distinguishing higher- and lower-PHQ-9 speakers
@@ -175,22 +178,22 @@ Top n-grams toward the **lower-symptom** group:
    * - good
      - -1.47
 
-Even in this small, synthetic corpus, the direction of the effect is
-sensible: higher-PHQ-9 speakers lean on affect language (``feel`` /
-``feels``, ``nothing``) and hedging (``just``, ``don``\ 't), while
-lower-PHQ-9 speakers lean toward upbeat, closing-out language (``good``,
-``alright``, ``ok``, ``ha``). With only 19 speakers the z-scores are modest
-(magnitudes under 3) and should be read as a workflow demonstration, not a
-finding — re-run the same code on a full study export to get a properly powered
-comparison.
+Higher-PHQ-9 speakers use more affect language, such as ``feel``, ``feels``,
+and ``nothing``. They also use more hedging language, such as ``just`` and
+``don`` (from "don't"). Lower-PHQ-9 speakers use more upbeat, closing
+language, such as ``good``, ``alright``, ``ok``, and ``ha``.
+
+With only 19 speakers, the z-scores are modest. All magnitudes are under 3.
+Treat this as a demonstration of the workflow, not a finding. Re-run the
+same code on a full study export for a properly powered comparison.
 
 Generalizing
 ------------
 
-Nothing here is specific to PHQ-9. The same pattern — split speakers or
-utterances on any field in ``speaker.meta`` or ``conversation.meta``
-(``persona``, ``age``, a REDCap or Qualtrics field passed through at
-:doc:`../survey-integration/index`), then hand the two groups to a ConvoKit
-transformer — works for any other feature module ConvoKit ships (politeness
-strategies, linguistic coordination, prompt types, and more), not just
-Fighting Words.
+This method is not specific to PHQ-9. Split speakers or utterances on any
+field in ``speaker.meta`` or ``conversation.meta``, such as ``persona``,
+``age``, or a REDCap or Qualtrics field passed through at
+:doc:`../survey-integration/index`. Then hand the two groups to a ConvoKit
+transformer. This works for any other feature module ConvoKit ships, such
+as politeness strategies, linguistic coordination, or prompt types, not
+just Fighting Words.

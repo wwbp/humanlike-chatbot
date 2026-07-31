@@ -1,0 +1,10 @@
+{
+  "name": "synthetic_person_ai_corpus",
+  "description": "Synthetic person<->AI conversations generated with the Anthropic API. The 'person' speaker in each conversation has an age/gender/persona/PHQ-9 profile; the 'assistant' speaker does not.",
+  "num_conversations": 19,
+  "num_utterances": 1543,
+  "num_speakers": 20,
+  "model": "claude-opus-5",
+  "effort": "low",
+  "synthetic": true
+}

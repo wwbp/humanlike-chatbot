@@ -4,51 +4,38 @@ text (R)
 Overview
 --------
 
-The **R `text` package** wraps transformer language models (e.g. BERT) for
-psychological and behavioral text analysis — embedding text, training models
-on top of embeddings, and visualizing how words relate to numeric outcome
+The **R text package** wraps transformer language models, such as BERT, for
+psychological and behavioral text analysis. It embeds text, trains models
+on top of embeddings, and visualizes how words relate to numeric outcome
 variables. This tutorial reproduces the `Supervised Dimension Projection
 (SDP) <https://r-text.org/reference/textProjectionPlot.html>`_ workflow from
 the package's `Psychological Methods tutorial
-<https://r-text.org/articles/psychological_methods.html>`_, applied to the
-same synthetic ChatbotLab corpus used in the :doc:`convokit` tutorial: 19
-person↔AI conversations, each "person" speaker tagged with ``age``,
-``gender``, ``persona``, and a **PHQ-9** depression-severity score.
+<https://r-text.org/articles/psychological_methods.html>`_.
 
-Where the ConvoKit tutorial split speakers into two discrete groups and
-compared n-gram frequencies, this tutorial projects individual words onto
-PHQ-9 as a continuous dimension using contextual embeddings — a
-complementary view of the same question.
+We apply this workflow to a synthetic ChatbotLab corpus of 19 person-to-AI
+conversations. Each "person" speaker is tagged with ``age``, ``gender``,
+``persona``, and a **PHQ-9** depression-severity score. Supervised Dimension
+Projection places individual words along a continuous variable. Here, that
+variable is PHQ-9.
 
-Which Export Format?
----------------------
+Data Format
+-----------
 
-``textEmbed()`` and ``textProjection()`` expect a flat, rectangular data
-frame: one row per text unit (e.g. one row per participant), with a text
-column and numeric covariate columns aligned to it. That is exactly DLATK's
-data model — a message-level table (``message_id``, ``user_id``,
-``message``) plus a group-level outcomes table (``user_id``, outcome
-columns) — not ConvoKit's turn-graph export, which links speakers,
-conversations, and utterances by ``reply_to`` and has to be flattened before
-a tool like ``text`` can use it.
+``textEmbed()`` and ``textProjection()`` expect a flat data frame. Each row
+is one text unit, such as one participant, with a text column and numeric
+covariate columns aligned to it.
 
-So for ``text``, export from ChatbotLab in **DLATK format**, not ConvoKit
-format. This repo only ships the ConvoKit export, so
-``conversation_data/to_dlatk_format.py`` derives the DLATK-shaped tables from
-it once, writing:
+This repository provides that shape in ``conversation_data/text/``:
 
 .. code-block:: text
 
-   conversation_data/
-     convokit/          # used by the ConvoKit tutorial
-     text/
-       msgs.csv         # message_id, user_id, timestamp, message
-       outcomes.csv     # user_id, age, gender, persona, phq9
+   conversation_data/text/
+     msgs.csv         # message_id, user_id, timestamp, message
+     outcomes.csv     # user_id, age, gender, persona, phq9
 
-Only "person" utterances are included — the assistant has no outcome
-variables attached to it. If ChatbotLab exports DLATK format directly for
-your study, you'd start from that CSV pair and skip straight to the next
-section.
+Only "person" utterances are included. The assistant has no outcome
+variables attached to it. ``conversation_data/to_dlatk_format.py`` generates
+these files.
 
 Setup
 -----
@@ -58,7 +45,7 @@ Setup
    install.packages("text")
    library(text)
 
-   # One-time: creates a Python environment with torch + transformers
+   # One-time: creates a Python environment with torch and transformers
    textrpp_install()
    textrpp_initialize()
 
@@ -67,7 +54,7 @@ Loading and Preparing the Data
 
 ``textProjection`` needs one row per participant: their full conversation
 text alongside their PHQ-9 score. Join the messages to the outcomes table
-and collapse each participant's messages (in timestamp order) into a single
+and collapse each participant's messages, in timestamp order, into a single
 string:
 
 .. code-block:: r
@@ -84,9 +71,9 @@ string:
      summarise(text = paste(message, collapse = " ")) %>%
      inner_join(outcomes, by = "user_id")
 
-This gives a 19-row data frame — one row per participant — with a ``text``
-column (their full conversation) and their ``phq9``, ``age``, ``gender``,
-and ``persona``.
+This gives a 19-row data frame. Each row is one participant, with a
+``text`` column holding their full conversation, and their ``phq9``,
+``age``, ``gender``, and ``persona``.
 
 Embedding the Text
 -------------------
@@ -100,10 +87,10 @@ Embedding the Text
      keep_token_embeddings = FALSE
    )
 
-``word_embeddings$texts$texts`` holds one BERT embedding per participant
-(mean-aggregated across their tokens); ``word_embeddings$word_types$texts``
+``word_embeddings$texts$texts`` holds one BERT embedding per participant,
+mean-aggregated across their tokens. ``word_embeddings$word_types$texts``
 holds one decontextualized embedding per unique word type across the whole
-corpus — both are required by ``textProjection``.
+corpus. ``textProjection`` requires both.
 
 Supervised Dimension Projection
 ---------------------------------
@@ -119,10 +106,11 @@ Supervised Dimension Projection
      min_freq_words_test = 2
    )
 
-With only 19 participants, a mean split (10 participants above, 9 at or
-below the mean PHQ-9 of 11.6) is more stable than the package's default
-quartile split. ``min_freq_words_test = 2`` drops words that occur only
-once, which would otherwise dominate the extremes on a corpus this small.
+With only 19 participants, a mean split is more stable than the package's
+default quartile split. This puts 10 participants above the mean PHQ-9 of
+11.6, and 9 at or below it. ``min_freq_words_test = 2`` drops words that
+occur only once. Otherwise, these rare words would dominate the extremes on
+a corpus this small.
 
 Plotting
 --------
@@ -148,15 +136,16 @@ Plotting
    :alt: Supervised Dimension Projection scatter plot showing words positioned from low to high PHQ-9, with words like "alright" and "ok" on the low end and "feel" and "just" on the high end
    :width: 100%
 
-Each point is a word type positioned along the PHQ-9 dimension (x-axis);
-``y_axes = FALSE`` keeps this to the 1-dimensional case, since we're only
-projecting onto one variable. Point size scales with word frequency; the
-most extreme and most frequent words on each side are labeled.
+Each point is a word type positioned along the PHQ-9 dimension on the
+x-axis. Setting ``y_axes = FALSE`` keeps this to the one-dimensional case,
+since we project onto only one variable. Point size scales with word
+frequency. The most extreme and most frequent words on each side are
+labeled.
 
 Results
 -------
 
-Top words toward **higher** PHQ-9 (by Supervised Dimension Projection score):
+Top words toward **higher** PHQ-9, by Supervised Dimension Projection score:
 
 .. list-table::
    :header-rows: 1
@@ -243,23 +232,23 @@ Top words toward **lower** PHQ-9:
      - -2.70
      - .019
 
-The direction agrees with the ConvoKit Fighting Words tutorial on the same
-corpus: affect and hedging words (``feel``, ``feels``, ``just``) skew toward
-higher PHQ-9, while upbeat, closing-out words (``alright``, ``ok``, ``man``)
-skew toward lower PHQ-9 — two different toolkits converging on the same
-pattern. Note the asymmetry, though: only the low-PHQ-9 words clear
-``p < .05`` (uncorrected) here. With just 19 participants this is a workflow
-demonstration, not a finding — treat the plot and tables as a template to
-re-run on a properly powered study export, at which point you'd also want
-``p_adjust_method`` set to something other than ``"none"``.
+Higher-PHQ-9 words include affect and hedging language, such as ``feel``,
+``feels``, and ``just``. Lower-PHQ-9 words include upbeat, closing language,
+such as ``alright``, ``ok``, and ``man``. Only the lower-PHQ-9 words clear
+``p < .05``, uncorrected.
+
+With only 19 participants, this is a demonstration of the workflow, not a
+finding. Treat the plot and tables as a template. Re-run this code on a
+properly powered study export, and set ``p_adjust_method`` to something
+other than ``"none"``.
 
 Generalizing
 ------------
 
-Swap ``phq9`` for any other outcome column in ``outcomes.csv`` — age, a
+Swap ``phq9`` for any other outcome column in ``outcomes.csv``: age, a
 REDCap or Qualtrics field passed through at
-:doc:`../survey-integration/index`, or a score from your own instrument —
-and the rest of the pipeline (``textEmbed`` → ``textProjection`` →
-``textProjectionPlot``) is unchanged. The same embeddings also feed
-``textTrain``/``textPredict`` if you want a predictive model instead of a
-projection plot.
+:doc:`../survey-integration/index`, or a score from your own instrument. The
+rest of the pipeline stays the same: ``textEmbed``, then
+``textProjection``, then ``textProjectionPlot``. The same embeddings also
+feed ``textTrain`` and ``textPredict``, if you want a predictive model
+instead of a projection plot.

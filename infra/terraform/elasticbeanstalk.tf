@@ -35,7 +35,7 @@ data "aws_elastic_beanstalk_solution_stack" "docker_al2023" {
 
 resource "aws_elastic_beanstalk_application" "chatbot_api" {
   name        = local.name_prefix
-  description = "I hold all deployed versions of the humanlike-chatbot Django API. The Elastic Beanstalk environment below runs the active version."
+  description = "I hold all deployed versions of the ChatbotLab Django API. The Elastic Beanstalk environment below runs the active version."
 }
 
 # -----------------------------------------------------------------------------

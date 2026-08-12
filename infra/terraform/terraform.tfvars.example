@@ -49,7 +49,7 @@ django_secret_key = "REPLACE_with_output_of_get_random_secret_key_command"
 github_org = "wwbp"
 
 # The repository name (without the org prefix)
-github_repo = "humanlike-chatbot"
+github_repo = "chatbotlab"
 
 # -----------------------------------------------------------------------
 # Instance sizing — safe to leave as defaults for staging

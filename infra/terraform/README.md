@@ -1,10 +1,23 @@
-# Humanlike Chatbot — Infrastructure as Code
+# ChatbotLab — Infrastructure as Code
 
 This directory contains the Terraform configuration that provisions the complete
-AWS infrastructure for the humanlike-chatbot application. Running `bash setup.sh`
+AWS infrastructure for the ChatbotLab application. Running `bash setup.sh`
 creates everything from scratch: networking, database, cache, storage, CDN, and
 application server. All environment variables are wired automatically — there is
 nothing to configure in the AWS console after apply completes.
+
+> **Why AWS resources are still named `humanlike-chatbot`**
+>
+> The GitHub repository was renamed from `humanlike-chatbot` to `chatbotlab`, but
+> the deployed AWS resources were deliberately **not** renamed. `var.project_name`
+> is still `humanlike-chatbot` because it is the prefix on live S3 buckets, the
+> RDS instance, the Elastic Beanstalk application and the Terraform state bucket.
+> Changing it would force Terraform to recreate every resource, destroying the
+> production database.
+>
+> Only `var.github_repo` tracks the repository name. If you see
+> `humanlike-chatbot` below, it is an AWS resource identifier and is correct
+> as written — leave it alone.
 
 ---
 

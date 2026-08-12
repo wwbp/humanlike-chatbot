@@ -188,7 +188,7 @@ resource "aws_iam_role" "github_actions_deployment" {
         StringLike = {
           # I use StringLike with a wildcard so any branch or environment in
           # this repo can deploy. Tighten this to a specific branch
-          # (e.g. "repo:wwbp/humanlike-chatbot:ref:refs/heads/main") if you
+          # (e.g. "repo:wwbp/chatbotlab:ref:refs/heads/main") if you
           # want only the main branch to be able to deploy to production.
           "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}/${var.github_repo}:*"
         }

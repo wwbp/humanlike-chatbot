@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
-# setup.sh — one-command deployment of the entire humanlike-chatbot infrastructure
+# setup.sh — one-command deployment of the entire ChatbotLab infrastructure
 #
 # What this script does, in order:
 #   1. Checks that the tools I need (terraform, aws CLI) are installed

@@ -1,5 +1,5 @@
 """
-Load test for the ChatLab humanlike-chatbot API.
+Load test for the ChatbotLab API.
 
 Target scenario
 ---------------

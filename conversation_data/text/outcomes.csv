@@ -1,0 +1,20 @@
+user_id,age,gender,persona,phq9
+user_00001,28,man,"small business owner, the business is struggling",7
+user_00000,44,man,"recently retired, not sure what to do with the time",19
+user_00004,66,woman,"freelance graphic designer, money's always tight",16
+user_00002,38,woman,"long-haul truck driver, misses home a lot",9
+user_00009,29,woman,"musician trying to make it, day job is soul-crushing",12
+user_00013,25,man,"stay-at-home parent, feels unseen",21
+user_00022,39,woman,"small business owner, the business is struggling",4
+user_00021,26,man,"recently retired, not sure what to do with the time",5
+user_00025,39,man,"stay-at-home parent, feels unseen",11
+user_00026,27,man,"nurse, works long shifts, runs on coffee",12
+user_00028,50,woman,"recently divorced, figuring out life solo",9
+user_00031,24,man,"recently retired, not sure what to do with the time",13
+user_00032,57,man,"remote software developer, kind of isolated lately",1
+user_00035,30,non-binary person,"engineer at a startup, working way too much",11
+user_00033,51,woman,"high school teacher, burned out but loves the kids",22
+user_00037,21,woman,"caregiver for an aging parent, exhausted",12
+user_00038,36,man,"caregiver for an aging parent, exhausted",13
+user_00043,39,man,"just moved cities for a new job, still adjusting",8
+user_00045,27,man,"musician trying to make it, day job is soul-crushing",16

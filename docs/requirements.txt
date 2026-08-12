@@ -1,0 +1,16 @@
+# Core Sphinx
+sphinx>=7.2.0
+
+# Theme
+furo>=2024.1.29
+
+# Markdown / MyST support
+myst-parser>=2.0.0
+
+# Syntax highlighting and copy buttons
+sphinx-copybutton>=0.5.2
+
+# Optional extras (safe to remove if unused)
+sphinxcontrib-mermaid>=0.9.2      # for diagrams
+sphinx-design>=0.6.0              # for better layout / grid support
+sphinx-autobuild>=2024.4.2        # for live preview during local dev

@@ -19,9 +19,13 @@ variable "aws_region" {
 }
 
 variable "project_name" {
-  description = "A short identifier prepended to every resource name I create. Changing this after the first deploy forces recreation of all resources, so set it once and leave it."
+  description = "A short identifier prepended to every resource name I create. Changing this after the first deploy forces recreation of all resources, so set it once and leave it. DO NOT change this to match the chatbotlab repository name: it is the prefix on live S3 buckets, the RDS instance, the EB application and the Terraform state bucket, and renaming it would destroy the production database. The repo name lives in var.github_repo instead. Deliberately has no default — the CI workflows pass it via TF_VAR_project_name from the TF_PROJECT_PREFIX secret, and a wrong or empty value here would rename every resource, so I fail loudly instead of guessing."
   type        = string
-  default     = "humanlike-chatbot"
+
+  validation {
+    condition     = length(var.project_name) > 0
+    error_message = "project_name must not be empty — set TF_PROJECT_PREFIX (CI) or project_name in terraform.tfvars (local)."
+  }
 }
 
 variable "environment" {
@@ -76,9 +80,9 @@ variable "github_org" {
 }
 
 variable "github_repo" {
-  description = "The GitHub repository name (without the org prefix). I use this alongside github_org to scope OIDC trust to exactly this repo."
+  description = "The GitHub repository name (without the org prefix). I use this alongside github_org to scope OIDC trust to exactly this repo. Note this is the *repository* name, which is deliberately not the same as project_name — the repo was renamed to chatbotlab, while project_name stays humanlike-chatbot because it names live AWS resources."
   type        = string
-  default     = "humanlike-chatbot"
+  default     = "chatbotlab"
 }
 
 # -----------------------------------------------------------------------

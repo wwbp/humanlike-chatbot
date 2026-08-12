@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
-# setup.sh — one-command deployment of the entire humanlike-chatbot infrastructure
+# setup.sh — one-command deployment of the entire ChatbotLab infrastructure
 #
 # What this script does, in order:
 #   1. Checks that the tools I need (terraform, aws CLI) are installed
@@ -98,8 +98,16 @@ if [[ -f "$BACKEND_HCL" ]]; then
   info "backend.hcl already exists — skipping bootstrap (state backend is already provisioned)"
 else
   info "Running bootstrap to create S3 state bucket and DynamoDB lock table..."
+  # project_name has no default (it names live AWS resources, so guessing it is
+  # unsafe). Read the value the operator already set in terraform.tfvars and
+  # pass it through, so the state bucket and the main config agree.
+  PROJECT_NAME=$(grep -E '^\s*project_name\s*=' "$TFVARS" | head -1 | cut -d'"' -f2)
+  if [[ -z "$PROJECT_NAME" ]]; then
+    echo "ERROR: project_name is not set in $TFVARS — add it before running setup." >&2
+    exit 1
+  fi
   terraform init -reconfigure -input=false
-  terraform apply -auto-approve -input=false
+  terraform apply -auto-approve -input=false -var="project_name=$PROJECT_NAME"
   info "Bootstrap complete. backend.hcl written to $BACKEND_HCL"
 fi
 

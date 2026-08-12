@@ -1,4 +1,4 @@
-name: humanlike-chatbot
+name: chatbotlab
 
 services:
   redis:

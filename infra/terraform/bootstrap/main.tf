@@ -36,9 +36,11 @@ variable "aws_region" {
   default = "us-east-1"
 }
 
+# No default on purpose: this prefixes the Terraform state bucket, which names
+# live AWS infrastructure. setup.sh passes the value from terraform.tfvars and
+# the CI workflows pass it from the TF_PROJECT_PREFIX secret.
 variable "project_name" {
-  type    = string
-  default = "humanlike-chatbot"
+  type = string
 }
 
 resource "random_id" "bucket_suffix" {

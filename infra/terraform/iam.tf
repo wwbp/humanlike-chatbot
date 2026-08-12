@@ -153,8 +153,8 @@ resource "aws_iam_role_policy_attachment" "eb_service_managed_updates" {
 resource "aws_iam_openid_connect_provider" "github_actions" {
   count = var.create_github_oidc_provider ? 1 : 0
 
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
   thumbprint_list = [
     "6938fd4d98bab03faadb97b34396831e3780aea1",
     "1c58a3a8518e8759bf075b76b750d4f2df264fcd",
@@ -188,7 +188,7 @@ resource "aws_iam_role" "github_actions_deployment" {
         StringLike = {
           # I use StringLike with a wildcard so any branch or environment in
           # this repo can deploy. Tighten this to a specific branch
-          # (e.g. "repo:wwbp/humanlike-chatbot:ref:refs/heads/main") if you
+          # (e.g. "repo:wwbp/chatbotlab:ref:refs/heads/main") if you
           # want only the main branch to be able to deploy to production.
           "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}/${var.github_repo}:*"
         }

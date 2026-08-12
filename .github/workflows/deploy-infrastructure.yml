@@ -1,0 +1,555 @@
+name: Deploy Infrastructure
+
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │  READ THIS BEFORE RUNNING AGAINST THE WWBP ACCOUNT                      │
+# │                                                                          │
+# │  The live staging and production deployments were created MANUALLY,     │
+# │  before this IaC existed. They are NOT in any Terraform state:          │
+# │                                                                          │
+# │    frontend  S3 "bot.wwbp.org" / "dev.bot.wwbp.org" + CloudFront        │
+# │    backend   EB application "humanlikebot" (envs humanlikebot-env,      │
+# │              humanlike-bot-development-env)                             │
+# │    database  EB-managed RDS "awseb-e-*-stack-awsebrdsdatabase-*"        │
+# │              — this holds REAL STUDY DATA                               │
+# │                                                                          │
+# │  Terraform builds a parallel stack named "<prefix>-<environment>-*",    │
+# │  which does not overlap with any of the above. Running this workflow    │
+# │  therefore does not manage or migrate the live deployment — it builds   │
+# │  a SECOND one, and you pay for both.                                    │
+# │                                                                          │
+# │  To test the IaC safely, set TF_PROJECT_PREFIX to something distinct    │
+# │  (e.g. "chatbotlab-iac-test"), ideally in a separate AWS account, then  │
+# │  tear it down with the Destroy Infrastructure workflow. Do NOT reuse    │
+# │  the prefix of the live deployment.                                     │
+# └─────────────────────────────────────────────────────────────────────────┘
+#
+# Run this workflow once to provision all AWS infrastructure.
+# Re-run it whenever you want to change instance sizes or add a custom domain.
+#
+# Required secrets (set in Settings → Secrets and variables → Actions):
+#   AWS_ACCESS_KEY_ID        — IAM user access key (can be deleted after first run)
+#   AWS_SECRET_ACCESS_KEY    — IAM user secret key
+#   OPENAI_API_KEY           — OpenAI key (or ANTHROPIC_API_KEY, or both)
+#   ANTHROPIC_API_KEY        — Anthropic key (optional if OPENAI_API_KEY is set)
+#   DB_PASSWORD              — Password you choose for the database (letters + numbers only)
+#   ADMIN_PANEL_PASSWORD     — Password you will use to log into the admin panel
+#   GH_PAT                   — GitHub personal access token with secrets:write on this repo
+#   TF_PROJECT_PREFIX        — Name prefix for every AWS resource (must match
+#                              var.project_name in infra/terraform). Kept in a
+#                              secret so this public repo does not publish the
+#                              names of live AWS resources. No default: a wrong
+#                              value would point Terraform at the wrong state.
+#   DOMAIN_NAME              — Optional: your custom domain (e.g. chatbot.mylab.org)
+#
+# Optional workflow inputs (shown as a form when you click "Run workflow"):
+#   eb_instance_type         — EC2 instance type (default: t3.small)
+#   eb_max_instances         — Max number of app servers under load (default: 1)
+#   db_instance_class        — Database instance class (default: db.t3.micro)
+
+on:
+  workflow_dispatch:
+    inputs:
+      eb_instance_type:
+        description: 'App server EC2 instance type (e.g. t3.small, t3.medium)'
+        required: false
+        default: 't3.small'
+        type: string
+      eb_max_instances:
+        description: 'Maximum number of app server instances'
+        required: false
+        default: '1'
+        type: string
+      db_instance_class:
+        description: 'Database instance class (e.g. db.t3.micro, db.t3.small)'
+        required: false
+        default: 'db.t3.micro'
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy AWS infrastructure
+    runs-on: ubuntu-latest
+    env:
+      DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+
+    steps:
+      # ── 1. Fail fast before touching AWS if anything is missing ───────────────
+      - name: Check required secrets
+        env:
+          OPENAI_KEY:           ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
+          DB_PASSWORD:          ${{ secrets.DB_PASSWORD }}
+          ADMIN_PANEL_PASSWORD: ${{ secrets.ADMIN_PANEL_PASSWORD }}
+          AWS_KEY:              ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET:           ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          GH_PAT:               ${{ secrets.GH_PAT }}
+          TF_PROJECT_PREFIX:    ${{ secrets.TF_PROJECT_PREFIX }}
+        run: |
+          fail=0
+          missing() { echo "::error::$1 secret is not set"; fail=1; }
+
+          [[ -z "$AWS_KEY" ]]             && missing "AWS_ACCESS_KEY_ID"
+          [[ -z "$AWS_SECRET" ]]          && missing "AWS_SECRET_ACCESS_KEY"
+          [[ -z "$DB_PASSWORD" ]]         && missing "DB_PASSWORD"
+          [[ -z "$ADMIN_PANEL_PASSWORD" ]] && missing "ADMIN_PANEL_PASSWORD"
+          [[ -z "$GH_PAT" ]]              && missing "GH_PAT"
+          [[ -z "$TF_PROJECT_PREFIX" ]]   && missing "TF_PROJECT_PREFIX"
+
+          if [[ -z "$OPENAI_KEY" && -z "$ANTHROPIC_KEY" ]]; then
+            echo "::error::At least one of OPENAI_API_KEY or ANTHROPIC_API_KEY must be set"
+            fail=1
+          fi
+
+          [[ $fail -eq 1 ]] && exit 1
+
+          # Validate GH_PAT has write access before touching AWS.
+          # We do this by writing and immediately deleting a test secret.
+          export GH_TOKEN="$GH_PAT"
+          if ! gh secret set __PREFLIGHT_TEST__ --body "ok" --repo "${{ github.repository }}" 2>/dev/null; then
+            echo "::error::GH_PAT cannot write repository secrets on ${{ github.repository }}."
+            echo "::error::Re-generate it as a classic token with the full 'repo' scope checked (not just public_repo)."
+            exit 1
+          fi
+          gh secret delete __PREFLIGHT_TEST__ --repo "${{ github.repository }}" 2>/dev/null || true
+
+          echo "All required secrets are present and valid."
+
+      # ── 2. Checkout ───────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 3. Terraform ──────────────────────────────────────────────────────────
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '~1.9'
+          terraform_wrapper: false
+
+      # ── 4. AWS credentials (long-lived IAM user key for this bootstrap step) ──
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # ── 5. Create the S3 state bucket (idempotent) ───────────────────────────
+      # Deterministic name: "<TF_PROJECT_PREFIX>-tfstate-<ACCOUNT_ID>" — no random
+      # suffix. Safe to run on every deploy. The prefix comes from a secret so the
+      # repository does not publish the names of live AWS resources.
+      - name: Bootstrap Terraform state backend
+        id: bootstrap
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          TF_PROJECT_PREFIX: ${{ secrets.TF_PROJECT_PREFIX }}
+        run: |
+          # Required, with no fallback on purpose. Guessing this value (e.g.
+          # from the repo name) would point Terraform at a state bucket that
+          # does not exist, and reconciling against empty state can duplicate
+          # or destroy live infrastructure. Fail closed instead.
+          if [ -z "$TF_PROJECT_PREFIX" ]; then
+            echo "::error::TF_PROJECT_PREFIX is not set. Add it under Settings → Secrets and variables → Actions. It must match var.project_name in infra/terraform (the prefix on your existing AWS resources)."
+            exit 1
+          fi
+
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          BUCKET="${TF_PROJECT_PREFIX}-tfstate-${ACCOUNT_ID}"
+
+          if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+            echo "State bucket already exists: $BUCKET"
+          else
+            aws s3api create-bucket --bucket "$BUCKET" --region us-east-1
+            aws s3api put-bucket-versioning --bucket "$BUCKET" \
+              --versioning-configuration Status=Enabled
+            aws s3api put-bucket-encryption --bucket "$BUCKET" \
+              --server-side-encryption-configuration \
+              '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"},"BucketKeyEnabled":true}]}'
+            aws s3api put-public-access-block --bucket "$BUCKET" \
+              --public-access-block-configuration \
+              "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
+            echo "State bucket created: $BUCKET"
+          fi
+
+          echo "bucket=$BUCKET" >> "$GITHUB_OUTPUT"
+          echo "prefix=$TF_PROJECT_PREFIX" >> "$GITHUB_OUTPUT"
+
+      # ── 6. Point Terraform at the remote state bucket ─────────────────────────
+      - name: Initialise Terraform
+        working-directory: infra/terraform
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ steps.bootstrap.outputs.bucket }}" \
+            -backend-config="key=${{ steps.bootstrap.outputs.prefix }}/terraform.tfstate" \
+            -backend-config="region=us-east-1" \
+            -backend-config="encrypt=true" \
+            -reconfigure \
+            -input=false
+
+      # ── 7. Reconcile state ───────────────────────────────────────────────────
+      # If a previous run failed and the rollback was incomplete, AWS resources
+      # may exist that are not in the current Terraform state. We import them
+      # here so `terraform apply` updates them instead of failing with
+      # "AlreadyExists". Each import is a no-op if the resource is already in
+      # state or does not exist in AWS.
+      - name: Reconcile state — clean up or import any orphaned resources
+        working-directory: infra/terraform
+        env:
+          TF_VAR_project_name:                ${{ secrets.TF_PROJECT_PREFIX }}
+          TF_VAR_environment:                 production
+          TF_VAR_github_org:                  ${{ github.repository_owner }}
+          TF_VAR_github_repo:                 ${{ github.event.repository.name }}
+          TF_VAR_openai_api_key:              ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_anthropic_api_key:           ${{ secrets.ANTHROPIC_API_KEY }}
+          TF_VAR_db_password:                 ${{ secrets.DB_PASSWORD }}
+          TF_VAR_admin_panel_password:        ${{ secrets.ADMIN_PANEL_PASSWORD }}
+          TF_VAR_eb_instance_type:            ${{ inputs.eb_instance_type }}
+          TF_VAR_eb_max_instances:            ${{ inputs.eb_max_instances }}
+          TF_VAR_db_instance_class:           ${{ inputs.db_instance_class }}
+          TF_VAR_domain_name:                 ${{ secrets.DOMAIN_NAME }}
+          TF_VAR_create_github_oidc_provider: ${{ secrets.CREATE_GITHUB_OIDC_PROVIDER || 'true' }}
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          P="${{ steps.bootstrap.outputs.prefix }}-production"
+
+          # Import into state (safe for resources that are not VPC-scoped).
+          try_import() {
+            local addr="$1" id="$2"
+            terraform state show "$addr" &>/dev/null && return 0
+            terraform import -input=false "$addr" "$id" 2>/dev/null \
+              && echo "  imported: $addr" || true
+          }
+
+          # ── VPC-scoped resources ────────────────────────────────────────────
+          # The DB subnet group, RDS instance, and ElastiCache are tied to a
+          # specific VPC via their subnet IDs. If the VPC they were created in
+          # is gone (destroyed by a previous rollback), Terraform will create a
+          # NEW VPC with new subnet IDs. Trying to update the old subnet group
+          # to use the new subnets fails with "Subnets are not in the same VPC".
+          #
+          # Fix: compare the existing subnet group's VPC with the VPC in state.
+          # If they diverge (or the VPC no longer exists in AWS), purge all
+          # VPC-scoped resources so Terraform can recreate them in the new VPC.
+
+          echo "=== VPC-scoped resource check ==="
+
+          # VPC ID that Terraform currently tracks in state (empty = not in state)
+          TF_VPC=$(terraform show -json 2>/dev/null \
+            | jq -r '(.values.root_module.resources // [])[]
+                      | select(.address == "aws_vpc.main") | .values.id' \
+            2>/dev/null || echo "")
+          echo "  Terraform state VPC : ${TF_VPC:-(not in state)}"
+
+          # VPC that the existing subnet group lives in (empty = subnet group absent)
+          SG_VPC=$(aws rds describe-db-subnet-groups \
+            --db-subnet-group-name "${P}-database-subnet-group" \
+            --query 'DBSubnetGroups[0].VpcId' --output text 2>/dev/null || echo "")
+          [[ "$SG_VPC" == "None" ]] && SG_VPC=""
+          echo "  Subnet group VPC    : ${SG_VPC:-(no subnet group)}"
+
+          NEED_PURGE=false
+          if [[ -n "$SG_VPC" ]]; then
+            if [[ -z "$TF_VPC" ]]; then
+              echo "  Decision: no VPC in state → new VPC will be created → purge"
+              NEED_PURGE=true
+            elif ! aws ec2 describe-vpcs --vpc-ids "$TF_VPC" &>/dev/null 2>&1; then
+              echo "  Decision: VPC $TF_VPC in state but not found in AWS → purge"
+              NEED_PURGE=true
+            elif [[ "$SG_VPC" != "$TF_VPC" ]]; then
+              echo "  Decision: subnet group VPC ($SG_VPC) ≠ state VPC ($TF_VPC) → purge"
+              NEED_PURGE=true
+            else
+              echo "  Decision: subnet group VPC matches Terraform VPC → skip cleanup"
+            fi
+          else
+            echo "  Decision: no subnet group exists → skip cleanup"
+          fi
+
+          if $NEED_PURGE; then
+            echo "Purging VPC-scoped orphans from state and AWS..."
+
+            # Evict from state (handles resources imported by a previous reconcile run)
+            for r in aws_db_instance.main aws_db_subnet_group.database \
+                     aws_elasticache_serverless_cache.redis \
+                     aws_elastic_beanstalk_environment.chatbot_api; do
+              terraform state rm "$r" 2>/dev/null && echo "  removed from state: $r" || true
+            done
+
+            # Delete RDS instance first (subnet group cannot be deleted while in use)
+            RDS_STATUS=$(aws rds describe-db-instances \
+              --db-instance-identifier "${P}-database" \
+              --query 'DBInstances[0].DBInstanceStatus' --output text 2>/dev/null \
+              || echo "not-found")
+            if [[ "$RDS_STATUS" != "not-found" && -n "$RDS_STATUS" ]]; then
+              echo "  Deleting orphaned RDS instance ($RDS_STATUS)..."
+              if [[ "$RDS_STATUS" != "deleting" ]]; then
+                aws rds modify-db-instance \
+                  --db-instance-identifier "${P}-database" \
+                  --no-deletion-protection --apply-immediately 2>/dev/null || true
+                aws rds wait db-instance-available \
+                  --db-instance-identifier "${P}-database" 2>/dev/null || true
+                aws rds delete-db-instance \
+                  --db-instance-identifier "${P}-database" \
+                  --skip-final-snapshot
+              fi
+              echo "  Waiting for RDS deletion (up to 30 min)..."
+              aws rds wait db-instance-deleted --db-instance-identifier "${P}-database"
+              echo "  RDS done."
+            fi
+
+            # Delete DB subnet group
+            if aws rds describe-db-subnet-groups \
+                --db-subnet-group-name "${P}-database-subnet-group" &>/dev/null 2>&1; then
+              echo "  Deleting orphaned DB subnet group..."
+              aws rds delete-db-subnet-group \
+                --db-subnet-group-name "${P}-database-subnet-group" 2>/dev/null \
+                && echo "  Done." || echo "  Could not delete subnet group."
+            fi
+
+            # Delete ElastiCache serverless cache
+            CACHE_STATUS=$(aws elasticache describe-serverless-caches \
+              --serverless-cache-name "${P}-redis" \
+              --query 'ServerlessCaches[0].Status' --output text 2>/dev/null \
+              || echo "not-found")
+            if [[ "$CACHE_STATUS" != "not-found" && -n "$CACHE_STATUS" ]]; then
+              echo "  Deleting orphaned ElastiCache ($CACHE_STATUS)..."
+              if [[ "$CACHE_STATUS" != "deleting" ]]; then
+                aws elasticache delete-serverless-cache \
+                  --serverless-cache-name "${P}-redis" 2>/dev/null || true
+              fi
+              for i in $(seq 1 40); do
+                S=$(aws elasticache describe-serverless-caches \
+                  --serverless-cache-name "${P}-redis" \
+                  --query 'ServerlessCaches[0].Status' --output text 2>/dev/null \
+                  || echo "not-found")
+                [[ "$S" == "not-found" || -z "$S" ]] && break
+                echo "    $S (${i}/40)"; sleep 15
+              done
+              echo "  ElastiCache done."
+            fi
+
+            # Terminate EB environment
+            EB_STATUS=$(aws elasticbeanstalk describe-environments \
+              --application-name "${P}" --environment-names "${P}-env" \
+              --query 'Environments[?Status!=`Terminated`].Status | [0]' \
+              --output text 2>/dev/null || echo "")
+            if [[ -n "$EB_STATUS" && "$EB_STATUS" != "None" ]]; then
+              echo "  Terminating orphaned EB environment ($EB_STATUS)..."
+              if [[ "$EB_STATUS" != "Terminating" ]]; then
+                aws elasticbeanstalk terminate-environment \
+                  --environment-name "${P}-env" 2>/dev/null || true
+              fi
+              for i in $(seq 1 40); do
+                S=$(aws elasticbeanstalk describe-environments \
+                  --application-name "${P}" --environment-names "${P}-env" \
+                  --query 'Environments[?Status!=`Terminated`].Status | [0]' \
+                  --output text 2>/dev/null || echo "")
+                [[ -z "$S" || "$S" == "None" ]] && break
+                echo "    $S (${i}/40)"; sleep 15
+              done
+              echo "  EB done."
+            fi
+          fi
+
+          # ── Non-VPC-scoped resources: import into state ─────────────────────
+          # These resources have no VPC dependency and can be updated in place.
+
+          # DB parameter group (no VPC, just engine charset config)
+          try_import aws_db_parameter_group.mariadb "${P}-mariadb"
+
+          # S3 buckets (globally unique per account ID suffix)
+          try_import aws_s3_bucket.frontend_assets  "${P}-frontend-${ACCOUNT_ID}"
+          try_import aws_s3_bucket.application_data "${P}-data-${ACCOUNT_ID}"
+
+          # IAM roles and instance profile
+          try_import aws_iam_role.eb_instance_role          "${P}-eb-instance-role"
+          try_import aws_iam_role.eb_service_role           "${P}-eb-service-role"
+          try_import aws_iam_role.github_actions_deployment "${P}-github-actions"
+          try_import aws_iam_instance_profile.eb_instance_profile "${P}-eb-instance-profile"
+
+          # GitHub OIDC provider (only if we would create it)
+          if [[ "${TF_VAR_create_github_oidc_provider:-true}" == "true" ]]; then
+            OIDC_ARN="arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com"
+            if aws iam get-open-id-connect-provider \
+                --open-id-connect-provider-arn "$OIDC_ARN" &>/dev/null; then
+              try_import "aws_iam_openid_connect_provider.github_actions[0]" "$OIDC_ARN"
+            fi
+          fi
+
+          # EB application (no VPC dependency)
+          try_import aws_elastic_beanstalk_application.chatbot_api "${P}"
+
+          # CloudFront OAC (global, look up by name to get the ID)
+          OAC_ID=$(aws cloudfront list-origin-access-controls \
+            --query "OriginAccessControlList.Items[?Name=='${P}-frontend-oac'].Id | [0]" \
+            --output text 2>/dev/null || true)
+          if [[ -n "$OAC_ID" && "$OAC_ID" != "None" ]]; then
+            try_import aws_cloudfront_origin_access_control.frontend_assets "$OAC_ID"
+          fi
+
+      # ── 8. Custom domain: create the ACM cert first so we can print the     ───
+      #       DNS validation record before the full apply waits for it          ───
+      - name: Create ACM certificate
+        if: env.DOMAIN_NAME != ''
+        working-directory: infra/terraform
+        env:
+          TF_VAR_project_name:                ${{ secrets.TF_PROJECT_PREFIX }}
+          TF_VAR_environment:                 production
+          TF_VAR_github_org:                  ${{ github.repository_owner }}
+          TF_VAR_github_repo:                 ${{ github.event.repository.name }}
+          TF_VAR_openai_api_key:              ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_anthropic_api_key:           ${{ secrets.ANTHROPIC_API_KEY }}
+          TF_VAR_db_password:                 ${{ secrets.DB_PASSWORD }}
+          TF_VAR_admin_panel_password:        ${{ secrets.ADMIN_PANEL_PASSWORD }}
+          TF_VAR_eb_instance_type:            ${{ inputs.eb_instance_type }}
+          TF_VAR_eb_max_instances:            ${{ inputs.eb_max_instances }}
+          TF_VAR_db_instance_class:           ${{ inputs.db_instance_class }}
+          TF_VAR_domain_name:                 ${{ secrets.DOMAIN_NAME }}
+          TF_VAR_create_github_oidc_provider: ${{ secrets.CREATE_GITHUB_OIDC_PROVIDER || 'true' }}
+        run: |
+          terraform apply \
+            -target='aws_acm_certificate.custom_domain[0]' \
+            -auto-approve \
+            -input=false
+
+      # ── 9. Print the DNS validation record to the summary so the researcher ───
+      #       can add it while the rest of the infrastructure is building       ───
+      - name: Print DNS validation record
+        if: env.DOMAIN_NAME != ''
+        working-directory: infra/terraform
+        run: |
+          CNAME_NAME=$(terraform output -raw acm_validation_cname_name)
+          CNAME_VALUE=$(terraform output -raw acm_validation_cname_value)
+          {
+            echo "## Action required: add this DNS record now"
+            echo ""
+            echo "Add the following record at your domain registrar **while this workflow continues running**."
+            echo "This proves you own the domain and enables HTTPS for your custom URL."
+            echo ""
+            echo "| Type | Name | Value |"
+            echo "|---|---|---|"
+            echo "| CNAME | \`$CNAME_NAME\` | \`$CNAME_VALUE\` |"
+            echo ""
+            echo "> The workflow will wait up to 30 minutes for DNS to propagate."
+            echo "> If it times out before you add the record, just re-run this workflow."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ── 9. Apply all infrastructure ───────────────────────────────────────────
+      - name: Apply infrastructure
+        working-directory: infra/terraform
+        env:
+          TF_VAR_project_name:                ${{ secrets.TF_PROJECT_PREFIX }}
+          TF_VAR_environment:                 production
+          TF_VAR_github_org:                  ${{ github.repository_owner }}
+          TF_VAR_github_repo:                 ${{ github.event.repository.name }}
+          TF_VAR_openai_api_key:              ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_anthropic_api_key:           ${{ secrets.ANTHROPIC_API_KEY }}
+          TF_VAR_db_password:                 ${{ secrets.DB_PASSWORD }}
+          TF_VAR_admin_panel_password:        ${{ secrets.ADMIN_PANEL_PASSWORD }}
+          TF_VAR_eb_instance_type:            ${{ inputs.eb_instance_type }}
+          TF_VAR_eb_max_instances:            ${{ inputs.eb_max_instances }}
+          TF_VAR_db_instance_class:           ${{ inputs.db_instance_class }}
+          TF_VAR_domain_name:                 ${{ secrets.DOMAIN_NAME }}
+          TF_VAR_create_github_oidc_provider: ${{ secrets.CREATE_GITHUB_OIDC_PROVIDER || 'true' }}
+        run: |
+          terraform apply -auto-approve -input=false
+
+      # ── 10. Write all secrets needed by staging.yml / production.yml ──────────
+      - name: Write deployment secrets
+        working-directory: infra/terraform
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          REPO="${{ github.repository }}"
+          set_secret() { gh secret set "$1" --body "$2" --repo "$REPO"; }
+
+          set_secret AWS_ACCOUNT_ID                     "$(terraform output -raw github_secret_AWS_ACCOUNT_ID)"
+          set_secret AWS_ROLE_NAME                      "$(terraform output -raw github_secret_AWS_ROLE_NAME)"
+          set_secret AWS_S3_BUCKET_NAME_FRONTEND        "$(terraform output -raw github_secret_AWS_S3_BUCKET_NAME_FRONTEND)"
+          set_secret AWS_S3_PROD_BUCKET_NAME_FRONTEND   "$(terraform output -raw github_secret_AWS_S3_BUCKET_NAME_FRONTEND)"
+          set_secret AWS_CLOUDFRONT_DISTRIBUTION_ID     "$(terraform output -raw github_secret_AWS_CLOUDFRONT_DISTRIBUTION_ID)"
+          set_secret AWS_PROD_CLOUDFRONT_DISTRIBUTION_ID "$(terraform output -raw github_secret_AWS_PROD_CLOUDFRONT_DISTRIBUTION_ID)"
+          set_secret AWS_BACKEND_APPLICATION_NAME       "$(terraform output -raw github_secret_AWS_BACKEND_APPLICATION_NAME)"
+          set_secret AWS_BACKEND_ENVIRONMENT_NAME       "$(terraform output -raw github_secret_AWS_BACKEND_ENVIRONMENT_NAME)"
+          set_secret AWS_PROD_BACKEND_ENVIRONMENT_NAME  "$(terraform output -raw github_secret_AWS_PROD_BACKEND_ENVIRONMENT_NAME)"
+          set_secret VITE_API_URL                       "$(terraform output -raw frontend_url)/api"
+
+      # ── 11. Trigger application deployment ───────────────────────────────────
+      # Now that infrastructure exists and all secrets are written, kick off
+      # the production deploy so researchers don't need a second manual click.
+      - name: Trigger application deployment
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          gh workflow run production.yml \
+            --repo "${{ github.repository }}" \
+            --ref "${{ github.ref }}"
+          echo "Application deployment triggered — check the Actions tab for progress."
+
+      # ── 12. Rollback on failure ───────────────────────────────────────────────
+      # Runs only when a previous step failed. Destroys everything Terraform
+      # managed to create so no half-built resources are left running.
+      # The bootstrap S3 state bucket is NOT destroyed — it is managed by a
+      # separate config and will be reused on the next attempt.
+      - name: Rollback on failure
+        if: failure()
+        working-directory: infra/terraform
+        env:
+          TF_VAR_project_name:                ${{ secrets.TF_PROJECT_PREFIX }}
+          TF_VAR_environment:                 production
+          TF_VAR_github_org:                  ${{ github.repository_owner }}
+          TF_VAR_github_repo:                 ${{ github.event.repository.name }}
+          TF_VAR_openai_api_key:              ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_anthropic_api_key:           ${{ secrets.ANTHROPIC_API_KEY }}
+          TF_VAR_db_password:                 ${{ secrets.DB_PASSWORD }}
+          TF_VAR_admin_panel_password:        ${{ secrets.ADMIN_PANEL_PASSWORD }}
+          TF_VAR_eb_instance_type:            ${{ inputs.eb_instance_type }}
+          TF_VAR_eb_max_instances:            ${{ inputs.eb_max_instances }}
+          TF_VAR_db_instance_class:           ${{ inputs.db_instance_class }}
+          TF_VAR_domain_name:                 ${{ secrets.DOMAIN_NAME }}
+          TF_VAR_create_github_oidc_provider: ${{ secrets.CREATE_GITHUB_OIDC_PROVIDER || 'true' }}
+        run: |
+          if [[ ! -d .terraform ]]; then
+            echo "Terraform was not initialised — nothing to roll back."
+            exit 0
+          fi
+          echo "Rolling back — destroying all resources created during this run..."
+          terraform destroy -auto-approve -input=false \
+            || echo "::warning::Destroy encountered errors. Some resources may need manual cleanup in the AWS console."
+
+      # ── 13. Summary ───────────────────────────────────────────────────────────
+      - name: Write summary
+        working-directory: infra/terraform
+        run: |
+          FRONTEND_URL=$(terraform output -raw frontend_url)
+          DOMAIN="$DOMAIN_NAME"
+
+          {
+            echo "## Deployment complete"
+            echo ""
+            echo "| | URL |"
+            echo "|---|---|"
+            echo "| Chatbot | $FRONTEND_URL |"
+            echo "| Admin panel | $FRONTEND_URL/api/admin/ |"
+            echo ""
+            echo "Log in to the admin panel with username \`admin\` and the password you set as \`ADMIN_PANEL_PASSWORD\`."
+            echo ""
+            echo "**Next step:** push to the \`main\` branch to deploy the application code."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ -n "$DOMAIN" ]]; then
+            CF_DOMAIN=$(terraform output -raw cloudfront_domain_name)
+            {
+              echo ""
+              echo "## Custom domain: final DNS record"
+              echo ""
+              echo "After adding the validation record above and re-running this workflow, add this record to serve your chatbot at **https://$DOMAIN**:"
+              echo ""
+              echo "| Type | Name | Value |"
+              echo "|---|---|---|"
+              echo "| CNAME | \`$DOMAIN\` | \`$CF_DOMAIN\` |"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

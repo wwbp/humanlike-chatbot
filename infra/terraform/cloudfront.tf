@@ -122,8 +122,8 @@ resource "aws_cloudfront_distribution" "frontend" {
     }
 
     min_ttl     = 0
-    default_ttl = 3600   # 1 hour default cache for HTML
-    max_ttl     = 86400  # 24 hour max cache for hashed JS/CSS assets
+    default_ttl = 3600  # 1 hour default cache for HTML
+    max_ttl     = 86400 # 24 hour max cache for hashed JS/CSS assets
   }
 
   # SPA routing — React Router handles all navigation client-side.

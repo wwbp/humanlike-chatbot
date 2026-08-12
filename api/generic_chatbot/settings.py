@@ -25,13 +25,24 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
+
+def _csv_env(name, default):
+    """Read a comma-separated env var, falling back to `default` when unset.
+
+    Deployment-specific hostnames belong in the environment rather than in the
+    source of a public repository. These are not secrets — the browser sees
+    them on every request — so the fallback keeps the existing deployment
+    working unchanged if the variable is not set.
+    """
+    raw = os.getenv(name, "")
+    values = [item.strip() for item in raw.split(",") if item.strip()]
+    return values or default
+
+
 ALLOWED_HOSTS = (
     ["localhost", "127.0.0.1", "0.0.0.0"]
     if DEBUG
-    else [
-        "dev.bot.wwbp.org",
-        "bot.wwbp.org",
-    ]
+    else _csv_env("ALLOWED_HOSTS", ["dev.bot.wwbp.org", "bot.wwbp.org"])
 )
 
 if DEBUG:
@@ -121,8 +132,9 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
-    "https://dev.bot.wwbp.org",
-    "https://bot.wwbp.org",
+    *_csv_env(
+        "CORS_ALLOWED_ORIGINS", ["https://dev.bot.wwbp.org", "https://bot.wwbp.org"]
+    ),
 ]
 _frontend_url_env = os.getenv("FRONTEND_URL", "")
 _frontend_url_parsed = urlparse(_frontend_url_env)
@@ -136,8 +148,9 @@ if _frontend_url_valid:
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
-    "https://dev.bot.wwbp.org",
-    "https://bot.wwbp.org",
+    *_csv_env(
+        "CSRF_TRUSTED_ORIGINS", ["https://dev.bot.wwbp.org", "https://bot.wwbp.org"]
+    ),
 ]
 if _frontend_url_valid:
     CSRF_TRUSTED_ORIGINS.append(_frontend_url_env)

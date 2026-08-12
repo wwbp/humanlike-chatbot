@@ -1,0 +1,196 @@
+name: Destroy Infrastructure
+
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │  WARNING: THIS WORKFLOW PERMANENTLY DELETES ALL AWS INFRASTRUCTURE      │
+# │  AND ALL CONVERSATION DATA. THIS CANNOT BE UNDONE.                      │
+# │                                                                          │
+# │  Export any data you need from the admin panel BEFORE running this.     │
+# └─────────────────────────────────────────────────────────────────────────┘
+#
+# Required secrets (same ones used to deploy):
+#   AWS_ACCESS_KEY_ID        — IAM user access key
+#   AWS_SECRET_ACCESS_KEY    — IAM user secret key
+#   TF_PROJECT_PREFIX        — Name prefix for every AWS resource (must match
+#                              var.project_name in infra/terraform)
+#
+# Note: if you deleted the IAM user after your initial deployment (as the
+# setup guide suggests), you will need to recreate it and add AdministratorAccess
+# before running this workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_destroy:
+        description: 'Type "destroy" to confirm you want to delete all infrastructure'
+        required: true
+        type: string
+      confirm_data_loss:
+        description: 'Type "destroy data" to confirm all conversation data will be permanently deleted'
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  destroy:
+    name: Destroy all AWS infrastructure
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Validate confirmations before touching anything ────────────────────
+      - name: Validate confirmations
+        env:
+          CONFIRM_DESTROY: ${{ inputs.confirm_destroy }}
+          CONFIRM_DATA:    ${{ inputs.confirm_data_loss }}
+        run: |
+          fail=0
+          if [[ "$CONFIRM_DESTROY" != "destroy" ]]; then
+            echo "::error::First field must be exactly 'destroy'. Got: '$CONFIRM_DESTROY'"
+            fail=1
+          fi
+          if [[ "$CONFIRM_DATA" != "destroy data" ]]; then
+            echo "::error::Second field must be exactly 'destroy data'. Got: '$CONFIRM_DATA'"
+            fail=1
+          fi
+          [[ $fail -eq 1 ]] && exit 1
+          echo "Confirmations accepted."
+
+      # ── 2. Checkout ───────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 3. Terraform ──────────────────────────────────────────────────────────
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '~1.9'
+          terraform_wrapper: false
+
+      # ── 4. AWS credentials ────────────────────────────────────────────────────
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # ── 5. Locate state bucket ────────────────────────────────────────────────
+      - name: Locate Terraform state bucket
+        id: state
+        env:
+          TF_PROJECT_PREFIX: ${{ secrets.TF_PROJECT_PREFIX }}
+        run: |
+          # Required, with no fallback. This workflow deletes infrastructure, so
+          # a guessed prefix could target the wrong resources entirely.
+          if [ -z "$TF_PROJECT_PREFIX" ]; then
+            echo "::error::TF_PROJECT_PREFIX is not set. Add it under Settings → Secrets and variables → Actions. It must match var.project_name in infra/terraform."
+            exit 1
+          fi
+
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          BUCKET="${TF_PROJECT_PREFIX}-tfstate-${ACCOUNT_ID}"
+          if ! aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+            echo "::error::State bucket $BUCKET not found — there may be no infrastructure to destroy."
+            exit 1
+          fi
+          echo "bucket=$BUCKET" >> "$GITHUB_OUTPUT"
+          echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+          echo "prefix=$TF_PROJECT_PREFIX" >> "$GITHUB_OUTPUT"
+
+      # ── 6. Initialise Terraform ───────────────────────────────────────────────
+      - name: Initialise Terraform
+        working-directory: infra/terraform
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ steps.state.outputs.bucket }}" \
+            -backend-config="key=${{ steps.state.outputs.prefix }}/terraform.tfstate" \
+            -backend-config="region=us-east-1" \
+            -backend-config="encrypt=true" \
+            -reconfigure \
+            -input=false
+
+      # ── 7. Empty S3 buckets ───────────────────────────────────────────────────
+      # Terraform cannot delete a non-empty S3 bucket. We empty both buckets
+      # (frontend assets and application data) before running destroy.
+      - name: Empty S3 buckets
+        env:
+          ACCOUNT_ID: ${{ steps.state.outputs.account_id }}
+        run: |
+          P="${{ steps.state.outputs.prefix }}-production"
+          for bucket in "${P}-frontend-${ACCOUNT_ID}" "${P}-data-${ACCOUNT_ID}"; do
+            if aws s3api head-bucket --bucket "$bucket" 2>/dev/null; then
+              echo "Emptying s3://$bucket ..."
+              aws s3 rm "s3://$bucket" --recursive
+              echo "  Done."
+            else
+              echo "Bucket $bucket does not exist — skipping."
+            fi
+          done
+
+      # ── 8. Disable RDS deletion protection ───────────────────────────────────
+      # rds.tf sets deletion_protection = false, but guard against any manual
+      # change that may have enabled it — destroy would fail silently otherwise.
+      - name: Disable RDS deletion protection
+        run: |
+          RDS_ID="${{ steps.state.outputs.prefix }}-production-database"
+          STATUS=$(aws rds describe-db-instances \
+            --db-instance-identifier "$RDS_ID" \
+            --query 'DBInstances[0].DBInstanceStatus' --output text 2>/dev/null \
+            || echo "not-found")
+          if [[ "$STATUS" != "not-found" && -n "$STATUS" ]]; then
+            echo "Disabling deletion protection on $RDS_ID ..."
+            aws rds modify-db-instance \
+              --db-instance-identifier "$RDS_ID" \
+              --no-deletion-protection \
+              --apply-immediately 2>/dev/null || true
+          else
+            echo "RDS instance not found — skipping."
+          fi
+
+      # ── 9. Destroy all infrastructure ─────────────────────────────────────────
+      - name: Destroy infrastructure
+        working-directory: infra/terraform
+        env:
+          TF_VAR_project_name:                ${{ secrets.TF_PROJECT_PREFIX }}
+          TF_VAR_environment:                 production
+          TF_VAR_github_org:                  ${{ github.repository_owner }}
+          TF_VAR_github_repo:                 ${{ github.event.repository.name }}
+          TF_VAR_openai_api_key:              ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_anthropic_api_key:           ${{ secrets.ANTHROPIC_API_KEY }}
+          TF_VAR_db_password:                 ${{ secrets.DB_PASSWORD }}
+          TF_VAR_admin_panel_password:        ${{ secrets.ADMIN_PANEL_PASSWORD }}
+          TF_VAR_domain_name:                 ${{ secrets.DOMAIN_NAME }}
+          TF_VAR_create_github_oidc_provider: ${{ secrets.CREATE_GITHUB_OIDC_PROVIDER || 'true' }}
+        run: |
+          terraform destroy -auto-approve -input=false
+
+      # ── 10. Summary ───────────────────────────────────────────────────────────
+      - name: Write summary
+        if: success()
+        env:
+          ACCOUNT_ID: ${{ steps.state.outputs.account_id }}
+        run: |
+          {
+            echo "## Infrastructure destroyed"
+            echo ""
+            echo "All AWS resources have been deleted. AWS will stop billing for this deployment within the hour."
+            echo ""
+            echo "### What was deleted"
+            echo "- Elastic Beanstalk application and environment (app servers)"
+            echo "- RDS MariaDB database and all conversation data"
+            echo "- ElastiCache Redis cache"
+            echo "- CloudFront distribution"
+            echo "- S3 frontend bucket and all React build files"
+            echo "- S3 data bucket and all uploaded files (avatars, voice audio)"
+            echo "- VPC, subnets, and security groups"
+            echo "- IAM roles and GitHub OIDC provider"
+            echo ""
+            echo "### What was NOT deleted"
+            echo "The Terraform state bucket (\`${{ steps.state.outputs.prefix }}-tfstate-${ACCOUNT_ID}\`) was left in place."
+            echo "It is now empty and costs less than \$0.01/month. To remove it completely, delete it"
+            echo "manually in the [AWS S3 console](https://s3.console.aws.amazon.com/s3/buckets)."
+            echo ""
+            echo "To redeploy in the future, run the **Deploy Infrastructure** workflow again."
+          } >> "$GITHUB_STEP_SUMMARY"

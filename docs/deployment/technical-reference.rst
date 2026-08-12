@@ -40,7 +40,9 @@ Architecture overview
 AWS resources provisioned
 --------------------------
 
-All resources are provisioned by Terraform in ``infra/terraform/``. The name prefix for all resources is ``humanlike-chatbot-production``.
+All resources are provisioned by Terraform in ``infra/terraform/``. The name prefix for all
+resources is ``{PROJECT_PREFIX}-production``, where ``{PROJECT_PREFIX}`` is the value of
+``var.project_name`` (supplied to the workflows via the ``TF_PROJECT_PREFIX`` secret).
 
 .. list-table::
    :header-rows: 1
@@ -90,7 +92,7 @@ All resources are provisioned by Terraform in ``infra/terraform/``. The name pre
      - One per AWS account. See gotcha below.
    * - Terraform state bucket
      - (created by workflow script)
-     - ``humanlike-chatbot-tfstate-{ACCOUNT_ID}``, versioned, AES-256 encrypted
+     - ``{PROJECT_PREFIX}-tfstate-{ACCOUNT_ID}``, versioned, AES-256 encrypted
 
 
 Deployment workflows
@@ -102,7 +104,7 @@ Deployment workflows
 Runs ``terraform apply`` against the remote S3 state backend. Steps:
 
 1. **Check required secrets**. Validates presence and GH_PAT write access before touching AWS.
-2. **Bootstrap state bucket**. Creates ``humanlike-chatbot-tfstate-{ACCOUNT_ID}`` if absent (idempotent).
+2. **Bootstrap state bucket**. Creates ``{PROJECT_PREFIX}-tfstate-{ACCOUNT_ID}`` if absent (idempotent).
 3. **Terraform init**. Points to the remote state bucket.
 4. **Reconcile orphaned resources**. Handles partial failures from previous runs. VPC-scoped resources (RDS, ElastiCache, EB environment) are purged if the VPC ID changed. Non-VPC resources are imported.
 5. **ACM certificate** (custom domain only). Targeted apply, so the validation CNAME can be printed before the full apply blocks waiting for DNS.

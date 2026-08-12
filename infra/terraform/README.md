@@ -6,18 +6,39 @@ creates everything from scratch: networking, database, cache, storage, CDN, and
 application server. All environment variables are wired automatically — there is
 nothing to configure in the AWS console after apply completes.
 
-> **Why AWS resources are still named `humanlike-chatbot`**
+> **The repository name and the AWS resource prefix are not the same thing**
 >
-> The GitHub repository was renamed from `humanlike-chatbot` to `chatbotlab`, but
-> the deployed AWS resources were deliberately **not** renamed. `var.project_name`
-> is still `humanlike-chatbot` because it is the prefix on live S3 buckets, the
-> RDS instance, the Elastic Beanstalk application and the Terraform state bucket.
-> Changing it would force Terraform to recreate every resource, destroying the
-> production database.
+> The GitHub repository was renamed to `chatbotlab`, but the deployed AWS
+> resources were deliberately **not** renamed. `var.project_name` still holds
+> the original prefix, because it names live S3 buckets, the RDS instance, the
+> Elastic Beanstalk application and the Terraform state bucket. Changing it
+> would force Terraform to recreate every resource, **destroying the production
+> database**.
 >
-> Only `var.github_repo` tracks the repository name. If you see
-> `humanlike-chatbot` below, it is an AWS resource identifier and is correct
-> as written — leave it alone.
+> Only `var.github_repo` tracks the repository name. Throughout these docs the
+> prefix is written as `<project-prefix>`; the real value is supplied to the
+> workflows through the `TF_PROJECT_PREFIX` secret and lives in
+> `var.project_name`. Do not "finish" the rename by editing it.
+
+> **This Terraform does not manage the live deployment**
+>
+> Staging and production were built **manually**, before this IaC existed, and
+> are not tracked in any Terraform state. As of this writing the live stack is:
+>
+> | Layer | Live (manual, unmanaged) | What Terraform would create |
+> |---|---|---|
+> | Frontend | S3 `bot.wwbp.org` / `dev.bot.wwbp.org` + CloudFront | `<prefix>-<env>-frontend` |
+> | Backend | EB application `humanlikebot` | EB application `<prefix>-<env>` |
+> | Database | EB-managed `awseb-e-*-stack-awsebrdsdatabase-*` — **real study data** | `<prefix>-<env>-database` |
+>
+> The two name sets do not overlap, so `terraform apply` will **not** adopt or
+> modify the live deployment — it will stand up a *second*, parallel stack that
+> you also pay for. Migrating the live deployment under Terraform is a separate
+> exercise requiring deliberate `terraform import` of each resource.
+>
+> To validate the IaC, run it with a distinct `TF_PROJECT_PREFIX` (for example
+> `chatbotlab-iac-test`), ideally in a separate AWS account, and tear it down
+> afterwards with the Destroy Infrastructure workflow.
 
 ---
 
@@ -133,8 +154,8 @@ After `setup.sh` finishes, it prints output like:
 
 ```
 AWS_ACCOUNT_ID                                    123456789012
-AWS_ROLE_NAME                                     humanlike-chatbot-staging-github-actions
-AWS_S3_BUCKET_NAME_FRONTEND                       humanlike-chatbot-staging-frontend
+AWS_ROLE_NAME                                     <project-prefix>-staging-github-actions
+AWS_S3_BUCKET_NAME_FRONTEND                       <project-prefix>-staging-frontend
 ...
 ```
 
@@ -320,8 +341,8 @@ After `setup.sh` completes and the infrastructure is up, deploy the app manually
 ```bash
 cd generic_chatbot
 pip install awsebcli
-eb init humanlike-chatbot --platform docker --region us-east-1
-eb use humanlike-chatbot-staging-env
+eb init <project-prefix> --platform docker --region us-east-1
+eb use <project-prefix>-staging-env
 eb deploy
 ```
 
@@ -330,7 +351,7 @@ On first deploy, set the FRONTEND_URL env var (CloudFront domain from `terraform
 ```bash
 CF_DOMAIN=$(cd terraform && terraform output -raw frontend_url)
 aws elasticbeanstalk update-environment \
-  --environment-name humanlike-chatbot-staging-env \
+  --environment-name <project-prefix>-staging-env \
   --option-settings Namespace=aws:elasticbeanstalk:application:environment,OptionName=FRONTEND_URL,Value="https://${CF_DOMAIN}"
 ```
 
@@ -338,7 +359,7 @@ To create a Django admin superuser on first deploy, set these env vars before `e
 
 ```bash
 aws elasticbeanstalk update-environment \
-  --environment-name humanlike-chatbot-staging-env \
+  --environment-name <project-prefix>-staging-env \
   --option-settings \
     Namespace=aws:elasticbeanstalk:application:environment,OptionName=DJANGO_SUPERUSER_PASSWORD,Value="YourPassword" \
     Namespace=aws:elasticbeanstalk:application:environment,OptionName=DJANGO_SUPERUSER_USERNAME,Value="admin" \
@@ -347,7 +368,7 @@ aws elasticbeanstalk update-environment \
 eb deploy
 # Remove the password var after the user is created
 aws elasticbeanstalk update-environment \
-  --environment-name humanlike-chatbot-staging-env \
+  --environment-name <project-prefix>-staging-env \
   --options-to-remove Namespace=aws:elasticbeanstalk:application:environment,OptionName=DJANGO_SUPERUSER_PASSWORD
 ```
 
@@ -380,7 +401,7 @@ aws cloudfront create-invalidation \
 
 ### GitHub Actions CI/CD
 
-The IAM OIDC role (`humanlike-chatbot-staging-github-actions`) and the workflow file
+The IAM OIDC role (`<project-prefix>-staging-github-actions`) and the workflow file
 (`.github/workflows/test-iac.yml`) are in place. What's missing is the `TEST_*`
 GitHub repository secrets. After `setup.sh` finishes on the test account, add:
 

@@ -1,5 +1,28 @@
 name: Deploy Infrastructure
 
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │  READ THIS BEFORE RUNNING AGAINST THE WWBP ACCOUNT                      │
+# │                                                                          │
+# │  The live staging and production deployments were created MANUALLY,     │
+# │  before this IaC existed. They are NOT in any Terraform state:          │
+# │                                                                          │
+# │    frontend  S3 "bot.wwbp.org" / "dev.bot.wwbp.org" + CloudFront        │
+# │    backend   EB application "humanlikebot" (envs humanlikebot-env,      │
+# │              humanlike-bot-development-env)                             │
+# │    database  EB-managed RDS "awseb-e-*-stack-awsebrdsdatabase-*"        │
+# │              — this holds REAL STUDY DATA                               │
+# │                                                                          │
+# │  Terraform builds a parallel stack named "<prefix>-<environment>-*",    │
+# │  which does not overlap with any of the above. Running this workflow    │
+# │  therefore does not manage or migrate the live deployment — it builds   │
+# │  a SECOND one, and you pay for both.                                    │
+# │                                                                          │
+# │  To test the IaC safely, set TF_PROJECT_PREFIX to something distinct    │
+# │  (e.g. "chatbotlab-iac-test"), ideally in a separate AWS account, then  │
+# │  tear it down with the Destroy Infrastructure workflow. Do NOT reuse    │
+# │  the prefix of the live deployment.                                     │
+# └─────────────────────────────────────────────────────────────────────────┘
+#
 # Run this workflow once to provision all AWS infrastructure.
 # Re-run it whenever you want to change instance sizes or add a custom domain.
 #
@@ -11,6 +34,11 @@ name: Deploy Infrastructure
 #   DB_PASSWORD              — Password you choose for the database (letters + numbers only)
 #   ADMIN_PANEL_PASSWORD     — Password you will use to log into the admin panel
 #   GH_PAT                   — GitHub personal access token with secrets:write on this repo
+#   TF_PROJECT_PREFIX        — Name prefix for every AWS resource (must match
+#                              var.project_name in infra/terraform). Kept in a
+#                              secret so this public repo does not publish the
+#                              names of live AWS resources. No default: a wrong
+#                              value would point Terraform at the wrong state.
 #   DOMAIN_NAME              — Optional: your custom domain (e.g. chatbot.mylab.org)
 #
 # Optional workflow inputs (shown as a form when you click "Run workflow"):
@@ -59,6 +87,7 @@ jobs:
           AWS_KEY:              ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET:           ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           GH_PAT:               ${{ secrets.GH_PAT }}
+          TF_PROJECT_PREFIX:    ${{ secrets.TF_PROJECT_PREFIX }}
         run: |
           fail=0
           missing() { echo "::error::$1 secret is not set"; fail=1; }
@@ -68,6 +97,7 @@ jobs:
           [[ -z "$DB_PASSWORD" ]]         && missing "DB_PASSWORD"
           [[ -z "$ADMIN_PANEL_PASSWORD" ]] && missing "ADMIN_PANEL_PASSWORD"
           [[ -z "$GH_PAT" ]]              && missing "GH_PAT"
+          [[ -z "$TF_PROJECT_PREFIX" ]]   && missing "TF_PROJECT_PREFIX"
 
           if [[ -z "$OPENAI_KEY" && -z "$ANTHROPIC_KEY" ]]; then
             echo "::error::At least one of OPENAI_API_KEY or ANTHROPIC_API_KEY must be set"
@@ -108,15 +138,26 @@ jobs:
           aws-region: us-east-1
 
       # ── 5. Create the S3 state bucket (idempotent) ───────────────────────────
-      # Uses a deterministic name based on the AWS account ID — no random suffix,
-      # no secret needed to remember the name. Safe to run on every deploy.
+      # Deterministic name: "<TF_PROJECT_PREFIX>-tfstate-<ACCOUNT_ID>" — no random
+      # suffix. Safe to run on every deploy. The prefix comes from a secret so the
+      # repository does not publish the names of live AWS resources.
       - name: Bootstrap Terraform state backend
         id: bootstrap
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
+          TF_PROJECT_PREFIX: ${{ secrets.TF_PROJECT_PREFIX }}
         run: |
+          # Required, with no fallback on purpose. Guessing this value (e.g.
+          # from the repo name) would point Terraform at a state bucket that
+          # does not exist, and reconciling against empty state can duplicate
+          # or destroy live infrastructure. Fail closed instead.
+          if [ -z "$TF_PROJECT_PREFIX" ]; then
+            echo "::error::TF_PROJECT_PREFIX is not set. Add it under Settings → Secrets and variables → Actions. It must match var.project_name in infra/terraform (the prefix on your existing AWS resources)."
+            exit 1
+          fi
+
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          BUCKET="humanlike-chatbot-tfstate-${ACCOUNT_ID}"
+          BUCKET="${TF_PROJECT_PREFIX}-tfstate-${ACCOUNT_ID}"
 
           if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
             echo "State bucket already exists: $BUCKET"
@@ -134,6 +175,7 @@ jobs:
           fi
 
           echo "bucket=$BUCKET" >> "$GITHUB_OUTPUT"
+          echo "prefix=$TF_PROJECT_PREFIX" >> "$GITHUB_OUTPUT"
 
       # ── 6. Point Terraform at the remote state bucket ─────────────────────────
       - name: Initialise Terraform
@@ -141,7 +183,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="bucket=${{ steps.bootstrap.outputs.bucket }}" \
-            -backend-config="key=humanlike-chatbot/terraform.tfstate" \
+            -backend-config="key=${{ steps.bootstrap.outputs.prefix }}/terraform.tfstate" \
             -backend-config="region=us-east-1" \
             -backend-config="encrypt=true" \
             -reconfigure \
@@ -156,6 +198,7 @@ jobs:
       - name: Reconcile state — clean up or import any orphaned resources
         working-directory: infra/terraform
         env:
+          TF_VAR_project_name:                ${{ secrets.TF_PROJECT_PREFIX }}
           TF_VAR_environment:                 production
           TF_VAR_github_org:                  ${{ github.repository_owner }}
           TF_VAR_github_repo:                 ${{ github.event.repository.name }}
@@ -170,7 +213,7 @@ jobs:
           TF_VAR_create_github_oidc_provider: ${{ secrets.CREATE_GITHUB_OIDC_PROVIDER || 'true' }}
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          P="humanlike-chatbot-production"
+          P="${{ steps.bootstrap.outputs.prefix }}-production"
 
           # Import into state (safe for resources that are not VPC-scoped).
           try_import() {
@@ -353,6 +396,7 @@ jobs:
         if: env.DOMAIN_NAME != ''
         working-directory: infra/terraform
         env:
+          TF_VAR_project_name:                ${{ secrets.TF_PROJECT_PREFIX }}
           TF_VAR_environment:                 production
           TF_VAR_github_org:                  ${{ github.repository_owner }}
           TF_VAR_github_repo:                 ${{ github.event.repository.name }}
@@ -397,6 +441,7 @@ jobs:
       - name: Apply infrastructure
         working-directory: infra/terraform
         env:
+          TF_VAR_project_name:                ${{ secrets.TF_PROJECT_PREFIX }}
           TF_VAR_environment:                 production
           TF_VAR_github_org:                  ${{ github.repository_owner }}
           TF_VAR_github_repo:                 ${{ github.event.repository.name }}
@@ -453,6 +498,7 @@ jobs:
         if: failure()
         working-directory: infra/terraform
         env:
+          TF_VAR_project_name:                ${{ secrets.TF_PROJECT_PREFIX }}
           TF_VAR_environment:                 production
           TF_VAR_github_org:                  ${{ github.repository_owner }}
           TF_VAR_github_repo:                 ${{ github.event.repository.name }}

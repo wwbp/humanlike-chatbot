@@ -10,6 +10,8 @@ name: Destroy Infrastructure
 # Required secrets (same ones used to deploy):
 #   AWS_ACCESS_KEY_ID        — IAM user access key
 #   AWS_SECRET_ACCESS_KEY    — IAM user secret key
+#   TF_PROJECT_PREFIX        — Name prefix for every AWS resource (must match
+#                              var.project_name in infra/terraform)
 #
 # Note: if you deleted the IAM user after your initial deployment (as the
 # setup guide suggests), you will need to recreate it and add AdministratorAccess
@@ -77,15 +79,25 @@ jobs:
       # ── 5. Locate state bucket ────────────────────────────────────────────────
       - name: Locate Terraform state bucket
         id: state
+        env:
+          TF_PROJECT_PREFIX: ${{ secrets.TF_PROJECT_PREFIX }}
         run: |
+          # Required, with no fallback. This workflow deletes infrastructure, so
+          # a guessed prefix could target the wrong resources entirely.
+          if [ -z "$TF_PROJECT_PREFIX" ]; then
+            echo "::error::TF_PROJECT_PREFIX is not set. Add it under Settings → Secrets and variables → Actions. It must match var.project_name in infra/terraform."
+            exit 1
+          fi
+
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          BUCKET="humanlike-chatbot-tfstate-${ACCOUNT_ID}"
+          BUCKET="${TF_PROJECT_PREFIX}-tfstate-${ACCOUNT_ID}"
           if ! aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
             echo "::error::State bucket $BUCKET not found — there may be no infrastructure to destroy."
             exit 1
           fi
           echo "bucket=$BUCKET" >> "$GITHUB_OUTPUT"
           echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+          echo "prefix=$TF_PROJECT_PREFIX" >> "$GITHUB_OUTPUT"
 
       # ── 6. Initialise Terraform ───────────────────────────────────────────────
       - name: Initialise Terraform
@@ -93,7 +105,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="bucket=${{ steps.state.outputs.bucket }}" \
-            -backend-config="key=humanlike-chatbot/terraform.tfstate" \
+            -backend-config="key=${{ steps.state.outputs.prefix }}/terraform.tfstate" \
             -backend-config="region=us-east-1" \
             -backend-config="encrypt=true" \
             -reconfigure \
@@ -106,7 +118,7 @@ jobs:
         env:
           ACCOUNT_ID: ${{ steps.state.outputs.account_id }}
         run: |
-          P="humanlike-chatbot-production"
+          P="${{ steps.state.outputs.prefix }}-production"
           for bucket in "${P}-frontend-${ACCOUNT_ID}" "${P}-data-${ACCOUNT_ID}"; do
             if aws s3api head-bucket --bucket "$bucket" 2>/dev/null; then
               echo "Emptying s3://$bucket ..."
@@ -122,7 +134,7 @@ jobs:
       # change that may have enabled it — destroy would fail silently otherwise.
       - name: Disable RDS deletion protection
         run: |
-          RDS_ID="humanlike-chatbot-production-database"
+          RDS_ID="${{ steps.state.outputs.prefix }}-production-database"
           STATUS=$(aws rds describe-db-instances \
             --db-instance-identifier "$RDS_ID" \
             --query 'DBInstances[0].DBInstanceStatus' --output text 2>/dev/null \
@@ -141,6 +153,7 @@ jobs:
       - name: Destroy infrastructure
         working-directory: infra/terraform
         env:
+          TF_VAR_project_name:                ${{ secrets.TF_PROJECT_PREFIX }}
           TF_VAR_environment:                 production
           TF_VAR_github_org:                  ${{ github.repository_owner }}
           TF_VAR_github_repo:                 ${{ github.event.repository.name }}
@@ -175,7 +188,7 @@ jobs:
             echo "- IAM roles and GitHub OIDC provider"
             echo ""
             echo "### What was NOT deleted"
-            echo "The Terraform state bucket (\`humanlike-chatbot-tfstate-${ACCOUNT_ID}\`) was left in place."
+            echo "The Terraform state bucket (\`${{ steps.state.outputs.prefix }}-tfstate-${ACCOUNT_ID}\`) was left in place."
             echo "It is now empty and costs less than \$0.01/month. To remove it completely, delete it"
             echo "manually in the [AWS S3 console](https://s3.console.aws.amazon.com/s3/buckets)."
             echo ""

@@ -1,0 +1,138 @@
+{
+  "assistant": {
+    "role": "ai"
+  },
+  "user_00001": {
+    "role": "person",
+    "age": 28,
+    "gender": "man",
+    "persona": "small business owner, the business is struggling",
+    "phq9": 7
+  },
+  "user_00000": {
+    "role": "person",
+    "age": 44,
+    "gender": "man",
+    "persona": "recently retired, not sure what to do with the time",
+    "phq9": 19
+  },
+  "user_00004": {
+    "role": "person",
+    "age": 66,
+    "gender": "woman",
+    "persona": "freelance graphic designer, money's always tight",
+    "phq9": 16
+  },
+  "user_00002": {
+    "role": "person",
+    "age": 38,
+    "gender": "woman",
+    "persona": "long-haul truck driver, misses home a lot",
+    "phq9": 9
+  },
+  "user_00009": {
+    "role": "person",
+    "age": 29,
+    "gender": "woman",
+    "persona": "musician trying to make it, day job is soul-crushing",
+    "phq9": 12
+  },
+  "user_00013": {
+    "role": "person",
+    "age": 25,
+    "gender": "man",
+    "persona": "stay-at-home parent, feels unseen",
+    "phq9": 21
+  },
+  "user_00022": {
+    "role": "person",
+    "age": 39,
+    "gender": "woman",
+    "persona": "small business owner, the business is struggling",
+    "phq9": 4
+  },
+  "user_00021": {
+    "role": "person",
+    "age": 26,
+    "gender": "man",
+    "persona": "recently retired, not sure what to do with the time",
+    "phq9": 5
+  },
+  "user_00025": {
+    "role": "person",
+    "age": 39,
+    "gender": "man",
+    "persona": "stay-at-home parent, feels unseen",
+    "phq9": 11
+  },
+  "user_00026": {
+    "role": "person",
+    "age": 27,
+    "gender": "man",
+    "persona": "nurse, works long shifts, runs on coffee",
+    "phq9": 12
+  },
+  "user_00028": {
+    "role": "person",
+    "age": 50,
+    "gender": "woman",
+    "persona": "recently divorced, figuring out life solo",
+    "phq9": 9
+  },
+  "user_00031": {
+    "role": "person",
+    "age": 24,
+    "gender": "man",
+    "persona": "recently retired, not sure what to do with the time",
+    "phq9": 13
+  },
+  "user_00032": {
+    "role": "person",
+    "age": 57,
+    "gender": "man",
+    "persona": "remote software developer, kind of isolated lately",
+    "phq9": 1
+  },
+  "user_00035": {
+    "role": "person",
+    "age": 30,
+    "gender": "non-binary person",
+    "persona": "engineer at a startup, working way too much",
+    "phq9": 11
+  },
+  "user_00033": {
+    "role": "person",
+    "age": 51,
+    "gender": "woman",
+    "persona": "high school teacher, burned out but loves the kids",
+    "phq9": 22
+  },
+  "user_00037": {
+    "role": "person",
+    "age": 21,
+    "gender": "woman",
+    "persona": "caregiver for an aging parent, exhausted",
+    "phq9": 12
+  },
+  "user_00038": {
+    "role": "person",
+    "age": 36,
+    "gender": "man",
+    "persona": "caregiver for an aging parent, exhausted",
+    "phq9": 13
+  },
+  "user_00043": {
+    "role": "person",
+    "age": 39,
+    "gender": "man",
+    "persona": "just moved cities for a new job, still adjusting",
+    "phq9": 8
+  },
+  "user_00045": {
+    "role": "person",
+    "age": 27,
+    "gender": "man",
+    "persona": "musician trying to make it, day job is soul-crushing",
+    "phq9": 16
+  }
+}

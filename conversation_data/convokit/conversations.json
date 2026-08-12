@@ -1,0 +1,173 @@
+{
+  "00001_000": {
+    "user_id": "user_00001",
+    "age": 28,
+    "gender": "man",
+    "persona": "small business owner, the business is struggling",
+    "phq9": 7,
+    "n_utterances": 79,
+    "model": "claude-opus-5"
+  },
+  "00000_000": {
+    "user_id": "user_00000",
+    "age": 44,
+    "gender": "man",
+    "persona": "recently retired, not sure what to do with the time",
+    "phq9": 19,
+    "n_utterances": 85,
+    "model": "claude-opus-5"
+  },
+  "00004_000": {
+    "user_id": "user_00004",
+    "age": 66,
+    "gender": "woman",
+    "persona": "freelance graphic designer, money's always tight",
+    "phq9": 16,
+    "n_utterances": 53,
+    "model": "claude-opus-5"
+  },
+  "00002_000": {
+    "user_id": "user_00002",
+    "age": 38,
+    "gender": "woman",
+    "persona": "long-haul truck driver, misses home a lot",
+    "phq9": 9,
+    "n_utterances": 99,
+    "model": "claude-opus-5"
+  },
+  "00009_000": {
+    "user_id": "user_00009",
+    "age": 29,
+    "gender": "woman",
+    "persona": "musician trying to make it, day job is soul-crushing",
+    "phq9": 12,
+    "n_utterances": 87,
+    "model": "claude-opus-5"
+  },
+  "00013_000": {
+    "user_id": "user_00013",
+    "age": 25,
+    "gender": "man",
+    "persona": "stay-at-home parent, feels unseen",
+    "phq9": 21,
+    "n_utterances": 75,
+    "model": "claude-opus-5"
+  },
+  "00022_000": {
+    "user_id": "user_00022",
+    "age": 39,
+    "gender": "woman",
+    "persona": "small business owner, the business is struggling",
+    "phq9": 4,
+    "n_utterances": 77,
+    "model": "claude-opus-5"
+  },
+  "00021_000": {
+    "user_id": "user_00021",
+    "age": 26,
+    "gender": "man",
+    "persona": "recently retired, not sure what to do with the time",
+    "phq9": 5,
+    "n_utterances": 83,
+    "model": "claude-opus-5"
+  },
+  "00025_000": {
+    "user_id": "user_00025",
+    "age": 39,
+    "gender": "man",
+    "persona": "stay-at-home parent, feels unseen",
+    "phq9": 11,
+    "n_utterances": 101,
+    "model": "claude-opus-5"
+  },
+  "00026_000": {
+    "user_id": "user_00026",
+    "age": 27,
+    "gender": "man",
+    "persona": "nurse, works long shifts, runs on coffee",
+    "phq9": 12,
+    "n_utterances": 99,
+    "model": "claude-opus-5"
+  },
+  "00028_000": {
+    "user_id": "user_00028",
+    "age": 50,
+    "gender": "woman",
+    "persona": "recently divorced, figuring out life solo",
+    "phq9": 9,
+    "n_utterances": 99,
+    "model": "claude-opus-5"
+  },
+  "00031_000": {
+    "user_id": "user_00031",
+    "age": 24,
+    "gender": "man",
+    "persona": "recently retired, not sure what to do with the time",
+    "phq9": 13,
+    "n_utterances": 53,
+    "model": "claude-opus-5"
+  },
+  "00032_000": {
+    "user_id": "user_00032",
+    "age": 57,
+    "gender": "man",
+    "persona": "remote software developer, kind of isolated lately",
+    "phq9": 1,
+    "n_utterances": 67,
+    "model": "claude-opus-5"
+  },
+  "00035_000": {
+    "user_id": "user_00035",
+    "age": 30,
+    "gender": "non-binary person",
+    "persona": "engineer at a startup, working way too much",
+    "phq9": 11,
+    "n_utterances": 61,
+    "model": "claude-opus-5"
+  },
+  "00033_000": {
+    "user_id": "user_00033",
+    "age": 51,
+    "gender": "woman",
+    "persona": "high school teacher, burned out but loves the kids",
+    "phq9": 22,
+    "n_utterances": 71,
+    "model": "claude-opus-5"
+  },
+  "00037_000": {
+    "user_id": "user_00037",
+    "age": 21,
+    "gender": "woman",
+    "persona": "caregiver for an aging parent, exhausted",
+    "phq9": 12,
+    "n_utterances": 81,
+    "model": "claude-opus-5"
+  },
+  "00038_000": {
+    "user_id": "user_00038",
+    "age": 36,
+    "gender": "man",
+    "persona": "caregiver for an aging parent, exhausted",
+    "phq9": 13,
+    "n_utterances": 87,
+    "model": "claude-opus-5"
+  },
+  "00043_000": {
+    "user_id": "user_00043",
+    "age": 39,
+    "gender": "man",
+    "persona": "just moved cities for a new job, still adjusting",
+    "phq9": 8,
+    "n_utterances": 87,
+    "model": "claude-opus-5"
+  },
+  "00045_000": {
+    "user_id": "user_00045",
+    "age": 27,
+    "gender": "man",
+    "persona": "musician trying to make it, day job is soul-crushing",
+    "phq9": 16,
+    "n_utterances": 99,
+    "model": "claude-opus-5"
+  }
+}

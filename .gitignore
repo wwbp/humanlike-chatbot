@@ -42,3 +42,9 @@ infra/terraform/bootstrap/.terraform/
 infra/terraform/bootstrap/.terraform.lock.hcl
 infra/terraform/bootstrap/*.tfstate
 infra/terraform/bootstrap/*.tfstate.backup
+
+# Sphinx docs build output
+docs/_build/
+
+# Local agent config
+.claude/

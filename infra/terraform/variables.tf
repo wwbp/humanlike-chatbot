@@ -85,6 +85,18 @@ variable "github_repo" {
   default     = "chatbotlab"
 }
 
+variable "github_org_id" {
+  description = "Numeric GitHub organization ID, used for the immutable OIDC subject claim (repo:<org>@<org_id>/...). GitHub issues subjects carrying these IDs so a trust policy cannot be satisfied by re-creating a deleted org or repo under the same name; a policy matching only the name-based format stops working once they are issued. Leave empty to trust the name-based format alone. Find it with: gh api orgs/<org> --jq .id"
+  type        = string
+  default     = "42522115" # wwbp
+}
+
+variable "github_repo_id" {
+  description = "Numeric GitHub repository ID, the counterpart to github_org_id for the immutable OIDC subject claim. Leave empty to trust the name-based format alone. Find it with: gh api repos/<org>/<repo> --jq .id"
+  type        = string
+  default     = "882137210" # wwbp/chatbotlab
+}
+
 # -----------------------------------------------------------------------
 # Instance sizing
 # -----------------------------------------------------------------------

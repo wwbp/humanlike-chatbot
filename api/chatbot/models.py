@@ -1,4 +1,33 @@
+from django.core.exceptions import FieldDoesNotExist
 from django.db import models
+
+# Every category omni-moderation-latest scores, in OpenAI's own spelling. Adding
+# a category here is not enough on its own — it also needs the matching
+# `moderation_<name>` field on Bot, or it stays unreachable at 1.0.
+MODERATION_CATEGORIES = (
+    "harassment",
+    "harassment/threatening",
+    "hate",
+    "hate/threatening",
+    "illicit",
+    "illicit/violent",
+    "self-harm",
+    "self-harm/instructions",
+    "self-harm/intent",
+    "sexual",
+    "sexual/minors",
+    "violence",
+    "violence/graphic",
+)
+
+
+def moderation_field_name(category):
+    """Map an OpenAI category onto its Bot threshold field.
+
+    "harassment/threatening" -> "moderation_harassment_threatening"
+    "self-harm"              -> "moderation_self_harm"
+    """
+    return "moderation_" + category.replace("/", "_").replace("-", "_")
 
 
 class Persona(models.Model):
@@ -79,6 +108,26 @@ class Utterance(models.Model):
         null=True,
         blank=True,
         help_text="The chat history (formatted as JSON) that was actually passed to the LLM for this utterance",
+    )
+
+    # Set on BOTH rows of a blocked exchange — the user message that tripped
+    # moderation and the canned warning sent in reply — so a single
+    # `moderation_category__isnull=False` filter returns the complete event.
+    # Null on every utterance that was not moderated.
+    moderation_category = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        help_text="Moderation category that blocked this exchange (e.g. 'harassment'); null if the message was not blocked",
+    )
+
+    # Only on the user row of a blocked exchange — the scores describe the
+    # message that was actually scored. Kept in full, including the categories
+    # that passed, so thresholds can be re-tuned against real traffic later.
+    moderation_scores = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Full moderation category→score map for the blocked message; null if the message was not blocked",
     )
 
     def __str__(self):
@@ -534,6 +583,21 @@ class Bot(models.Model):
         default=0.10,
         help_text="Hate/threatening threshold (0.0-1.0, lower = stricter)",
     )
+    # Added after the fact: omni-moderation has scored these since launch, but
+    # without the fields there was no threshold to compare against and both
+    # categories were silently unenforceable.
+    moderation_illicit = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        default=0.50,
+        help_text="Illicit behaviour threshold (0.0-1.0, lower = stricter)",
+    )
+    moderation_illicit_violent = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        default=0.10,
+        help_text="Illicit/violent threshold (0.0-1.0, lower = stricter)",
+    )
     moderation_self_harm = models.DecimalField(
         max_digits=3,
         decimal_places=2,
@@ -589,21 +653,33 @@ class Bot(models.Model):
         return self.name
 
     def get_moderation_threshold(self, category):
-        """Get moderation threshold for a category."""
-        field_mapping = {
-            "harassment": self.moderation_harassment,
-            "harassment/threatening": self.moderation_harassment_threatening,
-            "hate": self.moderation_hate,
-            "hate/threatening": self.moderation_hate_threatening,
-            "self-harm": self.moderation_self_harm,
-            "self-harm/instructions": self.moderation_self_harm_instructions,
-            "self-harm/intent": self.moderation_self_harm_intent,
-            "sexual": self.moderation_sexual,
-            "sexual/minors": self.moderation_sexual_minors,
-            "violence": self.moderation_violence,
-            "violence/graphic": self.moderation_violence_graphic,
-        }
-        return float(field_mapping.get(category, 1.0))
+        """Threshold for one OpenAI moderation category.
+
+        The field name is derived rather than looked up in a hand-maintained
+        map. That map was the reason `illicit` and `illicit/violent` went
+        unenforced: OpenAI added the categories, nobody added the entries, and
+        both silently fell through to the unreachable 1.0 default. Deriving the
+        name means declaring the Bot field is enough to make a category work.
+
+        Unknown categories still return 1.0 so an unrecognised one can never
+        block on its own; moderate_message logs them so they get noticed.
+        """
+        value = getattr(self, moderation_field_name(category), None)
+        return float(value) if value is not None else 1.0
+
+    @classmethod
+    def default_moderation_threshold(cls, category):
+        """This category's configured default, for callers with no Bot instance.
+
+        Reads the field's own default so there is exactly one definition of it;
+        duplicated copies of the defaults are what let categories drift out of
+        sync in the first place.
+        """
+        try:
+            field = cls._meta.get_field(moderation_field_name(category))
+        except FieldDoesNotExist:
+            return 1.0
+        return float(field.default)
 
     @classmethod
     def get_default_model(cls):

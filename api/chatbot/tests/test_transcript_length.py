@@ -12,6 +12,7 @@ from django.core.cache import cache
 
 from chatbot.models import Bot, Conversation, Model, Persona, Utterance
 from chatbot.services.followup import run_followup_chat_round
+from chatbot.services.moderation import ModerationResult
 from chatbot.services.runchat import run_chat_round
 
 # Setup Django
@@ -141,7 +142,7 @@ class TestTranscriptLength:
         mock_get_engine.return_value = mock_engine
 
         # Mock moderation to allow the message
-        mock_moderate.return_value = None
+        mock_moderate.return_value = ModerationResult()
 
         # Mock Kani responses
         mock_kani = MagicMock()
@@ -190,7 +191,7 @@ class TestTranscriptLength:
         mock_get_engine.return_value = mock_engine
 
         # Mock moderation to allow the message
-        mock_moderate.return_value = None
+        mock_moderate.return_value = ModerationResult()
 
         # Mock Kani responses
         mock_kani = MagicMock()
@@ -237,7 +238,7 @@ class TestTranscriptLength:
         mock_get_engine.return_value = mock_engine
 
         # Mock moderation to allow the message
-        mock_moderate.return_value = None
+        mock_moderate.return_value = ModerationResult()
 
         # Mock Kani responses
         mock_kani = MagicMock()
@@ -284,7 +285,7 @@ class TestTranscriptLength:
         mock_get_engine.return_value = mock_engine
 
         # Mock moderation to allow the message
-        mock_moderate.return_value = None
+        mock_moderate.return_value = ModerationResult()
 
         # Mock Kani responses
         mock_kani = MagicMock()
@@ -328,7 +329,7 @@ class TestTranscriptLength:
         mock_get_engine.return_value = mock_engine
 
         # Mock moderation to allow the message
-        mock_moderate.return_value = None
+        mock_moderate.return_value = ModerationResult()
 
         # Mock Kani responses
         mock_kani = MagicMock()
@@ -381,7 +382,7 @@ class TestTranscriptLength:
         mock_get_engine.return_value = mock_engine
 
         # Mock moderation to allow the message
-        mock_moderate.return_value = None
+        mock_moderate.return_value = ModerationResult()
 
         # Mock Kani responses
         mock_kani = MagicMock()
@@ -428,7 +429,7 @@ class TestTranscriptLength:
         mock_get_engine.return_value = mock_engine
 
         # Mock moderation to allow the message
-        mock_moderate.return_value = None
+        mock_moderate.return_value = ModerationResult()
 
         # Mock Kani responses
         mock_kani = MagicMock()

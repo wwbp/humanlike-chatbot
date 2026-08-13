@@ -5,6 +5,7 @@ from asgiref.sync import sync_to_async
 from django.test import TestCase
 
 from chatbot.models import Bot, Conversation, Model, ModelProvider, Utterance
+from chatbot.services.moderation import ModerationResult
 from chatbot.services.runchat import run_chat_round
 
 
@@ -52,7 +53,7 @@ class TestChatbotIntegration(TestCase):
     async def test_basic_conversation_flow(self, mock_get_engine, mock_moderate):
         """Test basic conversation flow with new model structure"""
         # Mock moderation to allow all messages
-        mock_moderate.return_value = None
+        mock_moderate.return_value = ModerationResult()
 
         # Mock engine
         mock_engine = MagicMock()
@@ -130,7 +131,7 @@ class TestChatbotIntegration(TestCase):
     async def test_legacy_bot_compatibility(self, mock_get_engine, mock_moderate):
         """Test that legacy bots with old model fields still work"""
         # Mock moderation to allow all messages
-        mock_moderate.return_value = None
+        mock_moderate.return_value = ModerationResult()
 
         # Mock engine
         mock_engine = MagicMock()

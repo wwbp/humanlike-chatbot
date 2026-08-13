@@ -117,6 +117,8 @@ async def save_chat_to_db(
     participant_id=None,
     instruction_prompt=None,
     chat_history_used=None,
+    moderation_category=None,
+    moderation_scores=None,
 ):
     """
     Save chat messages asynchronously to the Utterance table.
@@ -147,6 +149,8 @@ async def save_chat_to_db(
             text=text,
             instruction_prompt=instruction_prompt,
             chat_history_used=chat_history_used,
+            moderation_category=moderation_category,
+            moderation_scores=moderation_scores,
         )
 
         logger.info(f"Successfully saved utterance for conversation {conversation_id}")
@@ -193,19 +197,24 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
     # Run in thread to avoid blocking
     # thread_sensitive=False: moderate_message uses time.sleep (mock) or an HTTP
     # call (real). Neither touches the DB, so don't tie up the single DB-thread.
-    blocked = await sync_to_async(moderate_message, thread_sensitive=False)(
+    moderation = await sync_to_async(moderate_message, thread_sensitive=False)(
         message, bot
     )
-    if blocked:
+    if moderation.category:
         # Prepare a generic warning — do NOT expose the category to the user
         warning_text = "Your message could not be processed. Please keep conversations respectful and constructive."
-        # Save both user message and moderation response
+        # Save both user message and moderation response. Both rows carry the
+        # category so the exchange is identifiable in the DB without matching
+        # the warning text; the category itself never reaches the client. The
+        # scores go on the user row only — that is the message they describe.
         await save_chat_to_db(
             conversation_id=conversation_id,
             speaker_id="user",
             text=message,
             bot_name=None,
             participant_id=participant_id,
+            moderation_category=moderation.category,
+            moderation_scores=moderation.scores,
         )
         await save_chat_to_db(
             conversation_id=conversation_id,
@@ -214,6 +223,7 @@ async def run_chat_round(bot_name, conversation_id, participant_id, message):
             bot_name=bot.name,
             participant_id=None,
             instruction_prompt=bot.prompt,  # Use bot prompt for moderation responses
+            moderation_category=moderation.category,
         )
         return warning_text, bot
 

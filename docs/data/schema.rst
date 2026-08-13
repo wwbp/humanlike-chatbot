@@ -96,6 +96,25 @@ Each row corresponds to a single message (utterance) in a conversation.
 +---------------------+------------------+--------------------------------------------------------------+
 | ``is_voice``        | BOOLEAN          | Indicates whether the utterance includes voice (1 = True).   |
 +---------------------+------------------+--------------------------------------------------------------+
+| ``instruction_prompt`` | TEXT          | System prompt (bot prompt + persona) sent to the LLM.        |
++---------------------+------------------+--------------------------------------------------------------+
+| ``chat_history_used`` | TEXT (JSON)    | Chat history that was actually passed to the LLM.            |
++---------------------+------------------+--------------------------------------------------------------+
+| ``moderation_category`` | VARCHAR      | Moderation category that blocked this exchange; ``NULL``     |
+|                     |                  | when the message was not blocked.                            |
++---------------------+------------------+--------------------------------------------------------------+
+| ``moderation_scores`` | JSON           | Full category→score map for a blocked message. Recorded on   |
+|                     |                  | the participant row only; ``NULL`` otherwise.                |
++---------------------+------------------+--------------------------------------------------------------+
+
+.. note::
+
+   When a message is blocked, no LLM call is made. Two rows are written: the
+   participant's message and a fixed warning reply. Both carry
+   ``moderation_category``, so ``WHERE moderation_category IS NOT NULL``
+   returns the complete exchange. To exclude canned warnings from a transcript,
+   drop the assistant rows where that column is set. Blocks that predate this
+   column are labelled ``unknown`` — their true category was never recorded.
 
 ---
 

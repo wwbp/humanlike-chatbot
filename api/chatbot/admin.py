@@ -14,6 +14,7 @@ from import_export.admin import ExportMixin
 from PIL import Image
 
 from .models import (
+    MODERATION_CATEGORIES,
     Avatar,
     Bot,
     Conversation,
@@ -21,6 +22,7 @@ from .models import (
     ModerationSettings,
     Persona,
     Utterance,
+    moderation_field_name,
 )
 from .services.avatar import generate_avatar
 from .services.s3_helper import delete, get_presigned_url, upload
@@ -372,6 +374,7 @@ class UtteranceAdmin(ExportMixin, BaseAdmin):
         "chat_history_used_preview",
         "created_time",
         "is_voice",
+        "moderation_category",
     )
     list_display_links = ("conversation_link", "text_preview")
     search_fields = (
@@ -381,8 +384,16 @@ class UtteranceAdmin(ExportMixin, BaseAdmin):
         "text",
         "conversation__conversation_id",
     )
-    list_filter = ("is_voice", "speaker_id", "bot_name", "created_time")
-    readonly_fields = ("created_time",)
+    list_filter = (
+        "is_voice",
+        "speaker_id",
+        "bot_name",
+        "created_time",
+        "moderation_category",
+    )
+    # The moderation columns record what the moderation path actually did —
+    # editing them by hand would corrupt that record.
+    readonly_fields = ("created_time", "moderation_category", "moderation_scores")
     ordering = ("-created_time",)
     list_per_page = 50
 
@@ -470,6 +481,14 @@ class UtteranceAdmin(ExportMixin, BaseAdmin):
             {
                 "fields": ("audio_file", "is_voice"),
                 "classes": ("collapse",),
+            },
+        ),
+        (
+            "Moderation",
+            {
+                "fields": ("moderation_category", "moderation_scores"),
+                "classes": ("collapse",),
+                "description": "Set only when this exchange was blocked by moderation. The category appears on both the user message and the canned warning; the full score map is kept on the user message only.",
             },
         ),
         (
@@ -587,25 +606,13 @@ class BotAdmin(ExportMixin, BaseAdmin):
 
     def moderation_summary(self, obj):
         """Display moderation settings summary"""
-        # Check if any values differ from defaults
-        defaults = {
-            "moderation_harassment": 0.50,
-            "moderation_harassment_threatening": 0.10,
-            "moderation_hate": 0.50,
-            "moderation_hate_threatening": 0.10,
-            "moderation_self_harm": 0.20,
-            "moderation_self_harm_instructions": 0.50,
-            "moderation_self_harm_intent": 0.70,
-            "moderation_sexual": 0.50,
-            "moderation_sexual_minors": 0.20,
-            "moderation_violence": 0.70,
-            "moderation_violence_graphic": 0.80,
-        }
-
+        # Derived from the model's own field defaults rather than a second copy
+        # of them — the copy silently omitted categories as they were added.
         custom_count = 0
-        for field_name, default_value in defaults.items():
-            current_value = float(getattr(obj, field_name))
-            if current_value != default_value:
+        for category in MODERATION_CATEGORIES:
+            field_name = moderation_field_name(category)
+            default_value = Bot.default_moderation_threshold(category)
+            if float(getattr(obj, field_name)) != default_value:
                 custom_count += 1
 
         if custom_count == 0:
@@ -704,6 +711,7 @@ class BotAdmin(ExportMixin, BaseAdmin):
                 "fields": (
                     ("moderation_harassment", "moderation_harassment_threatening"),
                     ("moderation_hate", "moderation_hate_threatening"),
+                    ("moderation_illicit", "moderation_illicit_violent"),
                     (
                         "moderation_self_harm",
                         "moderation_self_harm_instructions",

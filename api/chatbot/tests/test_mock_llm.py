@@ -17,6 +17,7 @@ from django.conf import settings
 from django.test import RequestFactory, TestCase
 
 from chatbot.models import Bot, Conversation, Model, Utterance
+from chatbot.services.moderation import ModerationResult
 from chatbot.services.runchat import run_chat_round
 
 # ── Moderation mock ───────────────────────────────────────────────────────────
@@ -41,7 +42,7 @@ class TestMockModeration(TestCase):
         from chatbot.services.moderation import moderate_message
 
         result = moderate_message("hello world", self.bot)
-        assert result == ""
+        assert result.category is None
         mock_sleep.assert_called_once()
 
     @patch("chatbot.services.moderation._MOCK_LLM", True)
@@ -65,13 +66,13 @@ class TestMockModeration(TestCase):
 
     @patch("chatbot.services.moderation._MOCK_LLM", False)
     def test_real_path_skips_when_no_api_key(self):
-        """Without an API key the real path should still return '' gracefully."""
+        """Without an API key the real path should still allow the message."""
         from chatbot.services.moderation import moderate_message
 
         with patch("chatbot.services.moderation.settings") as mock_settings:
             mock_settings.OPENAI_API_KEY = None
             result = moderate_message("hello", self.bot)
-        assert result == ""
+        assert result.category is None
 
 
 # ── Runchat mock ──────────────────────────────────────────────────────────────
@@ -109,7 +110,9 @@ async def test_mock_llm_skips_kani(bot_and_conv):
             "chatbot.services.runchat.asyncio.sleep", new_callable=AsyncMock
         ) as mock_sleep,
         patch("chatbot.services.runchat.Kani") as mock_kani_cls,
-        patch("chatbot.services.runchat.moderate_message", return_value=""),
+        patch(
+            "chatbot.services.runchat.moderate_message", return_value=ModerationResult()
+        ),
     ):
         response, returned_bot = await run_chat_round(
             bot_name=bot.name,
@@ -133,7 +136,9 @@ async def test_mock_llm_writes_both_utterances_to_db(bot_and_conv):
     with (
         patch("chatbot.services.runchat._MOCK_LLM", True),
         patch("chatbot.services.runchat.asyncio.sleep", new_callable=AsyncMock),
-        patch("chatbot.services.runchat.moderate_message", return_value=""),
+        patch(
+            "chatbot.services.runchat.moderate_message", return_value=ModerationResult()
+        ),
     ):
         await run_chat_round(
             bot_name=bot.name,
@@ -163,7 +168,9 @@ async def test_mock_llm_updates_redis_cache(bot_and_conv):
     with (
         patch("chatbot.services.runchat._MOCK_LLM", True),
         patch("chatbot.services.runchat.asyncio.sleep", new_callable=AsyncMock),
-        patch("chatbot.services.runchat.moderate_message", return_value=""),
+        patch(
+            "chatbot.services.runchat.moderate_message", return_value=ModerationResult()
+        ),
     ):
         await run_chat_round(
             bot_name=bot.name,

@@ -8,6 +8,7 @@ Coverage:
   - Utterances saved to DB after a successful round
   - No double bot fetch regression: view must not re-query Bot after run_chat_round
   - Moderation blocked: warning text returned, both utterances saved to DB
+  - Moderation blocked: category recorded on both rows, never leaked to the client
 """
 
 import uuid
@@ -18,6 +19,7 @@ from asgiref.sync import sync_to_async
 from django.test import AsyncClient
 
 from chatbot.models import Bot, Conversation, Model, Utterance
+from chatbot.services.moderation import ModerationResult
 
 URL = "/api/chatbot/"
 
@@ -149,7 +151,10 @@ class TestChatbotView:
             import json
 
             client = AsyncClient()
-            with patch("chatbot.services.runchat.moderate_message", return_value=False):
+            with patch(
+                "chatbot.services.runchat.moderate_message",
+                return_value=ModerationResult(),
+            ):
                 r = await client.post(
                     URL,
                     data=json.dumps(
@@ -183,7 +188,10 @@ class TestChatbotView:
                 patch(
                     "chatbot.services.runchat.Kani", return_value=_mock_kani("Great!")
                 ),
-                patch("chatbot.services.runchat.moderate_message", return_value=False),
+                patch(
+                    "chatbot.services.runchat.moderate_message",
+                    return_value=ModerationResult(),
+                ),
             ):
                 r = await self._post(client)
 
@@ -216,7 +224,10 @@ class TestChatbotView:
                     "chatbot.services.runchat.Kani",
                     return_value=_mock_kani("Specific reply."),
                 ),
-                patch("chatbot.services.runchat.moderate_message", return_value=False),
+                patch(
+                    "chatbot.services.runchat.moderate_message",
+                    return_value=ModerationResult(),
+                ),
             ):
                 r = await self._post(client, message="Tell me something")
 
@@ -236,7 +247,10 @@ class TestChatbotView:
                     return_value=MagicMock(),
                 ),
                 patch("chatbot.services.runchat.Kani", return_value=_mock_kani()),
-                patch("chatbot.services.runchat.moderate_message", return_value=False),
+                patch(
+                    "chatbot.services.runchat.moderate_message",
+                    return_value=ModerationResult(),
+                ),
             ):
                 r = await self._post(client)
 
@@ -264,7 +278,10 @@ class TestChatbotView:
                     "chatbot.services.runchat.Kani",
                     return_value=_mock_kani("One. Two. Three."),
                 ),
-                patch("chatbot.services.runchat.moderate_message", return_value=False),
+                patch(
+                    "chatbot.services.runchat.moderate_message",
+                    return_value=ModerationResult(),
+                ),
             ):
                 r = await self._post(client)
 
@@ -290,7 +307,10 @@ class TestChatbotView:
                     "chatbot.services.runchat.Kani",
                     return_value=_mock_kani("Bot reply."),
                 ),
-                patch("chatbot.services.runchat.moderate_message", return_value=False),
+                patch(
+                    "chatbot.services.runchat.moderate_message",
+                    return_value=ModerationResult(),
+                ),
             ):
                 await self._post(client, message="User msg")
 
@@ -304,6 +324,9 @@ class TestChatbotView:
             assert utterances[0].text == "User msg"
             assert utterances[1].speaker_id == "assistant"
             assert utterances[1].text == "Bot reply."
+            # An unmoderated round leaves the moderation columns empty.
+            assert utterances[0].moderation_category is None
+            assert utterances[1].moderation_category is None
         finally:
             await sync_to_async(self.tearDown)()
 
@@ -332,12 +355,17 @@ class TestChatbotView:
                     return_value=MagicMock(),
                 ),
                 patch("chatbot.services.runchat.Kani"),
-                patch("chatbot.services.runchat.moderate_message", return_value=True),
+                patch(
+                    "chatbot.services.runchat.moderate_message",
+                    return_value=ModerationResult(category="harassment"),
+                ),
             ):
                 r = await self._post(client, message="Bad message")
 
             assert r.status_code == 200
             assert "could not be processed" in r.json()["response"]
+            # The tripped category must never reach the client.
+            assert "harassment" not in r.json()["response"]
         finally:
             await sync_to_async(self.tearDown)()
 
@@ -353,7 +381,10 @@ class TestChatbotView:
                     return_value=MagicMock(),
                 ),
                 patch("chatbot.services.runchat.Kani"),
-                patch("chatbot.services.runchat.moderate_message", return_value=True),
+                patch(
+                    "chatbot.services.runchat.moderate_message",
+                    return_value=ModerationResult(category="harassment"),
+                ),
             ):
                 await self._post(client, message="Bad message")
 
@@ -367,5 +398,70 @@ class TestChatbotView:
             assert utterances[0].text == "Bad message"
             assert utterances[1].speaker_id == "assistant"
             assert "could not be processed" in utterances[1].text
+        finally:
+            await sync_to_async(self.tearDown)()
+
+    @pytest.mark.django_db
+    @pytest.mark.asyncio
+    async def test_moderation_blocked_records_category_on_both_rows(self):
+        """Both rows of a blocked exchange carry the category, so one filter
+        returns the complete event without relying on row adjacency."""
+        await sync_to_async(self.setUp)()
+        try:
+            client = AsyncClient()
+            with (
+                patch(
+                    "chatbot.services.runchat.get_or_create_engine_from_model",
+                    return_value=MagicMock(),
+                ),
+                patch("chatbot.services.runchat.Kani"),
+                patch(
+                    "chatbot.services.runchat.moderate_message",
+                    return_value=ModerationResult(category="self-harm/intent"),
+                ),
+            ):
+                await self._post(client, message="Bad message")
+
+            utterances = await sync_to_async(list)(
+                Utterance.objects.filter(
+                    conversation=self.conv, moderation_category__isnull=False
+                ).order_by("created_time")
+            )
+            assert len(utterances) == 2
+            assert [u.speaker_id for u in utterances] == ["user", "assistant"]
+            assert all(u.moderation_category == "self-harm/intent" for u in utterances)
+        finally:
+            await sync_to_async(self.tearDown)()
+
+    @pytest.mark.django_db
+    @pytest.mark.asyncio
+    async def test_moderation_blocked_records_scores_on_user_row_only(self):
+        """Scores describe the message that was scored, so they go on the user
+        row; duplicating the blob onto the canned warning adds no information."""
+        await sync_to_async(self.setUp)()
+        try:
+            scores = {"harassment": 0.91, "hate": 0.02, "violence": 0.4}
+            client = AsyncClient()
+            with (
+                patch(
+                    "chatbot.services.runchat.get_or_create_engine_from_model",
+                    return_value=MagicMock(),
+                ),
+                patch("chatbot.services.runchat.Kani"),
+                patch(
+                    "chatbot.services.runchat.moderate_message",
+                    return_value=ModerationResult(category="harassment", scores=scores),
+                ),
+            ):
+                await self._post(client, message="Bad message")
+
+            utterances = await sync_to_async(list)(
+                Utterance.objects.filter(conversation=self.conv).order_by(
+                    "created_time"
+                )
+            )
+            user_row, assistant_row = utterances
+            assert user_row.moderation_scores == scores
+            assert assistant_row.moderation_scores is None
         finally:
             await sync_to_async(self.tearDown)()

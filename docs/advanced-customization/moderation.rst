@@ -56,33 +56,44 @@ Behavior
 
 - **Below threshold:** Message is delivered normally.  
 - **Above threshold:** Message is blocked or replaced with a safe fallback.  
-- **Flagged:** Conversation entry is saved in the database with a moderation flag
-  for later review.
 
 Fallback Responses
 ------------------
 
 When a message is blocked, ChatbotLab automatically replaces it with a neutral
-response such as:
+response:
 
-> "I'm sorry, I can't discuss that topic."
+    "Your message could not be processed. Please keep conversations
+    respectful and constructive."
 
-You can customize fallback responses per bot to maintain tone or study context.
+Moderation Records
+-------------------
 
-Logging and Review
-------------------
+When a message is blocked, no call is made to the LLM. Two ``Utterance``
+rows are written instead: the participant's message and the fixed warning
+reply above.
 
-All moderated messages are recorded in the database with:
+- ``moderation_category`` is set on **both** rows, so
+  ``Utterance.objects.filter(moderation_category__isnull=False)`` returns
+  the complete blocked exchange, and the canned warnings can be identified
+  (and stripped out of transcripts) without relying on row adjacency or
+  matching the warning text.
+- ``moderation_scores``, the full category → score map returned by the
+  moderation API — including categories that passed, not just the one that
+  tripped — is recorded on the **participant's row only**, since that is the
+  message it describes.
+- The category is never sent to the client. Participants only ever see the
+  generic fallback message above.
 
-- Message text (if permitted)
-- Timestamp
-- Category scores
-- Flag status (safe / flagged / blocked)
+Both fields are visible, filterable, and read-only in the **Admin Panel**'s
+Utterance views — read-only because they record what the moderation path
+actually did, not something to hand-edit. CSV export from the Admin Panel
+picks up both fields automatically.
 
-These logs can be accessed through the **Admin Panel** for review and auditing.
-
-Researchers can also export moderation logs alongside other conversation data
-for quality control or annotation.
+Blocks that happened before this tracking existed have no recoverable
+category or scores, since the moderation API's response was never stored
+for them. Those historical rows are backfilled and labeled ``unknown``
+rather than left blank.
 
 Ethical Considerations
 ----------------------

@@ -13,5 +13,4 @@ directly using SQL tools.
    collected
    viewing
    exporting
-   sql-guis
    schema

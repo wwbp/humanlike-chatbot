@@ -115,22 +115,47 @@ a corpus this small.
 Plotting
 --------
 
+``plot_n_words_middle`` controls how many words near the center of the
+PHQ-9 dimension get labeled, in addition to the extremes. The default is a
+sparse plot; raising it (here, to 8) surfaces more of the mid-range
+vocabulary.
+
+Font sizes for axis text/titles and the legend aren't exposed as
+``textProjectionPlot()`` arguments, and ``$final_plot`` is a
+``cowplot::ggdraw()`` composite, so adding ``+ theme(...)`` to it afterward
+has no effect — the inner scatter plot is already baked into a grob by the
+time it's returned. To restyle it, intercept the package's internal
+(unexported) plotting function with ``trace()`` to capture the scatter
+plot before it's composited, apply the theme there, then re-render:
+
 .. code-block:: r
+
+   trace(text:::textPlotting, exit = quote({
+     assign("captured_plot", returnValue(), envir = .GlobalEnv)
+   }), print = FALSE, where = asNamespace("text"))
 
    plot_projection <- textProjectionPlot(
      word_data = projection_results,
      min_freq_words_plot = 2,
      plot_n_word_extreme = 8,
      plot_n_word_frequency = 4,
-     plot_n_words_middle = 2,
+     plot_n_words_middle = 8,
      y_axes = FALSE,
      p_alpha = 1,
-     title_top = "Supervised Dimension Projection of PHQ-9",
+     title_top = "",
      x_axes_label = "Low vs. High PHQ-9 score",
-     p_adjust_method = "none"
+     p_adjust_method = "none",
+     word_size_range = c(12, 30)
    )
 
-   plot_projection$final_plot
+   untrace(text:::textPlotting, where = asNamespace("text"))
+
+   captured_plot + ggplot2::theme(
+     axis.text = ggplot2::element_text(size = 40),
+     axis.title = ggplot2::element_text(size = 34),
+     plot.title = ggplot2::element_blank(),
+     legend.position = "none"
+   )
 
 .. image:: /_static/text_projection_phq9.png
    :alt: Supervised Dimension Projection scatter plot showing words positioned from low to high PHQ-9, with words like "alright" and "ok" on the low end and "feel" and "just" on the high end
@@ -139,8 +164,9 @@ Plotting
 Each point is a word type positioned along the PHQ-9 dimension on the
 x-axis. Setting ``y_axes = FALSE`` keeps this to the one-dimensional case,
 since we project onto only one variable. Point size scales with word
-frequency. The most extreme and most frequent words on each side are
-labeled.
+frequency, though we drop the legend that normally decodes that (and the
+plot title) to keep the enlarged-font version above readable. The most
+extreme and most frequent words on each side are labeled.
 
 Results
 -------

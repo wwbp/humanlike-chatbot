@@ -92,6 +92,40 @@ significant. ``--no_correction`` turns it off, so the p-values below are
 uncorrected. Treat them as exploratory, the same way we treat the z-scores
 and SDP scores in the other two tutorials.
 
+Word Clouds
+-----------
+
+Add ``--tagcloud --make_wordclouds`` to the same command to render the
+significant words as word clouds, sized by effect size, instead of just
+printing the correlation table:
+
+.. code-block:: bash
+
+   dlatkInterface.py --db_engine sqlite -d conversation_data/dlatk/dlatk \
+     -t msgs -c user_id \
+     -f 'feat$1gram$msgs$user_id$0_05' \
+     --outcome_table outcomes --outcomes phq9 \
+     --group_freq_thresh 50 \
+     --correlate --csv --rmatrix --sort --no_correction \
+     --tagcloud --make_wordclouds \
+     --output_name conversation_data/dlatk/dla_phq9
+
+This writes two PNGs to
+``conversation_data/dlatk/dla_phq9_tagcloud_wordclouds/``, one per
+direction of the correlation:
+
+.. image:: /_static/dla_phq9_wordcloud_higher.png
+   :alt: Word cloud of words positively correlated with higher PHQ-9, dominated by "that" and "weeks"
+   :width: 48%
+
+.. image:: /_static/dla_phq9_wordcloud_lower.png
+   :alt: Word cloud of words negatively correlated with PHQ-9 (i.e. correlated with lower PHQ-9), dominated by "one" and "it'd"
+   :width: 48%
+
+Larger words have a larger absolute correlation with PHQ-9. The left cloud
+is the same word list as the "higher PHQ-9" table below; the right cloud is
+the "lower PHQ-9" table.
+
 Results
 -------
 
